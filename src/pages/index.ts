@@ -1,0 +1,16 @@
+
+export { default as Home } from "./dashboard/home"
+export { default as Spending } from "./dashboard/spending"
+export { default as Settings } from "./dashboard/settings"
+export { default as Audience } from "./dashboard/audience"
+export { default as Donation } from "./dashboard/donation"
+export { default as Management } from "./dashboard/management"
+export { default as Revenue } from "./dashboard/revenue"
+export { default as Review } from "./dashboard/review"
+export { default as Ticket } from "./dashboard/ticket"
+export { default as Trending } from "./dashboard/trending" 
+
+export { default as Welcome } from "./welcome"
+export { default as Payment } from "./payment"
+export { default as NotFound } from "./notfound"
+export { default as AuthLoading } from "./authLoading"
