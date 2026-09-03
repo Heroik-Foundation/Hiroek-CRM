@@ -24,7 +24,9 @@ export default function DashboardLayout() {
                 </div>
             </section>
             <section className="w-full flex h-screen overflow-auto flex-col relative">
-                <Navbar />
+                <div className="  sticky top-0 w-full h-fit " >
+                    <Navbar />
+                </div>
                 <div className="flex bg-[#F5F3F9] flex-1 gap-3 flex-col p-6">
                     <Outlet />
                 </div>

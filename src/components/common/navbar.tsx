@@ -18,7 +18,7 @@ export default function Navbar() {
     ];
 
     return (
-        <nav className="w-full bg-white h-20 sm:h-24 px-6 sm:px-8 border-b border-[#00000015] flex items-center justify-between sticky top-0 z-20">
+        <nav className="w-full bg-white h-20 sm:h-24 px-6 sm:px-8 border-b border-[#00000015] flex items-center justify-between z-20">
             {/* Left: User Profile */}
             <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-full border-2 border-[#37137F] p-0.5 flex items-center justify-center shrink-0">
@@ -67,8 +67,8 @@ export default function Navbar() {
                                         setIsOpen(false);
                                     }}
                                     className={`w-full text-left px-4 py-2 text-xs font-medium transition-colors ${selectedRange === range
-                                            ? "bg-[#37137F15] text-[#37137F] font-bold"
-                                            : "text-gray-700 hover:bg-gray-50"
+                                        ? "bg-[#37137F15] text-[#37137F] font-bold"
+                                        : "text-gray-700 hover:bg-gray-50"
                                         }`}
                                 >
                                     {range}
