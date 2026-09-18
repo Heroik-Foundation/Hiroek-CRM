@@ -3,10 +3,9 @@ import { IoSearch, IoChevronForward, IoChevronBack } from "react-icons/io5";
 import { LuSquareCheck } from "react-icons/lu";
 import CustomTable from "../ui/customTable";
 import type { Column } from "../../type/table";
-import useRoles, { getMemberUserId } from "../../hooks/settings/useRoles";
+import useAudienceSegment from "../../hooks/useAudienceSegment";
 import useCampaign, { type CampaignChannel } from "../../hooks/useCampaign";
 import { toast, Spinner } from "@heroui/react";
-import type { ITeamMember } from "../../type/user";
 
 export default function Messaging() {
     const [currentView, setCurrentView] = useState<"compose" | "recipients">("compose");
@@ -25,59 +24,86 @@ export default function Messaging() {
     const { useCreateCampaign } = useCampaign();
     const createCampaignMutation = useCreateCampaign();
 
-    // 🌐 Load team members from GET /api/event-partners/account-management/get-members/{eventPartnerId}
-    const { useGetUsersRoles } = useRoles();
-    const { data: teamData, isLoading } = useGetUsersRoles();
+    // 🌐 Load all recipients from GET /api/analytics/audience-segments-customers/{organizerId}
+    const { useGetAudienceSegmentCustomer } = useAudienceSegment();
+    const { data: audienceData, isLoading } = useGetAudienceSegmentCustomer({
+        segment: "all",
+        limit: 1000,
+    });
 
-    const rawMembers: ITeamMember[] = useMemo(() => {
-        return (
-            teamData?.data ||
-            (teamData as any)?.results ||
-            (Array.isArray(teamData) ? teamData : [])
-        );
-    }, [teamData]);
+    const rawCustomers = useMemo(() => {
+        if (!audienceData) return [];
+        if (Array.isArray(audienceData)) return audienceData;
+        if (Array.isArray(audienceData?.data)) return audienceData.data;
+        if (Array.isArray(audienceData?.results)) return audienceData.results;
+        if (Array.isArray(audienceData?.customers)) return audienceData.customers;
+        return [];
+    }, [audienceData]);
 
-    const allMembersList = useMemo(() => {
-        if (!Array.isArray(rawMembers) || rawMembers.length === 0) return [];
-        return rawMembers.map((m: any, idx: number) => {
-            const uObj = typeof m.user === "object" ? m.user : null;
-            const id = getMemberUserId(m) || m._id || m.id || `member-${idx + 1}`;
+    const allRecipientsList = useMemo(() => {
+        if (!Array.isArray(rawCustomers) || rawCustomers.length === 0) return [];
+        return rawCustomers.map((item: any, idx: number) => {
+            const customerId =
+                item.customerId ||
+                item._id ||
+                item.id ||
+                (typeof item.user === "object" ? item.user?._id : null) ||
+                `recipient-${idx + 1}`;
+
             const name =
-                m.fullname ||
-                uObj?.fullname ||
-                (uObj as any)?.name ||
-                (uObj as any)?.username ||
-                "Team Member";
-            const email = m.email || uObj?.email || "";
-            const phone = (m as any)?.phone || (uObj as any)?.phone || "-";
-            const role = m.role || "member";
-            const status = m.status || "active";
+                item.fullname ||
+                item.name ||
+                (item.firstName
+                    ? `${item.firstName} ${item.lastName || ""}`.trim()
+                    : null) ||
+                (typeof item.user === "object" ? item.user?.fullname : null) ||
+                item.username ||
+                item.email ||
+                "Recipient";
+
+            const email =
+                item.email ||
+                (typeof item.user === "object" ? item.user?.email : "") ||
+                "";
+
+            const phone =
+                item.phone ||
+                item.phoneNumber ||
+                item.mobile ||
+                item.telephone ||
+                (typeof item.user === "object" ? item.user?.phone : "") ||
+                "-";
+
+            const totalSpent = item.totalSpent ?? item.spent ?? item.amount ?? 0;
+            const totalEvents =
+                item.totalEvents ?? item.eventsCount ?? item.events ?? item.totalTicketsPurchased ?? 0;
 
             return {
-                id,
+                id: customerId,
                 sNo: idx + 1,
                 name,
+                username: item.username || "",
                 email,
                 phone,
-                role,
-                status,
-                rawMember: m,
+                totalSpent,
+                totalEvents,
+                rawCustomer: item,
             };
         });
-    }, [rawMembers]);
+    }, [rawCustomers]);
 
-    // Search filter across team members
+    // Search filter across recipients
     const filteredRecipients = useMemo(() => {
-        if (!searchQuery.trim()) return allMembersList;
+        if (!searchQuery.trim()) return allRecipientsList;
         const q = searchQuery.toLowerCase().trim();
-        return allMembersList.filter(
+        return allRecipientsList.filter(
             (r) =>
                 r.name.toLowerCase().includes(q) ||
                 r.email.toLowerCase().includes(q) ||
-                r.role.toLowerCase().includes(q) ||
+                (r.username && r.username.toLowerCase().includes(q)) ||
                 r.phone.includes(q)
         );
-    }, [allMembersList, searchQuery]);
+    }, [allRecipientsList, searchQuery]);
 
     const totalCount = filteredRecipients.length;
     const totalPages = Math.max(1, Math.ceil(totalCount / rowsPerPage));
@@ -136,36 +162,33 @@ export default function Messaging() {
                 ? "in_app"
                 : "email";
 
-        // Build recipients from selected team members
+        // Build recipients from selected
         const selectedRecipients = isSendToAll
             ? filteredRecipients
             : filteredRecipients.filter((r) => selectedIds.has(r.id));
-
-        // When sending via email, check that selected recipients have an email address
-        const recipientsWithEmail = selectedRecipients.filter(
-            (r) => r.email && r.email.trim() && r.email.includes("@")
-        );
-
-        if (channel === "email" && recipientsWithEmail.length === 0) {
-            toast.danger("The selected team member(s) do not have a valid email address");
-            return;
-        }
 
         const customerIds: string[] = [];
         const importedEmails: { email: string; name?: string }[] = [];
 
         selectedRecipients.forEach((r) => {
-            const strId = String(r.id);
+            const rawId = r.rawCustomer?.customerId || r.rawCustomer?._id || r.id;
+            const strId = String(rawId);
             if (/^[0-9a-fA-F]{24}$/.test(strId)) {
                 customerIds.push(strId);
             }
-            if (r.email && r.email.includes("@")) {
+            if (r.email && r.email.trim() && r.email.includes("@")) {
                 importedEmails.push({
                     email: r.email.trim(),
                     name: r.name || undefined,
                 });
             }
         });
+
+        // Validation for email channel: check that we have either customerIds or importedEmails
+        if (channel === "email" && customerIds.length === 0 && importedEmails.length === 0) {
+            toast.danger("The selected recipient(s) do not have a valid email address or customer ID");
+            return;
+        }
 
         const idempotencyKey = `campaign_${Date.now()}_${Math.random()
             .toString(36)
@@ -185,7 +208,7 @@ export default function Messaging() {
             });
 
             toast.success(
-                `Email dispatched to ${selectedRecipients.length} team member(s)!`
+                `Message dispatched to ${selectedRecipients.length} recipient(s)!`
             );
             setSendSuccess(true);
             setTimeout(() => setSendSuccess(false), 4000);
@@ -197,7 +220,7 @@ export default function Messaging() {
                 setCurrentView("compose");
             }
         } catch (err) {
-            console.error("Failed to send message to team members:", err);
+            console.error("Failed to send message to recipients:", err);
         }
     };
 
@@ -213,15 +236,22 @@ export default function Messaging() {
         },
         {
             id: "name",
-            name: "Member",
+            name: "Recipient",
             render: (_value, item) => (
                 <div className="flex items-center gap-2.5">
                     <div className="w-7 h-7 rounded-full bg-[#37137F15] text-[#37137F] font-bold text-xs flex items-center justify-center shrink-0">
-                        {item.name.charAt(0).toUpperCase()}
+                        {(item.name || "R").charAt(0).toUpperCase()}
                     </div>
-                    <span className="font-bold text-gray-900 text-sm whitespace-nowrap">
-                        {item.name}
-                    </span>
+                    <div className="flex flex-col">
+                        <span className="font-bold text-gray-900 text-sm whitespace-nowrap">
+                            {item.name}
+                        </span>
+                        {item.username && (
+                            <span className="text-[11px] text-gray-400 leading-tight">
+                                @{item.username}
+                            </span>
+                        )}
+                    </div>
                 </div>
             ),
         },
@@ -231,17 +261,30 @@ export default function Messaging() {
             render: (_value, item) => (
                 <span className="text-sm text-gray-700 whitespace-nowrap">
                     {item.email || (
-                        <span className="text-gray-400 italic text-xs">No email</span>
+                        <span className="text-gray-400 italic text-xs">
+                            {item.username ? `@${item.username}` : "-"}
+                        </span>
                     )}
                 </span>
             ),
         },
         {
-            id: "role",
-            name: "Role",
+            id: "events",
+            name: "Events",
             render: (_value, item) => (
-                <span className="capitalize text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-50 text-[#37137F] border border-purple-100">
-                    {item.role}
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-50 text-[#37137F] border border-purple-100 whitespace-nowrap">
+                    {item.totalEvents ?? 0} {item.totalEvents === 1 ? "Event" : "Events"}
+                </span>
+            ),
+        },
+        {
+            id: "totalSpent",
+            name: "Total Spent",
+            render: (_value, item) => (
+                <span className="text-sm font-semibold text-gray-800 whitespace-nowrap">
+                    {typeof item.totalSpent === "number"
+                        ? `£${item.totalSpent.toLocaleString()}`
+                        : item.totalSpent || "£0"}
                 </span>
             ),
         },
@@ -345,7 +388,7 @@ export default function Messaging() {
                                     setSearchQuery(e.target.value);
                                     setPage(1);
                                 }}
-                                placeholder="Search Team Members..."
+                                placeholder="Search Recipients..."
                                 className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#37137F] focus:ring-1 focus:ring-[#37137F] transition-all"
                             />
                         </div>
@@ -384,13 +427,13 @@ export default function Messaging() {
                         onPageChange={setPage}
                         rowsPerPage={rowsPerPage}
                         isLoading={isLoading}
-                        emptyText="No team members found"
+                        emptyText="No recipients found"
                         headerClassName="border-b border-gray-100 bg-transparent"
                         thClassName="py-3 px-4 text-xs sm:text-sm font-bold text-gray-900 text-left whitespace-nowrap"
                         customPagination={
                             <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-100">
                                 <span className="text-xs sm:text-sm text-gray-500 font-medium order-2 sm:order-1">
-                                    Showing {displayedRecipients.length} Of {totalCount} Team Members
+                                    Showing {displayedRecipients.length} Of {totalCount} Recipients
                                 </span>
 
                                 <div className="flex items-center gap-1.5 sm:gap-2 order-1 sm:order-2 overflow-x-auto max-w-full pb-1 sm:pb-0">
