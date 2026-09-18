@@ -42,7 +42,6 @@ export default function GetUsersRole() {
         });
     };
 
-    /** 🔄 Inline Role Change */
     const handleRoleChange = (member: ITeamMember, newRole: string) => {
         const memberUserId = member._id;
         if (!memberUserId) return;
