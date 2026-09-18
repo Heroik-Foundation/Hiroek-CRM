@@ -1,21 +1,20 @@
-import { useState } from "react";
+// import { useState } from "react";
 import { AgeDistributionChart, GenderSplitChart } from "../../components/charts";
 import { Header, KeyInsight } from "../../components/common";
 import { ChartLayout } from "../../components/layout";
-import CustomTable from "../../components/ui/customTable";
-import type { Column } from "../../type/table";
+// import CustomTable from "../../components/ui/customTable";
+// import type { Column } from "../../type/table";
 import useSpending from "../../hooks/useSpending";
 
 export default function Spending() {
-    const [page, setPage] = useState(1);
+    // const [page, setPage] = useState(1);
 
     const { useGetSpendingData, useGetTicketSpendDistributionData } = useSpending();
 
     const { data: spendingData, isLoading: isSpendingLoading } = useGetSpendingData();
     const { data: ticketSpendData, isLoading: isTicketLoading } = useGetTicketSpendDistributionData();
 
-
-
+    /*
     const columns: Column<any>[] = [
         { id: "name", name: "Name" },
         { id: "role", name: "Role" },
@@ -99,6 +98,7 @@ export default function Spending() {
             email: "james@acme.com",
         },
     ];
+    */
 
     return (
         <div className=" w-full flex flex-col gap-6 ">
@@ -106,7 +106,7 @@ export default function Spending() {
                 title="Spending behaviour"
                 body="Revenue insights and top contributors."
             />
-            <div className=" w-full flex gap-4 ">
+            <div className=" w-full grid grid-cols-1 lg:grid-cols-2 gap-4 ">
                 <ChartLayout title="Ticket Spend Distribution">
                     <GenderSplitChart data={spendingData} isLoading={isSpendingLoading} barColor="#37137F" />
                 </ChartLayout>
@@ -114,11 +114,11 @@ export default function Spending() {
                     <AgeDistributionChart data={ticketSpendData} isLoading={isTicketLoading} />
                 </ChartLayout>
             </div>
-            <div className=" w-full flex gap-4 ">
-                <div className=" flex-1 p-4 rounded-2xl bg-white flex flex-col gap-4 ">
+            <div className=" w-full flex flex-col lg:flex-row gap-4 ">
+                {/* <div className=" flex-1 p-4 rounded-2xl bg-white flex flex-col gap-4 overflow-hidden ">
                     <div className=" w-full flex justify-between items-center ">
                         <p className=" font-semibold ">Top 10 Spenders</p>
-                        <button className=" text-[#37137F] rounded-[44px] px-2 font-semibold bg-[#37137F26] h-6.5 text-xs ">
+                        <button className=" text-[#37137F] rounded-[44px] px-2 font-semibold bg-[#37137F26] h-6.5 text-xs cursor-pointer ">
                             View All
                         </button>
                     </div>
@@ -133,8 +133,8 @@ export default function Spending() {
                         onPageChange={setPage}
                         rowsPerPage={10}
                     />
-                </div>
-                <div className=" w-96.75 ">
+                </div> */}
+                <div className=" w-full lg:w-96.75 shrink-0 ">
                     <KeyInsight
                         bg="#08AF0F0D"
                         border="#08AF0F26"

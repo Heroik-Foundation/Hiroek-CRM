@@ -97,12 +97,12 @@ export default function Home() {
     const { data: acquisitionData, isLoading: isAcquisitionLoading } = useGetAcquisitionData();
 
     return (
-        <div className="w-full flex flex-col gap-6">
+        <div className="w-full flex flex-col gap-5 sm:gap-6">
             <Header
                 title="Dashboard Overview"
                 body="Key metrics and performance indicators"
             />
-            <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="w-full grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {analytics?.map(({ item, ...rest }, index) => {
                     return (
                         <OverviewCard

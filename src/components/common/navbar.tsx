@@ -1,11 +1,14 @@
 import { useState } from "react";
-import { useAtomValue } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { userAtom } from "../../utils/atom/user";
+import { drawerAtom } from "../../utils/atom/drawer";
 import { Notification } from "iconsax-reactjs";
 import { IoChevronDownCircle } from "react-icons/io5";
+import { HiMenu } from "react-icons/hi";
 
 export default function Navbar() {
     const user = useAtomValue(userAtom);
+    const [, setIsDrawerOpen] = useAtom(drawerAtom);
     const [selectedRange, setSelectedRange] = useState("Last 7 Days");
     const [isOpen, setIsOpen] = useState(false);
 
@@ -18,10 +21,10 @@ export default function Navbar() {
     ];
 
     return (
-        <nav className="w-full bg-white h-20 sm:h-24 px-6 sm:px-8 border-b border-[#00000015] flex items-center justify-between z-20">
-            {/* Left: User Profile */}
-            <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-full border-2 border-[#37137F] p-0.5 flex items-center justify-center shrink-0">
+        <nav className="w-full bg-white h-16 sm:h-20 md:h-24 px-4 sm:px-8 border-b border-[#00000015] flex items-center justify-between z-20">
+            {/* Left: User Profile & Mobile Menu Toggle */}
+            <div className="flex items-center gap-2.5 sm:gap-3">
+                <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full border-2 border-[#37137F] p-0.5 flex items-center justify-center shrink-0">
                     <img
                         src={
                             user?.logo ||
@@ -31,7 +34,17 @@ export default function Navbar() {
                         className="w-full h-full rounded-full object-cover"
                     />
                 </div>
-                <div className="flex flex-col">
+
+                {/* Mobile Drawer Trigger (Hamburger) */}
+                <button
+                    onClick={() => setIsDrawerOpen(true)}
+                    className="lg:hidden p-1.5 text-[#37137F] hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
+                    aria-label="Open navigation drawer"
+                >
+                    <HiMenu size={24} />
+                </button>
+
+                <div className="hidden md:flex flex-col">
                     <h3 className="font-bold text-base text-[#37137F] leading-tight">
                         {user?.name || "Joba Labs"}
                     </h3>
@@ -42,18 +55,19 @@ export default function Navbar() {
             </div>
 
             {/* Right: Filter & Notifications */}
-            <div className="flex items-center gap-3 sm:gap-4">
+            <div className="flex items-center gap-2.5 sm:gap-4">
                 {/* Time Range Dropdown */}
                 <div className="relative">
                     <button
                         onClick={() => setIsOpen(!isOpen)}
-                        className="bg-[#37137F] hover:bg-[#2c0e66] text-white rounded-xl px-4 py-2.5 text-xs font-semibold flex items-center gap-2.5 transition-colors shadow-sm cursor-pointer"
+                        className="bg-[#37137F] hover:bg-[#2c0e66] text-white rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs font-semibold flex items-center gap-2 sm:gap-2.5 transition-colors shadow-xs cursor-pointer"
                     >
                         <span>{selectedRange}</span>
                         <IoChevronDownCircle
                             size={16}
-                            className={`text-white transition-transform ${isOpen ? "rotate-180" : ""
-                                }`}
+                            className={`text-white transition-transform ${
+                                isOpen ? "rotate-180" : ""
+                            }`}
                         />
                     </button>
 
@@ -66,10 +80,11 @@ export default function Navbar() {
                                         setSelectedRange(range);
                                         setIsOpen(false);
                                     }}
-                                    className={`w-full text-left px-4 py-2 text-xs font-medium transition-colors ${selectedRange === range
-                                        ? "bg-[#37137F15] text-[#37137F] font-bold"
-                                        : "text-gray-700 hover:bg-gray-50"
-                                        }`}
+                                    className={`w-full text-left px-4 py-2 text-xs font-medium transition-colors ${
+                                        selectedRange === range
+                                            ? "bg-[#37137F15] text-[#37137F] font-bold"
+                                            : "text-gray-700 hover:bg-gray-50"
+                                    }`}
                                 >
                                     {range}
                                 </button>
@@ -80,7 +95,7 @@ export default function Navbar() {
 
                 {/* Notification Bell Button */}
                 <button
-                    className="w-10 h-10 rounded-full border border-gray-200 bg-white flex items-center justify-center text-[#37137F] hover:bg-gray-50 transition-colors shadow-sm cursor-pointer"
+                    className="hidden sm:flex w-10 h-10 rounded-full border border-gray-200 bg-white items-center justify-center text-[#37137F] hover:bg-gray-50 transition-colors shadow-xs cursor-pointer"
                     title="Notifications"
                 >
                     <Notification size={20} color="#37137F" variant="Outline" />

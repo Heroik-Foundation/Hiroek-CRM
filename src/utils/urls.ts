@@ -30,6 +30,9 @@ export const URLS = {
     GET_TOP_DONORS: (organizerId: string) => `/analytics/top-donors/${organizerId}`,
     GET_EVENT_DONATIONS: (organizerId: string) => `/analytics/get-event-donations/${organizerId}`,
 
+    GET_REVIEWS: (organizerId: string) => `/analytics/reviews/${organizerId}`,
+    GET_REVIEWS_STATS: (organizerId: string) => `/analytics/reviews-stats/${organizerId}`,
+
     GET_USERS_DATA: "/event-partners/current-partner",
     USERS: "/user",
     EDIT_USER: "/event-partners/edit-details",
@@ -41,4 +44,15 @@ export const URLS = {
     GET_TEAM: (eventPartnerId: string) =>
         `/event-partners/account-management/get-members/${eventPartnerId}`,
     ADD_TEAM: "/event-partners/account-management/create-team-member",
+    DELETE_TEAM_MEMBER: (memberUserId: string) =>
+        `/event-partners/account-management/delete-member/${memberUserId}`,
+    UPDATE_TEAM_MEMBER: (memberUserId: string) =>
+        `/event-partners/account-management/update-member-details/${memberUserId}`,
+    GET_EMAIL_BUNDLES: "/email-bundles",
+    GET_EMAIL_BALANCE: "/email-bundles/balance",
+    PURCHASE_EMAIL_BUNDLE: (bundleId: string) =>
+        `/email-bundles/purchase-bundle/${bundleId}`,
+    GET_TICKET_SCAN_LOGS: "/events/ticket-scan-logs",
+    GET_ALL_EVENTS: "/events/all-events",
+    CREATE_CAMPAIGN: "/event-partners/campaign/create-campaign",
 };   

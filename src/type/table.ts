@@ -20,8 +20,13 @@ export interface CustomTableProps<T extends Record<string, unknown>> {
   onPageChange?: (page: number) => void;
   rowsPerPage?: number;
 
+  // Styling & Customization
+  headerClassName?: string;
+  thClassName?: string;
+  customPagination?: React.ReactNode;
+
   // States
   isLoading?: boolean;
   emptyText?: string;
-  onClick?: ()=> void;
+  onClick?: (item?: T) => void;
 }

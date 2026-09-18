@@ -7,8 +7,8 @@ export default function Security() {
 
     return (
         <section className=" flex-1 ">
-            <form className=" max-w-175 w-full bg-white rounded-xl p-6 flex flex-col gap-6 ">
-                <p className=" font-semibold text-lg ">Account & Profile</p>
+            <form className=" max-w-175 w-full bg-white rounded-2xl p-4 sm:p-6 flex flex-col gap-6 border border-gray-100 shadow-xs ">
+                <p className=" font-semibold text-lg ">Login & Security</p>
                 <FormikProvider value={formik}>
                     <section className=" w-full flex flex-col gap-4 ">
                         <div className=" flex flex-col gap-2 ">
@@ -56,7 +56,7 @@ export default function Security() {
                                 </div>
                             </div>
                         </div>
-                        <CustomButton fullWidth>Save Changes</CustomButton>
+                        <CustomButton fullWidth>Update Security Settings</CustomButton>
                     </section>
                 </FormikProvider>
             </form>

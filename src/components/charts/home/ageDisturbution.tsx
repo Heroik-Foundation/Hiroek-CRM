@@ -14,7 +14,7 @@ export interface AgeDistributionChartProps {
   height?: number;
   innerRadius?: number;
   outerRadius?: number;
-  valueFormatter?: (item: { value: number }) => string;
+  valueFormatter?: (item: any) => string;
 }
 
 const DEFAULT_PALETTE = [
@@ -33,47 +33,56 @@ export default function AgeDistributionChart({
   height = 240,
   innerRadius = 55,
   outerRadius = 100,
-  valueFormatter = (item: { value: number }) => `${item.value}%`,
+  valueFormatter,
 }: AgeDistributionChartProps) {
   // Detect if incoming data is the Ticket Spend Distribution Stat (free/paid tickets)
-  const isTicketSpendStat =
-    propData &&
-    typeof propData === "object" &&
-    !Array.isArray(propData) &&
-    ("freeTickets" in propData ||
-      "paidTickets" in propData ||
-      "freePercentage" in propData ||
-      "paidPercentage" in propData);
+  const statSource =
+    propData && typeof propData === "object" && !Array.isArray(propData)
+      ? (propData.data && typeof propData.data === "object" && !Array.isArray(propData.data)
+          ? propData.data
+          : propData)
+      : null;
 
-  if (isTicketSpendStat) {
-    const freeCount = Number(propData.freeTickets ?? 0);
-    const paidCount = Number(propData.paidTickets ?? 0);
+  const isTicketSpendStat = Boolean(
+    statSource &&
+    ("freeTickets" in statSource ||
+      "paidTickets" in statSource ||
+      "freePercentage" in statSource ||
+      "paidPercentage" in statSource)
+  );
+
+  if (isTicketSpendStat && statSource) {
+    const freeCount = Number(statSource.freeTickets ?? 0);
+    const paidCount = Number(statSource.paidTickets ?? 0);
     const totalCount = freeCount + paidCount;
 
     const freePct = Number(
-      propData.freePercentage ??
+      statSource.freePercentage ??
         (totalCount > 0 ? (freeCount / totalCount) * 100 : 0)
     );
 
     const paidPct = Number(
-      propData.paidPercentage ??
+      statSource.paidPercentage ??
         (totalCount > 0 ? (paidCount / totalCount) * 100 : 0)
     );
 
-    const pieSeriesData = [
-      {
-        id: "paid",
-        label: "Paid Tickets",
-        value: Math.round(paidPct),
-        color: "#37137F",
-      },
-      {
-        id: "free",
-        label: "Free Tickets",
-        value: Math.round(freePct),
-        color: "#FFA043",
-      },
-    ];
+    const hasData = totalCount > 0 || freePct > 0 || paidPct > 0;
+    const pieSeriesData = hasData
+      ? [
+          {
+            id: "paid",
+            label: "Paid Tickets",
+            value: Math.round(paidPct),
+            color: "#37137F",
+          },
+          {
+            id: "free",
+            label: "Free Tickets",
+            value: Math.round(freePct),
+            color: "#FFA043",
+          },
+        ]
+      : [];
 
     return (
       <div className="w-full h-full min-h-80 flex flex-col justify-between">
@@ -90,10 +99,13 @@ export default function AgeDistributionChart({
                     outerRadius: 95,
                     paddingAngle: 1,
                     cornerRadius: 0,
-                    arcLabel: (item) => (item.value > 0 ? `${item.label}\n${item.value}%` : ""),
+                    arcLabel: (item) => (Number(item?.value ?? 0) > 0 ? `${item.label}\n${item.value}%` : ""),
                     arcLabelMinAngle: 20,
                     arcLabelRadius: "55%",
-                    valueFormatter: (item) => `${item.value}%`,
+                    valueFormatter: (item: any) => {
+                      const val = typeof item === "number" ? item : Number(item?.value ?? 0);
+                      return `${val}%`;
+                    },
                   },
                 ]}
                 sx={{
@@ -151,13 +163,17 @@ export default function AgeDistributionChart({
   }
 
   // Detect if incoming data is Donor Frequency ({ totalDonors, buckets })
-  const isDonationFrequency =
-    propData &&
-    typeof propData === "object" &&
-    !Array.isArray(propData) &&
-    Array.isArray(propData.buckets);
+  const freqSource =
+    propData && typeof propData === "object" && !Array.isArray(propData)
+      ? (propData.data && typeof propData.data === "object" && !Array.isArray(propData.data)
+          ? propData.data
+          : propData)
+      : null;
 
-  if (isDonationFrequency) {
+  const isDonationFrequency =
+    Boolean(freqSource && Array.isArray(freqSource.buckets));
+
+  if (isDonationFrequency && freqSource) {
     const FREQ_COLORS: Record<string, string> = {
       "one-time": "#37137F",
       "2-3-times": "#E87063",
@@ -170,18 +186,27 @@ export default function AgeDistributionChart({
       "4-plus-times": "4+ Times",
     };
 
-    const pieSeriesData = propData.buckets.map((b: any, index: number) => {
-      const key = String(b.frequency ?? "").toLowerCase();
-      const label = FREQ_LABELS[key] ?? b.label ?? `Bucket ${index + 1}`;
-      const color = FREQ_COLORS[key] ?? DEFAULT_PALETTE[index % DEFAULT_PALETTE.length];
-      const value = Number(b.percentage ?? b.count ?? 0);
-      return {
-        id: b.frequency ?? index,
-        label,
-        value,
-        color,
-      };
-    });
+    const buckets: any[] = Array.isArray(freqSource.buckets) ? freqSource.buckets : [];
+    const totalFreqVal = buckets.reduce(
+      (sum, b) => sum + Number(b.percentage ?? b.count ?? 0),
+      0
+    );
+
+    const pieSeriesData =
+      totalFreqVal > 0
+        ? buckets.map((b: any, index: number) => {
+            const key = String(b.frequency ?? "").toLowerCase();
+            const label = FREQ_LABELS[key] ?? b.label ?? `Bucket ${index + 1}`;
+            const color = FREQ_COLORS[key] ?? DEFAULT_PALETTE[index % DEFAULT_PALETTE.length];
+            const value = Number(b.percentage ?? b.count ?? 0);
+            return {
+              id: b.frequency ?? index,
+              label,
+              value,
+              color,
+            };
+          })
+        : [];
 
     return (
       <div className="w-full h-full min-h-80 flex items-center justify-between">
@@ -196,10 +221,14 @@ export default function AgeDistributionChart({
                   outerRadius: 95,
                   paddingAngle: 1,
                   cornerRadius: 0,
-                  arcLabel: (item) => (item.value > 0 ? `${item.label}\n${item.value}%` : ""),
+                  arcLabel: (item: any) =>
+                    Number(item?.value ?? 0) > 0 ? `${item.label}\n${item.value}%` : "",
                   arcLabelMinAngle: 20,
                   arcLabelRadius: "55%",
-                  valueFormatter: (item) => `${item.value}%`,
+                  valueFormatter: (item: any) => {
+                    const val = typeof item === "number" ? item : Number(item?.value ?? 0);
+                    return `${val}%`;
+                  },
                 },
               ]}
               sx={{
@@ -239,19 +268,20 @@ export default function AgeDistributionChart({
   }
 
   // Normal Age Distribution Chart
+  const normalSource =
+    propData && typeof propData === "object" && !Array.isArray(propData) && propData.data
+      ? propData.data
+      : propData;
+
   let rawItems: any[] = [];
-  if (Array.isArray(propData)) {
-    rawItems = propData;
-  } else if (propData && typeof propData === "object") {
-    if (Array.isArray(propData.data)) {
-      rawItems = propData.data;
-    } else {
-      rawItems = Object.entries(propData).map(([key, val], idx) => ({
-        id: idx,
-        label: key,
-        value: typeof val === "number" ? val : Number((val as any)?.value ?? 0),
-      }));
-    }
+  if (Array.isArray(normalSource)) {
+    rawItems = normalSource;
+  } else if (normalSource && typeof normalSource === "object") {
+    rawItems = Object.entries(normalSource).map(([key, val], idx) => ({
+      id: idx,
+      label: key,
+      value: typeof val === "number" ? val : Number((val as any)?.value ?? (val as any)?.count ?? (val as any)?.percentage ?? 0),
+    }));
   }
 
   const chartData: AgeDistributionItem[] = rawItems.map((item: any, index: number) => ({
@@ -261,9 +291,12 @@ export default function AgeDistributionChart({
     color: item.color ?? DEFAULT_PALETTE[index % DEFAULT_PALETTE.length],
   }));
 
+  const totalChartValue = chartData.reduce((sum, item) => sum + (item.value || 0), 0);
+  const effectiveLength = totalChartValue > 0 ? chartData.length : 0;
+
   return (
     <div className="relative w-full h-full min-h-80 flex flex-col justify-center items-center">
-      <LoadingLayout loading={isLoading} length={chartData.length}>
+      <LoadingLayout loading={isLoading} length={effectiveLength}>
         <div className="relative w-full h-75 flex items-center justify-center">
           <PieChart
             height={height}
@@ -274,9 +307,24 @@ export default function AgeDistributionChart({
                 outerRadius,
                 paddingAngle: 2,
                 cornerRadius: 4,
-                arcLabel: (item) => `${item.value}%`,
+                arcLabel: (item) => (Number(item?.value ?? 0) > 0 ? `${item.value}%` : ""),
                 arcLabelMinAngle: 20,
-                valueFormatter,
+                valueFormatter: (item: any) => {
+                  if (valueFormatter) {
+                    try {
+                      const formatted = valueFormatter(
+                        typeof item === "object" && item !== null
+                          ? item
+                          : { value: Number(item ?? 0) }
+                      );
+                      if (formatted && !formatted.includes("undefined")) return formatted;
+                    } catch {
+                      // fallback to standard format
+                    }
+                  }
+                  const val = typeof item === "number" ? item : Number(item?.value ?? 0);
+                  return `${val}%`;
+                },
               },
             ]}
             sx={{

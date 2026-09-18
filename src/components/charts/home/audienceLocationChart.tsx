@@ -26,21 +26,24 @@ export default function AudienceLocationChart({
   trackColor = "bg-[#F3F4F6]",
   unit = "%",
 }: AudienceLocationChartProps) {
+  const dataSource =
+    propData && typeof propData === "object" && !Array.isArray(propData) && propData.data !== undefined
+      ? propData.data
+      : propData;
+
   let rawItems: any[] = [];
-  if (Array.isArray(propData)) {
-    rawItems = propData;
-  } else if (propData && typeof propData === "object") {
-    if (Array.isArray(propData.data)) {
-      rawItems = propData.data;
-    } else {
-      rawItems = Object.entries(propData).map(([key, val]) => ({
+  if (Array.isArray(dataSource)) {
+    rawItems = dataSource;
+  } else if (dataSource && typeof dataSource === "object") {
+    rawItems = Object.entries(dataSource)
+      .filter(([key]) => key !== "status" && key !== "message")
+      .map(([key, val]) => ({
         city: key,
         percentage:
           typeof val === "number"
             ? val
-            : Number((val as any)?.percentage ?? (val as any)?.value ?? 0),
+            : Number((val as any)?.percentage ?? (val as any)?.value ?? (val as any)?.count ?? 0),
       }));
-    }
   }
 
   const chartData: LocationItem[] = rawItems.map((item: any) => ({

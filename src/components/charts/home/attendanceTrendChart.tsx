@@ -1,3 +1,4 @@
+import { useRef, useState, useEffect } from "react";
 import { LineChart } from "@mui/x-charts/LineChart";
 import { LoadingLayout } from "../../layout";
 
@@ -33,21 +34,81 @@ export default function AttendanceTrendChart({
   xAxisKey = "month",
   label = "Attendance",
   color = "#7047EB",
-  height = 240,
+  height,
   showLegend = true,
   legendLabel = "Last 30 Days",
   yAxisMax,
   curve = "natural",
   valueFormatter,
 }: AttendanceTrendChartProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState<{ width: number; height: number }>({
+    width: 0,
+    height: height ?? 280,
+  });
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        const { clientWidth, clientHeight } = containerRef.current;
+        if (clientWidth > 0) {
+          setDimensions({
+            width: clientWidth,
+            height: height ?? (clientHeight > 140 ? clientHeight : 280),
+          });
+        }
+      }
+    };
+
+    updateDimensions();
+
+    if (typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const { width, height: observedHeight } = entry.contentRect;
+          if (width > 0) {
+            setDimensions({
+              width: Math.floor(width),
+              height: height ?? (observedHeight > 140 ? Math.floor(observedHeight) : 280),
+            });
+          }
+        }
+      });
+      observer.observe(containerRef.current);
+      return () => observer.disconnect();
+    }
+  }, [height]);
+
+  const isMobile = dimensions.width > 0 ? dimensions.width < 540 : false;
+  const isVerySmall = dimensions.width > 0 ? dimensions.width < 380 : false;
+
+  const chartMargin = {
+    left: isVerySmall ? 28 : isMobile ? 34 : 42,
+    right: isVerySmall ? 6 : isMobile ? 12 : 18,
+    top: 15,
+    bottom: isMobile ? 22 : 28,
+  };
+
+  const dataSource =
+    propData && typeof propData === "object" && !Array.isArray(propData) && propData.data !== undefined
+      ? (Array.isArray(propData.data)
+          ? propData.data
+          : Array.isArray(propData.data.forecast)
+          ? propData.data.forecast
+          : Array.isArray(propData.data.trend)
+          ? propData.data.trend
+          : propData.data)
+      : propData;
+
   let rawItems: any[] = [];
-  if (Array.isArray(propData)) {
-    rawItems = propData;
-  } else if (propData && typeof propData === "object") {
-    if (Array.isArray(propData.data)) {
-      rawItems = propData.data;
-    } else {
-      rawItems = Object.entries(propData).map(([key, val]) => ({
+  if (Array.isArray(dataSource)) {
+    rawItems = dataSource;
+  } else if (dataSource && typeof dataSource === "object") {
+    rawItems = Object.entries(dataSource)
+      .filter(([key]) => key !== "status" && key !== "message")
+      .map(([key, val]) => ({
         [xAxisKey]: key,
         [dataKey]:
           typeof val === "number"
@@ -61,7 +122,6 @@ export default function AttendanceTrendChart({
                   0
               ),
       }));
-    }
   }
 
   const chartData: AttendanceTrendItem[] = rawItems.map((item: any, index: number) => ({
@@ -98,18 +158,17 @@ export default function AttendanceTrendChart({
   };
 
   return (
-    <div className="w-full h-full min-h-60 flex flex-col justify-between">
+    <div className="w-full h-full min-h-[260px] sm:min-h-[300px] flex flex-col justify-between">
       <LoadingLayout loading={isLoading} length={chartData.length}>
-        <div className="w-full flex-1">
+        <div
+          ref={containerRef}
+          className="w-full flex-1 min-h-[230px] sm:min-h-[270px] flex items-center justify-center relative min-w-0"
+        >
           <LineChart
             dataset={chartData}
-            height={height}
-            margin={{
-              left: 45,
-              right: 20,
-              top: 20,
-              bottom: 25,
-            }}
+            width={dimensions.width > 0 ? dimensions.width : undefined}
+            height={dimensions.height}
+            margin={chartMargin}
             xAxis={[
               {
                 scaleType: "point",
@@ -150,7 +209,7 @@ export default function AttendanceTrendChart({
                 display: "none",
               },
               "& .MuiChartsAxis-tickLabel": {
-                fontSize: 12,
+                fontSize: isMobile ? 10 : 12,
                 fill: "#6B7280",
               },
               "& .MuiChartsGrid-line": {
@@ -158,14 +217,14 @@ export default function AttendanceTrendChart({
                 strokeDasharray: "4 4",
               },
               "& .MuiAreaElement-root": {
-                opacity: 0.12,
+                opacity: 0.15,
                 fill: color,
               },
               "& .MuiLineElement-root": {
-                strokeWidth: 2,
+                strokeWidth: 2.5,
               },
               "& .MuiMarkElement-root": {
-                scale: "0.8",
+                scale: isMobile ? "0.7" : "0.85",
                 fill: "#1E1E1E",
                 stroke: "#fff",
                 strokeWidth: 1.5,

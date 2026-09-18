@@ -35,18 +35,22 @@ export default function GenderSplitChart({
   barColor,
   borderRadius = 14,
 }: GenderSplitChartProps) {
+  const dataSource =
+    propData && typeof propData === "object" && !Array.isArray(propData) && propData.data
+      ? propData.data
+      : propData;
+
   let rawItems: any[] = [];
-  if (Array.isArray(propData)) {
-    rawItems = propData;
-  } else if (propData && typeof propData === "object") {
-    if (Array.isArray(propData.data)) {
-      rawItems = propData.data;
-    } else {
-      rawItems = Object.entries(propData).map(([key, val]) => ({
-        label: key,
-        value: typeof val === "number" ? val : Number((val as any)?.value ?? 0),
-      }));
-    }
+  if (Array.isArray(dataSource)) {
+    rawItems = dataSource;
+  } else if (dataSource && typeof dataSource === "object") {
+    rawItems = Object.entries(dataSource).map(([key, val]) => ({
+      label: key,
+      value:
+        typeof val === "number"
+          ? val
+          : Number((val as any)?.value ?? (val as any)?.count ?? (val as any)?.amount ?? (val as any)?.ticketsSold ?? 0),
+    }));
   }
 
   // Detect dataset type: spending ranges, tickets sold, revenue, or custom single barColor
@@ -54,20 +58,35 @@ export default function GenderSplitChart({
     Boolean(barColor) ||
     (rawItems.length > 0 && rawItems.some((d: any) => String(d.label ?? "").includes("£")));
 
-  const isAttendance = rawItems.some((d: any) => d.ticketsSold !== undefined);
+  const isAttendance = rawItems.some(
+    (d: any) => d.ticketsSold !== undefined || d.attendance !== undefined || d.tickets !== undefined
+  );
   const isRevenue = rawItems.some((d: any) => d.revenue !== undefined);
   const isCustom = Boolean(barColor);
 
   const chartData: GenderSplitItem[] = rawItems.map((item: any, index: number) => {
     const label =
       item.label ??
+      item.range ??
+      item.tier ??
+      item.ticketType ??
       item.eventName ??
       item.category ??
       item.gender ??
       item.day ??
+      item.date ??
       item._id ??
       `Category ${index + 1}`;
-    const val = Number(item.value ?? item.revenue ?? item.ticketsSold ?? item.count ?? 0);
+    const val = Number(
+      item.value ??
+        item.revenue ??
+        item.ticketsSold ??
+        item.attendance ??
+        item.tickets ??
+        item.count ??
+        item.amount ??
+        0
+    );
 
     const color =
       isSpending || isAttendance || isRevenue || isCustom
@@ -90,6 +109,17 @@ export default function GenderSplitChart({
   const maxValue = chartData.reduce((max, d) => Math.max(max, d.value), 0);
   const computedYMax = yAxisMax ?? (maxValue > 0 ? undefined : isSpending || isRevenue ? 100 : 10);
 
+  const hasUniqueLabels =
+    labels.length > 0 && new Set(labels).size === labels.length;
+
+  const shouldUseColorMap =
+    !barColor &&
+    !isCustom &&
+    !isSpending &&
+    !isRevenue &&
+    !isAttendance &&
+    hasUniqueLabels;
+
   return (
     <div className="w-full h-full min-h-80 flex flex-col justify-between">
       <LoadingLayout loading={isLoading} length={chartData.length}>
@@ -107,11 +137,15 @@ export default function GenderSplitChart({
               {
                 scaleType: "band",
                 dataKey: "label",
-                colorMap: {
-                  type: "ordinal",
-                  values: labels,
-                  colors,
-                },
+                ...(shouldUseColorMap
+                  ? {
+                      colorMap: {
+                        type: "ordinal",
+                        values: labels,
+                        colors,
+                      },
+                    }
+                  : {}),
               },
             ]}
             yAxis={[
@@ -130,6 +164,7 @@ export default function GenderSplitChart({
               {
                 dataKey: "value",
                 label: isRevenue || isSpending ? "Revenue" : isAttendance ? "Tickets Sold" : "Users",
+                color: barColor ?? (isCustom ? "#37137F" : "#7047EB"),
                 valueFormatter: (value) =>
                   isRevenue || isSpending
                     ? `£${Number(value ?? 0).toLocaleString()}`

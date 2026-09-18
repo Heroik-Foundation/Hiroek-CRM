@@ -12,7 +12,7 @@ const useTrendingAndPrediction = () => {
         return useFetchData<any>({
             endpoint: URLS.GET_PEAK_EVENT_TIMES(user?._id ?? ""),
             name: [URLS.GET_PEAK_EVENT_TIMES(user?._id ?? "")],
-            enable: user?._id ? true : false
+            enable: Boolean(user?._id)
         });
     };
 
@@ -20,7 +20,7 @@ const useTrendingAndPrediction = () => {
         return useFetchData<any>({
             endpoint: URLS.GET_ATTENDANCE_BY_DATE(user?._id ?? ""),
             name: [URLS.GET_ATTENDANCE_BY_DATE(user?._id ?? "")],
-            enable: user?._id ? true : false
+            enable: Boolean(user?._id)
         });
     };
 
@@ -28,7 +28,7 @@ const useTrendingAndPrediction = () => {
         return useFetchData<any>({
             endpoint: URLS.GET_EVENT_CATEGORY_POPULARITY(user?._id ?? ""),
             name: [URLS.GET_EVENT_CATEGORY_POPULARITY(user?._id ?? "")],
-            enable: user?._id ? true : false
+            enable: Boolean(user?._id)
         });
     };
 
@@ -36,7 +36,7 @@ const useTrendingAndPrediction = () => {
         return useFetchData<any>({
             endpoint: URLS.GET_FORCAST(user?._id ?? ""),
             name: [URLS.GET_FORCAST(user?._id ?? "")],
-            enable: user?._id ? true : false
+            enable: Boolean(user?._id)
         });
     };
 

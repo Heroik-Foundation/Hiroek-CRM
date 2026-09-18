@@ -56,7 +56,7 @@ export interface IOrganizer {
 
 export interface ITeamMember {
     _id: string;
-    user: string;
+    user: string | { _id?: string; fullname?: string; email?: string; photo?: string };
     account: string;
     accountType: string;
     role: "admin" | "owner" | string;
@@ -64,6 +64,9 @@ export interface ITeamMember {
     createdAt: string;
     updatedAt: string;
     __v: number;
+    fullname?: string;
+    email?: string;
+    status?: string;
 }
 
 export interface ITeamMembersResponse {

@@ -1,7 +1,7 @@
 // components/CustomTable/index.tsx
 "use client";
 
-import { Pagination, Table } from "@heroui/react";
+import { Pagination } from "@heroui/react";
 import { useMemo } from "react";
 import { formatNumber } from "../../config/numberFormat";
 import { dateFormat } from "../../config/dateFormat";
@@ -36,9 +36,12 @@ export default function CustomTable<T extends Record<string, any>>({
     page,
     onPageChange,
     rowsPerPage = 10,
-    // isLoading = false,
-    // emptyText = "No data available",
+    isLoading = false,
+    emptyText = "No data available",
     onClick,
+    headerClassName,
+    thClassName,
+    customPagination,
 }: CustomTableProps<T>) {
     // ── Pagination ────────────────────────────────────────────────────────────
 
@@ -114,102 +117,90 @@ export default function CustomTable<T extends Record<string, any>>({
     // ── Render ───────────────────────────────────────────────────────────────
 
     return (
-        <Table
-            aria-label="Data table"
-            variant="primary"
-        // selectionMode="none"
-        >
-            <Table.ScrollContainer>
-                <Table.Content className="min-w-150">
+        <div className="w-full flex flex-col gap-3">
+            <div className="w-full overflow-x-auto rounded-xl">
+                <table aria-label="Data table" className="w-full min-w-150 border-collapse text-left text-sm">
                     {/* Header */}
-                    <Table.Header columns={columns}>
-                        {(column) => {
-                            const columnIndex = columns.indexOf(column);
-
-                            return (
-                                <Table.Column
+                    <thead>
+                        <tr className={headerClassName ?? "border-b border-gray-100 bg-gray-50/50"}>
+                            {columns.map((column) => (
+                                <th
                                     key={String(column.id)}
-                                    isRowHeader={
-                                        column.isRowHeader ??
-                                        (column.id === "name" ||
-                                            columnIndex === 0)
-                                    }
+                                    scope="col"
+                                    className={thClassName ?? "py-3 px-4 text-xs font-semibold uppercase tracking-wider text-gray-500 whitespace-nowrap"}
                                 >
-                                    <span className="uppercase text-xs font-semibold tracking-wide">
-                                        {column.name}
-                                    </span>
-                                </Table.Column>
-                            );
-                        }}
-                    </Table.Header>
+                                    {column.name}
+                                </th>
+                            ))}
+                        </tr>
+                    </thead>
 
                     {/* Body */}
-                    <Table.Body
-                        items={paginatedItems}
-                    // isLoading={isLoading}
-                    // emptyContent={emptyText}
-                    >
-                        {(item) => (
-                            <Table.Row
-                                key={String(item[rowKey])}
-                                className={
-                                    onClick
-                                        ? "cursor-pointer"
-                                        : ""
-                                }
-                                onAction={
-                                    onClick
-                                }
-                            >
-                                <Table.Collection
-                                    items={columns}
+                    <tbody className="divide-y divide-gray-100 bg-white">
+                        {isLoading ? (
+                            <tr>
+                                <td
+                                    colSpan={columns.length}
+                                    className="py-12 text-center text-sm text-gray-500"
                                 >
-                                    {(column) => (
-                                        <Table.Cell
-                                            key={String(
-                                                column.id,
-                                            )}
-                                        >
-                                            <div className="min-h-12 flex items-center">
-                                                {renderCell(
-                                                    item,
-                                                    column,
-                                                )}
-                                            </div>
-                                        </Table.Cell>
-                                    )}
-                                </Table.Collection>
-                            </Table.Row>
+                                    Loading...
+                                </td>
+                            </tr>
+                        ) : paginatedItems.length === 0 ? (
+                            <tr>
+                                <td
+                                    colSpan={columns.length}
+                                    className="py-12 text-center text-sm text-gray-500"
+                                >
+                                    {emptyText}
+                                </td>
+                            </tr>
+                        ) : (
+                            paginatedItems.map((item) => {
+                                const id = String(item[rowKey] ?? item.id ?? item._id);
+                                return (
+                                    <tr
+                                        key={id}
+                                        onClick={() => onClick?.(item)}
+                                        className={`transition-colors hover:bg-gray-50/60 ${
+                                            onClick ? "cursor-pointer" : ""
+                                        }`}
+                                    >
+                                        {columns.map((column) => (
+                                            <td
+                                                key={String(column.id)}
+                                                className="py-3 px-4 text-sm text-gray-700 whitespace-nowrap"
+                                            >
+                                                <div className="min-h-12 flex items-center">
+                                                    {renderCell(item, column)}
+                                                </div>
+                                            </td>
+                                        ))}
+                                    </tr>
+                                );
+                            })
                         )}
-                    </Table.Body>
-                </Table.Content>
-            </Table.ScrollContainer>
+                    </tbody>
+                </table>
+            </div>
 
             {/* Pagination */}
-            {totalPages > 1 && (
-                <Table.Footer>
-                    <div className="w-full flex items-center justify-between py-3">
+            {customPagination ? (
+                customPagination
+            ) : totalPages > 1 ? (
+                <div className="w-full border-t border-gray-100 pt-3">
+                    <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3 py-2">
                         <Pagination size="sm">
                             <Pagination.Summary>
-                                {rangeStart} to{" "}
-                                {rangeEnd} of {total} results
+                                {rangeStart} to {rangeEnd} of {total} results
                             </Pagination.Summary>
 
                             <Pagination.Content>
                                 {/* Previous */}
                                 <Pagination.Item>
                                     <Pagination.Previous
-                                        isDisabled={
-                                            page === 1
-                                        }
-                                        onPress={() =>
-                                            onPageChange?.(
-                                                Math.max(
-                                                    1,
-                                                    page - 1,
-                                                ),
-                                            )
-                                        }
+                                        isDisabled={page === 1}
+                                        onPress={() => onPageChange?.(Math.max(1, page - 1))}
                                     >
                                         <Pagination.PreviousIcon />
                                         Prev
@@ -218,18 +209,10 @@ export default function CustomTable<T extends Record<string, any>>({
 
                                 {/* Pages */}
                                 {pages.map((p) => (
-                                    <Pagination.Item
-                                        key={p}
-                                    >
+                                    <Pagination.Item key={p}>
                                         <Pagination.Link
-                                            isActive={
-                                                p === page
-                                            }
-                                            onPress={() =>
-                                                onPageChange?.(
-                                                    p,
-                                                )
-                                            }
+                                            isActive={p === page}
+                                            onPress={() => onPageChange?.(p)}
                                         >
                                             {p}
                                         </Pagination.Link>
@@ -239,18 +222,8 @@ export default function CustomTable<T extends Record<string, any>>({
                                 {/* Next */}
                                 <Pagination.Item>
                                     <Pagination.Next
-                                        isDisabled={
-                                            page ===
-                                            totalPages
-                                        }
-                                        onPress={() =>
-                                            onPageChange?.(
-                                                Math.min(
-                                                    totalPages,
-                                                    page + 1,
-                                                ),
-                                            )
-                                        }
+                                        isDisabled={page === totalPages}
+                                        onPress={() => onPageChange?.(Math.min(totalPages, page + 1))}
                                     >
                                         Next
                                         <Pagination.NextIcon />
@@ -259,8 +232,8 @@ export default function CustomTable<T extends Record<string, any>>({
                             </Pagination.Content>
                         </Pagination>
                     </div>
-                </Table.Footer>
-            )}
-        </Table>
+                </div>
+            ) : null}
+        </div>
     );
 }

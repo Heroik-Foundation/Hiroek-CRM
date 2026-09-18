@@ -88,6 +88,11 @@ export const settingLink = [
         link: "/dashboard/settings?tab=subscriptions"
     },
     {
+        icon: Card,
+        name: "SMS & Email Credits",
+        link: "/dashboard/settings?tab=credit"
+    },
+    {
         icon: People,
         name: "User Roles & Permissions",
         link: "/dashboard/settings?tab=permissions"
