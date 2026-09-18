@@ -16,7 +16,6 @@ const ROLE_OPTIONS = [
     { label: "Viewer", value: "viewer" },
 ];
 
-
 export default function GetUsersRole() {
     const navigate = useNavigate();
     const { useGetUsersRoles, deleteTeamMember, updateTeamMember } = useRoles();
