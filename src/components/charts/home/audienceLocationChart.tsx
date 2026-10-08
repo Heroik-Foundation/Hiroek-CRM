@@ -12,7 +12,7 @@ export interface LocationItem {
 }
 
 export interface AudienceLocationChartProps {
-  data?: any;
+  data?: unknown;
   isLoading?: boolean;
   barColor?: string;
   trackColor?: string;
@@ -27,36 +27,58 @@ export default function AudienceLocationChart({
   unit = "%",
 }: AudienceLocationChartProps) {
   const dataSource =
-    propData && typeof propData === "object" && !Array.isArray(propData) && propData.data !== undefined
-      ? propData.data
+    propData &&
+    typeof propData === "object" &&
+    !Array.isArray(propData) &&
+    (propData as Record<string, unknown>).data !== undefined
+      ? (propData as Record<string, unknown>).data
       : propData;
 
-  let rawItems: any[] = [];
+  let rawItems: Record<string, unknown>[] = [];
   if (Array.isArray(dataSource)) {
-    rawItems = dataSource;
+    rawItems = dataSource as Record<string, unknown>[];
   } else if (dataSource && typeof dataSource === "object") {
-    rawItems = Object.entries(dataSource)
+    rawItems = Object.entries(dataSource as Record<string, unknown>)
       .filter(([key]) => key !== "status" && key !== "message")
       .map(([key, val]) => ({
         city: key,
         percentage:
           typeof val === "number"
             ? val
-            : Number((val as any)?.percentage ?? (val as any)?.value ?? (val as any)?.count ?? 0),
+            : Number(
+                (val as Record<string, unknown>)?.percentage ??
+                  (val as Record<string, unknown>)?.value ??
+                  (val as Record<string, unknown>)?.count ??
+                  0
+              ),
       }));
   }
 
-  const chartData: LocationItem[] = rawItems.map((item: any) => ({
-    city:
+  const chartData: LocationItem[] = rawItems.map((item) => ({
+    city: String(
       item.city ??
-      item.category ??
-      item.label ??
-      item.name ??
-      item.location ??
-      item._id ??
-      "Unknown",
-    percentage: Number(item.percentage ?? item.value ?? item.count ?? 0),
-    color: item.isPeak ? "#37137F" : item.color,
+        item.category ??
+        item.time ??
+        item.slot ??
+        item.period ??
+        item.hour ??
+        item.peakTime ??
+        item.label ??
+        item.name ??
+        item.location ??
+        item.day ??
+        item._id ??
+        "Unknown"
+    ),
+    percentage: Number(
+      item.percentage ??
+        item.value ??
+        item.count ??
+        item.ticketsSold ??
+        item.attendance ??
+        0
+    ),
+    color: item.isPeak ? "#37137F" : (typeof item.color === "string" ? item.color : undefined),
     isPeak: Boolean(item.isPeak),
   }));
 

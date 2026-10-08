@@ -1,15 +1,18 @@
-import { BarChart } from "@mui/x-charts/BarChart";
+import ReactECharts from "echarts-for-react";
+import type { EChartsOption } from "echarts";
+import * as echarts from "echarts";
 import { LoadingLayout } from "../../layout";
 
 export interface GenderSplitItem {
   label: string;
   value: number;
   color?: string;
-  [key: string]: any;
+  displayValue?: number;
+  [key: string]: unknown;
 }
 
 export interface GenderSplitChartProps {
-  data?: any;
+  data?: unknown;
   isLoading?: boolean;
   height?: number;
   showLegend?: boolean;
@@ -19,10 +22,16 @@ export interface GenderSplitChartProps {
   borderRadius?: number;
 }
 
-const DEFAULT_GENDER_COLORS: Record<string, string> = {
-  Male: "#5B9CF6",
-  Female: "#FFA8B6",
-  "Prefer Not To Say": "#8A60BA",
+const GENDER_PALETTES: Record<string, { base: string; highlight: string; shadow: string }> = {
+  male: { base: "#4D90E6", highlight: "#78B2FA", shadow: "#3374C9" },
+  men: { base: "#4D90E6", highlight: "#78B2FA", shadow: "#3374C9" },
+  m: { base: "#4D90E6", highlight: "#78B2FA", shadow: "#3374C9" },
+  female: { base: "#FFA7A0", highlight: "#FFC2BD", shadow: "#E88780" },
+  women: { base: "#FFA7A0", highlight: "#FFC2BD", shadow: "#E88780" },
+  f: { base: "#FFA7A0", highlight: "#FFC2BD", shadow: "#E88780" },
+  "prefer not to say": { base: "#604D8C", highlight: "#7E69B0", shadow: "#483670" },
+  prefer_not_to_say: { base: "#604D8C", highlight: "#7E69B0", shadow: "#483670" },
+  other: { base: "#604D8C", highlight: "#7E69B0", shadow: "#483670" },
 };
 
 export default function GenderSplitChart({
@@ -36,178 +45,291 @@ export default function GenderSplitChart({
   borderRadius = 14,
 }: GenderSplitChartProps) {
   const dataSource =
-    propData && typeof propData === "object" && !Array.isArray(propData) && propData.data
-      ? propData.data
+    propData &&
+    typeof propData === "object" &&
+    !Array.isArray(propData) &&
+    "data" in (propData as Record<string, unknown>)
+      ? (propData as Record<string, unknown>).data
       : propData;
 
-  let rawItems: any[] = [];
-  if (Array.isArray(dataSource)) {
-    rawItems = dataSource;
-  } else if (dataSource && typeof dataSource === "object") {
-    rawItems = Object.entries(dataSource).map(([key, val]) => ({
-      label: key,
-      value:
-        typeof val === "number"
-          ? val
-          : Number((val as any)?.value ?? (val as any)?.count ?? (val as any)?.amount ?? (val as any)?.ticketsSold ?? 0),
-    }));
+  const rawEntries: { label: string; value: number }[] = [];
+
+  if (dataSource && typeof dataSource === "object") {
+    if (Array.isArray(dataSource)) {
+      for (const item of dataSource) {
+        if (item && typeof item === "object") {
+          const itemObj = item as Record<string, unknown>;
+          const label = String(
+            itemObj.gender ??
+              itemObj.label ??
+              itemObj.name ??
+              itemObj.category ??
+              itemObj.range ??
+              itemObj._id ??
+              ""
+          ).trim();
+          const val = Number(
+            itemObj.count ??
+              itemObj.value ??
+              itemObj.ticketsSold ??
+              itemObj.attendance ??
+              itemObj.amount ??
+              itemObj.revenue ??
+              0
+          );
+          if (label) {
+            rawEntries.push({ label, value: val });
+          }
+        }
+      }
+    } else {
+      const dataObj = dataSource as Record<string, unknown>;
+      for (const [key, val] of Object.entries(dataObj)) {
+        if (
+          key !== "status" &&
+          key !== "message" &&
+          key !== "success" &&
+          key !== "insights"
+        ) {
+          let num = 0;
+          if (typeof val === "number") {
+            num = val;
+          } else if (val && typeof val === "object") {
+            const valObj = val as Record<string, unknown>;
+            num = Number(
+              valObj.count ??
+                valObj.value ??
+                valObj.ticketsSold ??
+                valObj.attendance ??
+                valObj.amount ??
+                0
+            );
+          }
+          rawEntries.push({ label: key.trim(), value: num });
+        }
+      }
+    }
   }
 
-  // Detect dataset type: spending ranges, tickets sold, revenue, or custom single barColor
-  const isSpending =
-    Boolean(barColor) ||
-    (rawItems.length > 0 && rawItems.some((d: any) => String(d.label ?? "").includes("£")));
+  // Format gender labels and assign colors
+  const formattedItems = rawEntries.map((item, index) => {
+    const lower = item.label.toLowerCase();
+    let displayLabel = item.label;
+    if (lower === "male" || lower === "men" || lower === "m") {
+      displayLabel = "Male";
+    } else if (lower === "female" || lower === "women" || lower === "f") {
+      displayLabel = "Female";
+    } else if (lower.includes("prefer") || lower === "other") {
+      displayLabel = "Prefer Not To Say";
+    }
 
-  const isAttendance = rawItems.some(
-    (d: any) => d.ticketsSold !== undefined || d.attendance !== undefined || d.tickets !== undefined
-  );
-  const isRevenue = rawItems.some((d: any) => d.revenue !== undefined);
-  const isCustom = Boolean(barColor);
-
-  const chartData: GenderSplitItem[] = rawItems.map((item: any, index: number) => {
-    const label =
-      item.label ??
-      item.range ??
-      item.tier ??
-      item.ticketType ??
-      item.eventName ??
-      item.category ??
-      item.gender ??
-      item.day ??
-      item.date ??
-      item._id ??
-      `Category ${index + 1}`;
-    const val = Number(
-      item.value ??
-        item.revenue ??
-        item.ticketsSold ??
-        item.attendance ??
-        item.tickets ??
-        item.count ??
-        item.amount ??
-        0
-    );
-
-    const color =
-      isSpending || isAttendance || isRevenue || isCustom
-        ? barColor ?? "#37137F"
-        : item.color ??
-          DEFAULT_GENDER_COLORS[label] ??
-          ["#5B9CF6", "#FFA8B6", "#8A60BA"][index % 3];
+    const palette =
+      GENDER_PALETTES[lower] ??
+      (index === 0
+        ? GENDER_PALETTES.male
+        : index === 1
+        ? GENDER_PALETTES.female
+        : GENDER_PALETTES["prefer not to say"]);
 
     return {
-      label,
-      value: val,
-      color,
+      label: displayLabel,
+      value: item.value,
+      color: barColor ?? palette.base,
+      highlight: palette.highlight,
+      shadow: palette.shadow,
     };
   });
 
-  const labels = chartData.map((d) => d.label);
-  const colors = chartData.map(
-    (d) => d.color ?? (isSpending || isAttendance || isRevenue || isCustom ? barColor ?? "#37137F" : "#5B9CF6")
-  );
-  const maxValue = chartData.reduce((max, d) => Math.max(max, d.value), 0);
-  const computedYMax = yAxisMax ?? (maxValue > 0 ? undefined : isSpending || isRevenue ? 100 : 10);
+  // Reorder standard genders if present (Male, Female, Prefer Not To Say)
+  const hasMale = formattedItems.some((d) => d.label === "Male");
+  const hasFemale = formattedItems.some((d) => d.label === "Female");
 
-  const hasUniqueLabels =
-    labels.length > 0 && new Set(labels).size === labels.length;
+  let orderedItems: typeof formattedItems = [];
+  if (hasMale || hasFemale) {
+    const male = formattedItems.find((d) => d.label === "Male");
+    const female = formattedItems.find((d) => d.label === "Female");
+    const other = formattedItems.find((d) => d.label === "Prefer Not To Say");
 
-  const shouldUseColorMap =
-    !barColor &&
-    !isCustom &&
-    !isSpending &&
-    !isRevenue &&
-    !isAttendance &&
-    hasUniqueLabels;
+    if (male) orderedItems.push(male);
+    if (female) orderedItems.push(female);
+    if (other) orderedItems.push(other);
+
+    for (const it of formattedItems) {
+      if (
+        it.label !== "Male" &&
+        it.label !== "Female" &&
+        it.label !== "Prefer Not To Say"
+      ) {
+        orderedItems.push(it);
+      }
+    }
+  } else {
+    orderedItems = formattedItems;
+  }
+
+  const maxVal = orderedItems.reduce((max, d) => Math.max(max, d.value), 0);
+  const minFloor = maxVal > 0 ? Math.max(maxVal * 0.04, 1) : 1;
+
+  const chartData: GenderSplitItem[] = orderedItems.map((item) => ({
+    ...item,
+    displayValue: item.value > 0 ? Math.max(item.value, minFloor) : 0,
+  }));
+
+  const yMax = yAxisMax ?? (maxVal > 0 ? Math.ceil(maxVal * 1.25) : 10);
+
+  // ECharts Option
+  const option: EChartsOption = {
+    tooltip: {
+      trigger: "axis",
+      axisPointer: {
+        type: "shadow",
+        shadowStyle: {
+          color: "rgba(243, 244, 246, 0.6)",
+        },
+      },
+      backgroundColor: "#1F2937",
+      borderColor: "#374151",
+      borderWidth: 1,
+      padding: [8, 12],
+      textStyle: {
+        color: "#F9FAFB",
+        fontSize: 12,
+        fontWeight: 500,
+      },
+      formatter: (params) => {
+        if (!Array.isArray(params) || params.length === 0) return "";
+        const item = chartData[params[0].dataIndex];
+        if (!item) return "";
+        return `
+          <div style="font-weight: 600; margin-bottom: 4px; color: #FFFFFF;">${item.label}</div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${item.color};"></span>
+            <span>Count: <strong>${Number(item.value).toLocaleString()}</strong></span>
+          </div>
+        `;
+      },
+    },
+    grid: {
+      left: "3%",
+      right: "3%",
+      top: "16%",
+      bottom: "6%",
+      containLabel: true,
+    },
+    xAxis: {
+      type: "category",
+      data: chartData.map((d) => d.label),
+      axisTick: { show: false },
+      axisLine: {
+        show: true,
+        lineStyle: { color: "#E5E7EB" },
+      },
+      axisLabel: {
+        color: "#6B7280",
+        fontSize: 12,
+        fontWeight: 600,
+        margin: 12,
+      },
+    },
+    yAxis: {
+      type: "value",
+      min: 0,
+      max: yMax,
+      splitLine: {
+        show: true,
+        lineStyle: {
+          color: "#F3F4F6",
+          type: "dashed",
+        },
+      },
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: {
+        color: "#9CA3AF",
+        fontSize: 11,
+        fontWeight: 500,
+        formatter: (val: number) => Number(val).toLocaleString(),
+      },
+    },
+    series: [
+      {
+        name: "Gender Split",
+        type: "bar",
+        barWidth: chartData.length <= 3 ? 46 : 32,
+        barMinHeight: 10,
+        data: chartData.map((item, index) => {
+          const itemColor = item.color ?? "#4D90E6";
+          const highlight = orderedItems[index]?.highlight ?? itemColor;
+          const shadow = orderedItems[index]?.shadow ?? itemColor;
+
+          return {
+            value: item.displayValue ?? item.value,
+            originalValue: item.value,
+            itemStyle: {
+              // 3D Cylinder / Capsule visual styling with directional gradient
+              color: barColor
+                ? barColor
+                : new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                    { offset: 0, color: shadow },
+                    { offset: 0.45, color: highlight },
+                    { offset: 0.85, color: itemColor },
+                    { offset: 1, color: shadow },
+                  ]),
+              borderRadius: [borderRadius, borderRadius, borderRadius, borderRadius],
+              shadowColor: "rgba(0, 0, 0, 0.08)",
+              shadowBlur: 6,
+              shadowOffsetY: 3,
+            },
+          };
+        }),
+        label: {
+          show: true,
+          position: "top",
+          distance: 8,
+          color: "#37137F",
+          fontWeight: 700,
+          fontSize: 13,
+          formatter: (params) => {
+            const original = chartData[params.dataIndex]?.value;
+            return original !== undefined && original !== null
+              ? Number(original).toLocaleString()
+              : "";
+          },
+        },
+      },
+    ],
+  };
 
   return (
     <div className="w-full h-full min-h-80 flex flex-col justify-between">
       <LoadingLayout loading={isLoading} length={chartData.length}>
         <div className="w-full flex-1">
-          <BarChart
-            dataset={chartData}
-            height={height}
-            margin={{
-              left: 45,
-              right: 20,
-              top: 20,
-              bottom: 30,
-            }}
-            xAxis={[
-              {
-                scaleType: "band",
-                dataKey: "label",
-                ...(shouldUseColorMap
-                  ? {
-                      colorMap: {
-                        type: "ordinal",
-                        values: labels,
-                        colors,
-                      },
-                    }
-                  : {}),
-              },
-            ]}
-            yAxis={[
-              {
-                min: 0,
-                ...(computedYMax ? { max: computedYMax } : {}),
-                valueFormatter: (val: number | null) => {
-                  if (isRevenue || isSpending) {
-                    return `${Number(val ?? 0).toLocaleString()}`;
-                  }
-                  return `${val ?? 0}`;
-                },
-              },
-            ]}
-            series={[
-              {
-                dataKey: "value",
-                label: isRevenue || isSpending ? "Revenue" : isAttendance ? "Tickets Sold" : "Users",
-                color: barColor ?? (isCustom ? "#37137F" : "#7047EB"),
-                valueFormatter: (value) =>
-                  isRevenue || isSpending
-                    ? `£${Number(value ?? 0).toLocaleString()}`
-                    : isAttendance
-                    ? `${value ?? 0} tickets`
-                    : `${value ?? 0} users`,
-              },
-            ]}
-            borderRadius={borderRadius}
-            grid={{
-              horizontal: true,
-              vertical: false,
-            }}
-            sx={{
-              width: "100%",
-              height: "100%",
-              "& .MuiChartsLegend-root": {
-                display: "none",
-              },
-              "& .MuiChartsAxis-tickLabel": {
-                fontSize: 12,
-                fill: "#6B7280",
-              },
-              "& .MuiChartsGrid-line": {
-                stroke: "#F3F4F6",
-                strokeDasharray: "4 4",
-              },
-            }}
+          <ReactECharts
+            option={option}
+            style={{ height, width: "100%" }}
+            opts={{ renderer: "svg" }}
+            notMerge={true}
           />
         </div>
 
         {showLegend && chartData.length > 0 && (
-          <div className="w-full flex items-center justify-center gap-2 pt-2 border-t border-gray-100">
-            <span
-              className="w-2.5 h-2.5 rounded-sm"
-              style={{
-                backgroundColor:
-                  isSpending || isAttendance || isRevenue || isCustom
-                    ? barColor ?? "#37137F"
-                    : "#7047EB",
-              }}
-            />
-            <span className="text-xs font-medium text-gray-500">{legendLabel}</span>
+          <div className="w-full flex items-center justify-center gap-6 pt-2 border-t border-gray-100">
+            {chartData.map((item) => (
+              <div key={item.label} className="flex items-center gap-1.5">
+                <span
+                  className="w-2.5 h-2.5 rounded-sm"
+                  style={{ backgroundColor: item.color }}
+                />
+                <span className="text-xs font-semibold text-gray-700">
+                  {item.label}: {Number(item.value).toLocaleString()}
+                </span>
+              </div>
+            ))}
+            {legendLabel && (
+              <span className="text-xs font-medium text-gray-400">
+                ({legendLabel})
+              </span>
+            )}
           </div>
         )}
       </LoadingLayout>

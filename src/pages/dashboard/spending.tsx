@@ -1,104 +1,110 @@
-// import { useState } from "react";
-import { AgeDistributionChart, GenderSplitChart } from "../../components/charts";
+import { useState } from "react";
+import { AgeDistributionChart, TicketSpendDistributionChart } from "../../components/charts";
 import { Header, KeyInsight } from "../../components/common";
 import { ChartLayout } from "../../components/layout";
-// import CustomTable from "../../components/ui/customTable";
-// import type { Column } from "../../type/table";
-import useSpending from "../../hooks/useSpending";
+import CustomTable from "../../components/ui/customTable";
+import type { Column } from "../../type/table";
+import useSpending, { type TopSpenderItem } from "../../hooks/useSpending";
+import { formatNumber } from "../../config/numberFormat";
 
 export default function Spending() {
-    // const [page, setPage] = useState(1);
+    const [page, setPage] = useState(1);
 
-    const { useGetSpendingData, useGetTicketSpendDistributionData } = useSpending();
+    const {
+        useGetSpendingData,
+        useGetTicketSpendDistributionData,
+        useGetTopSpenders,
+    } = useSpending();
 
     const { data: spendingData, isLoading: isSpendingLoading } = useGetSpendingData();
     const { data: ticketSpendData, isLoading: isTicketLoading } = useGetTicketSpendDistributionData();
+    const { data: topSpendersData, isLoading: isTopSpendersLoading } = useGetTopSpenders({
+        page,
+        pageSize: 10,
+        limit: 10,
+    });
 
-    /*
-    const columns: Column<any>[] = [
-        { id: "name", name: "Name" },
-        { id: "role", name: "Role" },
-        { id: "email", name: "Email" },
+    const rawSpenders = Array.isArray(topSpendersData)
+        ? topSpendersData
+        : (topSpendersData?.data ?? []);
+
+    const spenderRows: TopSpenderItem[] = rawSpenders.map((item: TopSpenderItem, index: number) => ({
+        ...item,
+        id: item._id ?? item.customerId ?? item.id ?? (page - 1) * 10 + index + 1,
+        rank: item.rank ?? (page - 1) * 10 + index + 1,
+    }));
+
+    const totalSpenders = !Array.isArray(topSpendersData)
+        ? (topSpendersData?.pagination?.total ?? topSpendersData?.total ?? spenderRows.length)
+        : spenderRows.length;
+
+    const columns: Column<TopSpenderItem>[] = [
         {
-            id: "status",
-            name: "Status",
-            render: (value) => {
-                const map: Record<string, string> = {
-                    Active: "bg-green-100 text-green-700",
-                    Inactive: "bg-red-100 text-red-700",
-                    "On Leave": "bg-yellow-100 text-yellow-700",
-                };
-                const status = String(value);
+            id: "rank",
+            name: "Rank",
+            render: (_value, item) => {
+                const rank = item.rank;
+                let badgeStyle = "bg-[#F3F4F6] text-gray-700";
+                if (rank === 1) badgeStyle = "bg-[#F59E0B] text-white";
+                else if (rank === 2) badgeStyle = "bg-[#94A3B8] text-white";
+                else if (rank === 3) badgeStyle = "bg-[#F97316] text-white";
+
                 return (
                     <span
-                        className={`rounded-full px-3 py-1 text-xs font-medium ${map[status] ?? "bg-gray-100"}`}
+                        className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${badgeStyle}`}
                     >
-                        {status}
+                        {rank}
                     </span>
                 );
             },
         },
-    ];
-
-    const users: any[] = [
         {
-            id: 1,
-            name: "Kate Moore",
-            role: "CEO",
-            status: "Active",
-            email: "kate@acme.com",
+            id: "fullname",
+            name: "Customer",
+            render: (_value, item) => (
+                <div className="flex flex-col">
+                    <span className="font-semibold text-gray-900 text-sm">
+                        {item.fullname || item.name || item.username || "Customer"}
+                    </span>
+                    {item.username ? (
+                        <span className="text-xs text-gray-400">@{item.username}</span>
+                    ) : item.email ? (
+                        <span className="text-xs text-gray-400">{item.email}</span>
+                    ) : null}
+                </div>
+            ),
         },
         {
-            id: 2,
-            name: "John Smith",
-            role: "CTO",
-            status: "Active",
-            email: "john@acme.com",
+            id: "totalSpent",
+            name: "Total Spent",
+            render: (_value, item) => {
+                const amount = item.totalSpent ?? item.amount ?? 0;
+                return (
+                    <span className="text-sm font-semibold text-gray-800">
+                        {formatNumber(Number(amount), "£")}
+                    </span>
+                );
+            },
         },
         {
-            id: 3,
-            name: "Sara Johnson",
-            role: "CMO",
-            status: "On Leave",
-            email: "sara@acme.com",
+            id: "totalTicketsPurchased",
+            name: "Tickets Bought",
+            render: (_value, item) => (
+                <span className="text-sm font-medium text-gray-600">
+                    {Number(item.totalTicketsPurchased ?? item.ticketsPurchased ?? 0).toLocaleString()}
+                </span>
+            ),
         },
         {
-            id: 4,
-            name: "Michael Brown",
-            role: "CFO",
-            status: "Active",
-            email: "michael@acme.com",
-        },
-        {
-            id: 5,
-            name: "Emily Davis",
-            role: "Product Manager",
-            status: "Inactive",
-            email: "emily@acme.com",
-        },
-        {
-            id: 6,
-            name: "Davis Wilson",
-            role: "Lead Designer",
-            status: "Active",
-            email: "davis@acme.com",
-        },
-        {
-            id: 7,
-            name: "Olivia Martinez",
-            role: "Frontend Engineer",
-            status: "Active",
-            email: "olivia@acme.com",
-        },
-        {
-            id: 8,
-            name: "James Taylor",
-            role: "Backend Engineer",
-            status: "Active",
-            email: "james@acme.com",
+            id: "totalEvents",
+            name: "Events",
+            render: (_value, item) => (
+                <span className="text-sm font-medium text-gray-600">
+                    {Number(item.totalEvents ?? item.events ?? 0).toLocaleString()}
+                </span>
+            ),
         },
     ];
-    */
 
     return (
         <div className=" w-full flex flex-col gap-6 ">
@@ -108,14 +114,14 @@ export default function Spending() {
             />
             <div className=" w-full grid grid-cols-1 lg:grid-cols-2 gap-4 ">
                 <ChartLayout title="Ticket Spend Distribution">
-                    <GenderSplitChart data={spendingData} isLoading={isSpendingLoading} barColor="#37137F" />
+                    <TicketSpendDistributionChart data={spendingData} isLoading={isSpendingLoading} />
                 </ChartLayout>
                 <ChartLayout title="Ticket Spend Distribution">
                     <AgeDistributionChart data={ticketSpendData} isLoading={isTicketLoading} />
                 </ChartLayout>
             </div>
             <div className=" w-full flex flex-col lg:flex-row gap-4 ">
-                {/* <div className=" flex-1 p-4 rounded-2xl bg-white flex flex-col gap-4 overflow-hidden ">
+                <div className=" flex-1 p-4 rounded-2xl bg-white flex flex-col gap-4 overflow-hidden ">
                     <div className=" w-full flex justify-between items-center ">
                         <p className=" font-semibold ">Top 10 Spenders</p>
                         <button className=" text-[#37137F] rounded-[44px] px-2 font-semibold bg-[#37137F26] h-6.5 text-xs cursor-pointer ">
@@ -123,17 +129,17 @@ export default function Spending() {
                         </button>
                     </div>
                     <div className=" w-full flex flex-col "></div>
-                    <CustomTable<any>
+                    <CustomTable<TopSpenderItem>
                         columns={columns}
-                        // onClick={handleClick}
-                        rows={users}
+                        rows={spenderRows}
                         rowKey="id"
-                        total={users.length}
+                        total={totalSpenders}
                         page={page}
                         onPageChange={setPage}
                         rowsPerPage={10}
+                        isLoading={isTopSpendersLoading}
                     />
-                </div> */}
+                </div>
                 <div className=" w-full lg:w-96.75 shrink-0 ">
                     <KeyInsight
                         bg="#08AF0F0D"

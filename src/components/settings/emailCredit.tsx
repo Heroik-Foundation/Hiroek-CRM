@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { BiChevronDown, BiSearch, BiX, BiEnvelope } from "react-icons/bi";
+import { BiChevronDown, BiSearch, BiX, BiChevronLeft } from "react-icons/bi";
+import { useNavigate } from "react-router-dom";
 import { Spinner, toast } from "@heroui/react";
 import { useQueryClient } from "@tanstack/react-query";
 import useEmailBundles, {
@@ -37,71 +38,82 @@ interface ProcessedEmailBundle {
 
 // 🌍 Vector SVG Flags for crisp cross-platform rendering
 const FlagUS = () => (
-    <svg className="w-8 h-6 rounded-xs shadow-xs shrink-0" viewBox="0 0 741 390">
-        <rect width="741" height="390" fill="#b22234" />
-        <path d="M0,30h741M0,90h741M0,150h741M0,210h741M0,270h741M0,330h741" stroke="#fff" strokeWidth="30" />
-        <rect width="296" height="210" fill="#3c3b6e" />
-        <circle cx="148" cy="105" r="18" fill="#fff" opacity="0.9" />
+    <svg className="w-8 h-5.5 rounded-xs shadow-xs shrink-0" viewBox="0 0 60 36">
+        <rect width="60" height="36" fill="#b22234" />
+        <path d="M0,2.77h60M0,8.31h60M0,13.85h60M0,19.38h60M0,24.92h60M0,30.46h60" stroke="#fff" strokeWidth="2.77" />
+        <rect width="24" height="19.4" fill="#3c3b6e" />
+        <g fill="#fff">
+            <circle cx="3" cy="2.5" r="0.7" /><circle cx="9" cy="2.5" r="0.7" /><circle cx="15" cy="2.5" r="0.7" /><circle cx="21" cy="2.5" r="0.7" />
+            <circle cx="6" cy="5" r="0.7" /><circle cx="12" cy="5" r="0.7" /><circle cx="18" cy="5" r="0.7" />
+            <circle cx="3" cy="7.5" r="0.7" /><circle cx="9" cy="7.5" r="0.7" /><circle cx="15" cy="7.5" r="0.7" /><circle cx="21" cy="7.5" r="0.7" />
+            <circle cx="6" cy="10" r="0.7" /><circle cx="12" cy="10" r="0.7" /><circle cx="18" cy="10" r="0.7" />
+            <circle cx="3" cy="12.5" r="0.7" /><circle cx="9" cy="12.5" r="0.7" /><circle cx="15" cy="12.5" r="0.7" /><circle cx="21" cy="12.5" r="0.7" />
+            <circle cx="6" cy="15" r="0.7" /><circle cx="12" cy="15" r="0.7" /><circle cx="18" cy="15" r="0.7" />
+            <circle cx="3" cy="17.5" r="0.7" /><circle cx="9" cy="17.5" r="0.7" /><circle cx="15" cy="17.5" r="0.7" /><circle cx="21" cy="17.5" r="0.7" />
+        </g>
     </svg>
 );
 
 const FlagUK = () => (
-    <svg className="w-8 h-6 rounded-xs shadow-xs shrink-0" viewBox="0 0 60 30">
+    <svg className="w-8 h-5.5 rounded-xs shadow-xs shrink-0" viewBox="0 0 60 36">
         <clipPath id="uk-clip">
-            <rect width="60" height="30" />
+            <rect width="60" height="36" />
         </clipPath>
         <g clipPath="url(#uk-clip)">
-            <rect width="60" height="30" fill="#012169" />
-            <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" strokeWidth="6" />
-            <path d="M0,0 L60,30 M60,0 L0,30" stroke="#c8102e" strokeWidth="4" />
-            <path d="M30,0 v30 M0,15 h60" stroke="#fff" strokeWidth="10" />
-            <path d="M30,0 v30 M0,15 h60" stroke="#c8102e" strokeWidth="6" />
+            <rect width="60" height="36" fill="#012169" />
+            <path d="M0,0 L60,36 M60,0 L0,36" stroke="#fff" strokeWidth="6" />
+            <path d="M0,0 L60,36 M60,0 L0,36" stroke="#c8102e" strokeWidth="4" />
+            <path d="M30,0 v36 M0,18 h60" stroke="#fff" strokeWidth="10" />
+            <path d="M30,0 v36 M0,18 h60" stroke="#c8102e" strokeWidth="6" />
         </g>
     </svg>
 );
 
 const FlagCA = () => (
-    <svg className="w-8 h-6 rounded-xs shadow-xs shrink-0" viewBox="0 0 64 32">
-        <rect width="16" height="32" fill="#d80027" />
-        <rect x="16" width="32" height="32" fill="#fff" />
-        <rect x="48" width="16" height="32" fill="#d80027" />
-        <path d="M32 9l2 5h4l-3 3 1 5-4-3-4 3 1-5-3-3h4z" fill="#d80027" />
+    <svg className="w-8 h-5.5 rounded-xs shadow-xs shrink-0" viewBox="0 0 60 36">
+        <rect width="15" height="36" fill="#d80027" />
+        <rect x="15" width="30" height="36" fill="#fff" />
+        <rect x="45" width="15" height="36" fill="#d80027" />
+        <path d="M30 9l2 6h5l-4 4 1 6-4-4-4 4 1-6-4-4h5z" fill="#d80027" />
     </svg>
 );
 
 const FlagAU = () => (
-    <svg className="w-8 h-6 rounded-xs shadow-xs shrink-0" viewBox="0 0 64 32">
-        <rect width="64" height="32" fill="#00008b" />
-        <rect width="28" height="16" fill="#012169" />
-        <path d="M0,0 L28,16 M28,0 L0,16" stroke="#fff" strokeWidth="3" />
-        <path d="M14,0 v16 M0,8 h28" stroke="#c8102e" strokeWidth="2.5" />
-        <circle cx="48" cy="18" r="2.5" fill="#fff" />
-        <circle cx="56" cy="10" r="1.5" fill="#fff" />
+    <svg className="w-8 h-5.5 rounded-xs shadow-xs shrink-0" viewBox="0 0 60 36">
+        <rect width="60" height="36" fill="#00008b" />
+        <rect width="30" height="18" fill="#012169" />
+        <path d="M0,0 L30,18 M30,0 L0,18" stroke="#fff" strokeWidth="3" />
+        <path d="M15,0 v18 M0,9 h30" stroke="#c8102e" strokeWidth="2.5" />
+        <circle cx="45" cy="20" r="2.5" fill="#fff" />
+        <circle cx="52" cy="12" r="1.5" fill="#fff" />
+        <circle cx="50" cy="27" r="1.5" fill="#fff" />
+        <circle cx="38" cy="26" r="1.5" fill="#fff" />
+        <circle cx="15" cy="27" r="3" fill="#fff" />
     </svg>
 );
 
 const FlagBE = () => (
-    <svg className="w-8 h-6 rounded-xs shadow-xs shrink-0" viewBox="0 0 30 20">
-        <rect width="10" height="20" fill="#000" />
-        <rect x="10" width="10" height="20" fill="#ffd90c" />
-        <rect x="20" width="10" height="20" fill="#ed2939" />
+    <svg className="w-8 h-5.5 rounded-xs shadow-xs shrink-0" viewBox="0 0 60 36">
+        <rect width="20" height="36" fill="#000" />
+        <rect x="20" width="20" height="36" fill="#ffd90c" />
+        <rect x="40" width="20" height="36" fill="#ed2939" />
     </svg>
 );
 
 const FlagNG = () => (
-    <svg className="w-8 h-6 rounded-xs shadow-xs shrink-0" viewBox="0 0 30 20">
-        <rect width="10" height="20" fill="#008751" />
-        <rect x="10" width="10" height="20" fill="#fff" />
-        <rect x="20" width="10" height="20" fill="#008751" />
+    <svg className="w-8 h-5.5 rounded-xs shadow-xs shrink-0" viewBox="0 0 60 36">
+        <rect width="20" height="36" fill="#008751" />
+        <rect x="20" width="20" height="36" fill="#fff" />
+        <rect x="40" width="20" height="36" fill="#008751" />
     </svg>
 );
 
 const FlagGH = () => (
-    <svg className="w-8 h-6 rounded-xs shadow-xs shrink-0" viewBox="0 0 30 20">
-        <rect width="30" height="6.66" fill="#006b3f" />
-        <rect y="6.66" width="30" height="6.66" fill="#fcd116" />
-        <rect y="13.33" width="30" height="6.67" fill="#ce1126" />
-        <polygon points="15,7.5 16.2,11.2 20,11.2 16.9,13.4 18,17 15,14.8 12,17 13.1,13.4 10,11.2 13.8,11.2" fill="#000" transform="translate(0, -1)" />
+    <svg className="w-8 h-5.5 rounded-xs shadow-xs shrink-0" viewBox="0 0 60 36">
+        <rect width="60" height="12" fill="#ce1126" />
+        <rect y="12" width="60" height="12" fill="#fcd116" />
+        <rect y="24" width="60" height="12" fill="#006b3f" />
+        <polygon points="30,14 32,19.5 37,19.5 33,22.5 34.5,27.5 30,24.5 25.5,27.5 27,22.5 23,19.5 28,19.5" fill="#000" />
     </svg>
 );
 
@@ -142,13 +154,24 @@ const SENDER_ID_OPTIONS: SenderIdOption[] = [
     },
 ];
 
+const formatEmailRate = (rate: number): string => {
+    if (rate <= 0) return "0.00";
+    if (rate < 0.01) {
+        const fixed4 = rate.toFixed(4);
+        const trimmed = parseFloat(fixed4).toString();
+        return trimmed.includes(".") && trimmed.split(".")[1].length < 3
+            ? rate.toFixed(3)
+            : trimmed;
+    }
+    return rate.toFixed(2);
+};
+
 export default function SmsEmailCredits() {
     const queryClient = useQueryClient();
 
     // 🌐 Consume API Endpoints
     const {
         useGetEmailBundles,
-        useGetEmailBalance,
         usePurchaseEmailBundle,
     } = useEmailBundles();
 
@@ -156,16 +179,7 @@ export default function SmsEmailCredits() {
         bundlesType: "active",
     });
 
-    const { data: balanceApiData, isLoading: isLoadingBalance } = useGetEmailBalance();
     const purchaseBundleMutation = usePurchaseEmailBundle();
-
-    // Remaining email credit balance from GET /api/email-bundles/balance
-    const emailBalance = useMemo(() => {
-        if (typeof balanceApiData?.balance === "number") return balanceApiData.balance;
-        if (typeof balanceApiData?.data?.balance === "number") return balanceApiData.data.balance;
-        if (typeof balanceApiData?.result?.balance === "number") return balanceApiData.result.balance;
-        return 0;
-    }, [balanceApiData]);
 
     // Process only data from the API endpoint (divide amount by 100 before displaying)
     const emailBundles: ProcessedEmailBundle[] = useMemo(() => {
@@ -180,22 +194,20 @@ export default function SmsEmailCredits() {
             const credits = item.credits || 0;
             const amount = (item.amount || 0) / 100;
             const rate = credits > 0 ? amount / credits : 0;
-            const formattedRate = rate < 0.01 ? rate.toFixed(4) : rate.toFixed(2);
+            const formattedRate = formatEmailRate(rate);
             return {
                 id: item.id || item._id || "",
                 credits,
                 amount,
                 rate,
-                label:
-                    item.name ||
-                    `${credits.toLocaleString()} Emails (£${formattedRate} per mail)`,
+                label: `${credits.toLocaleString()} Emails (£${formattedRate} per mail)`,
             };
         });
     }, [bundlesApiData]);
 
     // Selections (strictly initialized from endpoint)
     const [selectedEmail, setSelectedEmail] = useState<ProcessedEmailBundle | null>(null);
-    const [addSmsCredit, setAddSmsCredit] = useState<boolean>(true);
+    const addSmsCredit = false // SMS hidden for now
     const [selectedCountry, setSelectedCountry] = useState<Country>(COUNTRIES[1]); // Default UK
     const [selectedSms, setSelectedSms] = useState<SmsOption>(SMS_OPTIONS[0]); // 500 SMS
     const [selectedSenderId, setSelectedSenderId] = useState<SenderIdOption>(SENDER_ID_OPTIONS[0]);
@@ -288,10 +300,130 @@ export default function SmsEmailCredits() {
         }
     };
 
+    const navigate = useNavigate();
+
+    /** 📊 Cost Breakdown Render Helper */
+    const renderCostBreakdown = (isMobileInsideCard = false) => (
+        <div className={`flex flex-col justify-between ${isMobileInsideCard ? "gap-6" : "min-h-[460px]"}`}>
+            <div>
+                <h2 className="text-xl font-bold text-[#37137F] mb-6">
+                    Cost breakdown
+                </h2>
+
+                <div className="flex flex-col gap-4">
+                    {/* Email Cost */}
+                    <div className="flex justify-between items-center text-sm">
+                        <span className="font-bold text-gray-900">Email:</span>
+                        <span className="font-bold text-gray-900">
+                            {selectedEmail ? formatNumber(emailCost, "£") : "£0.00"}
+                        </span>
+                    </div>
+
+                    {/* SMS Cost (if enabled) */}
+                    {addSmsCredit && (
+                        <div className="flex justify-between items-start text-sm">
+                            <div className="flex flex-col">
+                                <span className="font-bold text-gray-900">
+                                    {selectedSms.count} SMS
+                                </span>
+                                <span className="text-xs text-gray-500 font-medium">
+                                    £{selectedSms.rate} per SMS
+                                </span>
+                            </div>
+                            <span className="font-bold text-gray-900">
+                                {formatNumber(smsCost, "£")}
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Alphanumeric Sender ID */}
+                    {addSmsCredit && (
+                        <div className="flex justify-between items-start text-sm">
+                            <div className="flex flex-col leading-tight">
+                                <span className="font-bold text-gray-900">
+                                    Alphanumeric
+                                </span>
+                                <span className="font-bold text-gray-900">
+                                    Sender ID
+                                </span>
+                            </div>
+                            <span className="font-bold text-gray-900">
+                                {senderIdCost > 0 ? formatNumber(senderIdCost, "£") : "Free"}
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Processing Fee */}
+                    <div className="flex justify-between items-center text-sm pt-2">
+                        <span className="font-bold text-emerald-600">
+                            Processing fee:
+                        </span>
+                        <span className="font-bold text-emerald-600">
+                            {formatNumber(processingFee, "£")}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Bottom: Estimated credits + Buy Now + Auto Recharge */}
+            <div className={`flex flex-col gap-4 pt-6 ${isMobileInsideCard ? "" : "border-t border-gray-100 mt-6"}`}>
+                <div>
+                    <p className="text-xs font-medium text-gray-700">
+                        Estimated credits required:
+                    </p>
+                    <h3 className="text-3xl sm:text-4xl font-extrabold text-emerald-600 mt-0.5">
+                        {formatNumber(totalCredits, "£")}
+                    </h3>
+                    <p className="text-[11px] text-gray-500 mt-0.5 font-medium">
+                        for all selected pay-as-you-go services
+                    </p>
+                </div>
+
+                {/* Buy Now Button */}
+                <button
+                    type="button"
+                    onClick={handleBuyNow}
+                    disabled={purchaseBundleMutation.isPending || isLoadingBundles || !selectedEmail}
+                    className="w-full py-3.5 sm:py-4 px-6 rounded-2xl bg-[#37137F] hover:bg-[#2c0f66] text-white font-bold text-sm sm:text-base transition duration-150 shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                >
+                    {purchaseBundleMutation.isPending ? (
+                        <>
+                            <Spinner size="sm" color="current" />
+                            <span>Initializing Purchase...</span>
+                        </>
+                    ) : (
+                        "Buy now"
+                    )}
+                </button>
+
+                {/* Auto Recharge Button */}
+                <button
+                    type="button"
+                    onClick={() => setShowAutoRecharge(true)}
+                    className="text-xs font-bold text-gray-900 hover:text-[#37137F] transition text-center cursor-pointer"
+                >
+                    Auto Recharge
+                </button>
+            </div>
+        </div>
+    );
+
     return (
-        <div className="w-full flex flex-col items-center py-6 px-3 sm:px-6">
+        <div className="w-full flex flex-col items-center py-4 sm:py-6 px-3 sm:px-6">
+            {/* Optional Back to Settings */}
+            <div className="w-full max-w-4xl flex items-center justify-start mb-3">
+                <button
+                    type="button"
+                    onClick={() => navigate("/dashboard/settings?tab=profile")}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-[#37137F] transition cursor-pointer"
+                >
+                    <BiChevronLeft size={18} />
+                    <span>Back to Settings</span>
+                </button>
+            </div>
+
             {/* Header */}
-            <div className="text-center mb-6">
+            <div className="text-center mb-6 sm:mb-8">
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-[#37137F] tracking-tight">
                     Purchase Email Credit
                 </h1>
@@ -300,40 +432,7 @@ export default function SmsEmailCredits() {
                 </p>
             </div>
 
-            {/* ✉️ Email Credit Balance Card */}
-            <div className="w-full max-w-4xl bg-gradient-to-r from-[#37137F]/5 via-[#37137F]/10 to-[#37137F]/5 border border-[#37137F]/15 rounded-3xl p-5 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
-                <div className="flex items-center gap-3.5">
-                    <div className="w-12 h-12 rounded-2xl bg-[#37137F] text-white flex items-center justify-center shadow-xs shrink-0">
-                        <BiEnvelope size={24} />
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-                            Current Email Credit Balance
-                        </span>
-                        <div className="flex items-baseline gap-2 mt-0.5">
-                            {isLoadingBalance ? (
-                                <div className="h-7 w-28 bg-[#37137F]/20 rounded-md animate-pulse"></div>
-                            ) : (
-                                <>
-                                    <span className="text-2xl sm:text-3xl font-black text-[#37137F] tracking-tight">
-                                        {Number(emailBalance).toLocaleString()}
-                                    </span>
-                                    <span className="text-xs font-semibold text-gray-600">
-                                        Credits Available
-                                    </span>
-                                </>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-2 bg-white/80 border border-gray-200/80 rounded-2xl px-4 py-2 text-xs font-semibold text-gray-700 shadow-xs">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span>1 Credit = 1 Sent Email</span>
-                </div>
-            </div>
-
-            {/* Main Content Area: 2 Columns */}
+            {/* Main Content Area: 2 Columns on Desktop, Unified / Stacked on Mobile */}
             <div
                 ref={dropdownRef}
                 className="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-12 gap-6 items-start"
@@ -350,7 +449,7 @@ export default function SmsEmailCredits() {
                                     setActiveDropdown(activeDropdown === "email" ? null : "email")
                                 }
                                 disabled={isLoadingBundles || emailBundles.length === 0}
-                                className="w-full border border-gray-900 rounded-xl px-4 py-3.5 flex items-center justify-between bg-white hover:border-[#37137F] transition text-left cursor-pointer shadow-xs disabled:opacity-60"
+                                className="w-full border border-gray-900 rounded-xl px-4 py-3.5 sm:px-5 sm:py-4 flex items-center justify-between bg-white hover:border-[#37137F] transition text-left cursor-pointer shadow-xs disabled:opacity-60"
                             >
                                 <span className="text-sm sm:text-base font-bold text-gray-900 truncate">
                                     {isLoadingBundles
@@ -366,10 +465,11 @@ export default function SmsEmailCredits() {
 
                             {/* Email Volume Popover */}
                             {activeDropdown === "email" && (
-                                <div className="absolute top-full left-0 right-0 mt-2 z-40 bg-white rounded-2xl p-2 shadow-2xl border border-gray-100 animate-in fade-in zoom-in-95 duration-150 max-h-64 overflow-y-auto">
+                                <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-white rounded-2xl shadow-xl border border-gray-100/90 overflow-hidden animate-in fade-in zoom-in-95 duration-150 max-h-72 overflow-y-auto">
                                     {emailBundles.length > 0 ? (
                                         emailBundles.map((opt) => {
                                             const isSelected = selectedEmail?.id === opt.id;
+                                            const formattedRate = formatEmailRate(opt.rate);
                                             return (
                                                 <button
                                                     key={opt.id}
@@ -378,14 +478,16 @@ export default function SmsEmailCredits() {
                                                         setSelectedEmail(opt);
                                                         setActiveDropdown(null);
                                                     }}
-                                                    className={`w-full text-left px-4 py-3 rounded-xl text-sm flex items-center justify-between transition cursor-pointer ${isSelected
-                                                            ? "bg-gray-100 font-bold text-gray-900"
-                                                            : "hover:bg-gray-50 text-gray-700"
+                                                    className={`w-full flex items-center px-6 py-3.5 transition text-left cursor-pointer ${isSelected
+                                                            ? "bg-[#ECECEC]"
+                                                            : "hover:bg-gray-50"
                                                         }`}
                                                 >
-                                                    <span>{opt.label}</span>
-                                                    <span className="text-xs font-semibold text-[#37137F]">
-                                                        £{opt.amount.toFixed(2)}
+                                                    <span className="text-base font-bold text-gray-900">
+                                                        {opt.credits.toLocaleString()} Emails{" "}
+                                                    </span>
+                                                    <span className="text-base font-medium text-[#8E8E93] ml-1">
+                                                        (£{formattedRate} per mail)
                                                     </span>
                                                 </button>
                                             );
@@ -403,38 +505,16 @@ export default function SmsEmailCredits() {
                         <p className="text-xs text-gray-700 text-center font-medium">
                             Email Feature Included AI Writing Assistance
                         </p>
-
-                        {/* Add SMS Credit Toggle Switch */}
-                        <div className="flex items-center justify-center gap-3 pt-2">
-                            <span className="text-sm font-bold text-gray-900">
-                                Add SMS Credit
-                            </span>
-                            <button
-                                type="button"
-                                onClick={() => setAddSmsCredit(!addSmsCredit)}
-                                className={`w-14 h-7 rounded-full transition-colors relative flex items-center p-1 cursor-pointer ${addSmsCredit ? "bg-[#37137F]" : "bg-gray-300"
-                                    }`}
-                                aria-label="Toggle SMS Credit"
-                            >
-                                <span
-                                    className={`absolute text-[10px] font-bold text-white transition-opacity ${addSmsCredit
-                                            ? "left-2.5 opacity-100"
-                                            : "right-2.5 opacity-0"
-                                        }`}
-                                >
-                                    Yes
-                                </span>
-                                <span
-                                    className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-200 ${addSmsCredit ? "translate-x-7" : "translate-x-0"
-                                        }`}
-                                />
-                            </button>
-                        </div>
                     </div>
 
                     {/* Card 2: SMS Options (Destination, Volume, Sender ID) */}
                     {addSmsCredit && (
                         <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-xs border border-gray-100 flex flex-col gap-5 animate-in fade-in duration-200">
+                            {/* Mobile Section Header (Image 2) */}
+                            <h2 className="text-base sm:text-lg font-bold text-[#37137F] lg:hidden">
+                                Send SMS
+                            </h2>
+
                             {/* 1. Destination Country */}
                             <div className="flex flex-col gap-1.5 relative">
                                 <label className="text-xs font-bold text-gray-900">
@@ -463,27 +543,27 @@ export default function SmsEmailCredits() {
                                     />
                                 </button>
 
-                                {/* 📌 Destination Country Popover (Matching image exactly) */}
+                                {/* 📌 Destination Country Popover (Matching Image 2) */}
                                 {activeDropdown === "country" && (
-                                    <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-white rounded-3xl p-4 shadow-2xl border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
+                                    <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-white rounded-2xl shadow-xl border border-gray-100/90 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
                                         {/* Search Box with icon on right */}
-                                        <div className="relative mb-3 flex items-center border-b border-gray-100 pb-2.5">
+                                        <div className="relative px-6 pt-4 pb-3 flex items-center">
                                             <input
                                                 type="text"
                                                 value={countrySearch}
                                                 onChange={(e) => setCountrySearch(e.target.value)}
                                                 placeholder="Search"
-                                                className="w-full text-base font-semibold text-gray-800 placeholder-gray-400 focus:outline-hidden pr-8 pl-1"
+                                                className="w-full text-base font-medium text-gray-900 placeholder-[#8E8E93] focus:outline-hidden pr-8"
                                                 autoFocus
                                             />
                                             <BiSearch
                                                 size={22}
-                                                className="text-gray-500 absolute right-1 pointer-events-none"
+                                                className="text-[#8E8E93] absolute right-6 pointer-events-none"
                                             />
                                         </div>
 
                                         {/* Country List */}
-                                        <div className="flex flex-col gap-1 max-h-60 overflow-y-auto pr-1">
+                                        <div className="flex flex-col max-h-64 overflow-y-auto">
                                             {filteredCountries.length > 0 ? (
                                                 filteredCountries.map((c) => {
                                                     const isSelected =
@@ -496,13 +576,13 @@ export default function SmsEmailCredits() {
                                                                 setSelectedCountry(c);
                                                                 setActiveDropdown(null);
                                                             }}
-                                                            className={`w-full flex items-center gap-4 px-3.5 py-3 rounded-2xl transition text-left cursor-pointer ${isSelected
-                                                                    ? "bg-gray-100"
+                                                            className={`w-full flex items-center gap-4 px-6 py-3.5 transition text-left cursor-pointer ${isSelected
+                                                                    ? "bg-[#ECECEC]"
                                                                     : "hover:bg-gray-50"
                                                                 }`}
                                                         >
                                                             {c.flagSvg}
-                                                            <span className="text-sm sm:text-base font-semibold text-gray-900">
+                                                            <span className="text-base font-semibold text-gray-900">
                                                                 {c.name}
                                                             </span>
                                                         </button>
@@ -528,7 +608,8 @@ export default function SmsEmailCredits() {
                                     onClick={() =>
                                         setActiveDropdown(
                                             activeDropdown === "sms" ? null : "sms",
-                                        )}
+                                        )
+                                    }
                                     className="w-full border border-gray-200 rounded-xl px-4 py-3 flex items-center justify-between bg-white hover:border-gray-300 transition text-left cursor-pointer"
                                 >
                                     <span className="text-sm font-semibold text-gray-900">
@@ -541,10 +622,10 @@ export default function SmsEmailCredits() {
                                     />
                                 </button>
 
-                                {/* 📌 SMS Volume Popover (Matching image exactly) */}
+                                {/* 📌 SMS Volume Popover (Matching Image 1) */}
                                 {activeDropdown === "sms" && (
-                                    <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-white rounded-3xl p-3 shadow-2xl border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
-                                        <div className="flex flex-col gap-1">
+                                    <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-white rounded-2xl shadow-xl border border-gray-100/90 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                                        <div className="flex flex-col max-h-72 overflow-y-auto">
                                             {SMS_OPTIONS.map((opt) => {
                                                 const isSelected =
                                                     selectedSms.count === opt.count;
@@ -556,21 +637,16 @@ export default function SmsEmailCredits() {
                                                             setSelectedSms(opt);
                                                             setActiveDropdown(null);
                                                         }}
-                                                        className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition text-left cursor-pointer ${isSelected
-                                                                ? "bg-gray-100"
+                                                        className={`w-full flex items-center px-6 py-3.5 transition text-left cursor-pointer ${isSelected
+                                                                ? "bg-[#ECECEC]"
                                                                 : "hover:bg-gray-50"
                                                             }`}
                                                     >
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-sm sm:text-base font-bold text-gray-900">
-                                                                {opt.count} SMS
-                                                            </span>
-                                                            <span className="text-xs sm:text-sm text-gray-500 font-medium">
-                                                                (£{opt.rate} per SMS)
-                                                            </span>
-                                                        </div>
-                                                        <span className="text-xs font-bold text-[#37137F]">
-                                                            £{opt.price}
+                                                        <span className="text-base font-bold text-gray-900">
+                                                            {opt.count} SMS{" "}
+                                                        </span>
+                                                        <span className="text-base font-medium text-[#8E8E93] ml-1">
+                                                            (£{opt.rate} per SMS)
                                                         </span>
                                                     </button>
                                                 );
@@ -583,14 +659,16 @@ export default function SmsEmailCredits() {
                             {/* 3. Get SMS Number / Sender ID */}
                             <div className="flex flex-col gap-1.5 relative">
                                 <label className="text-xs font-bold text-gray-900">
-                                    Get SMS number
+                                    <span className="hidden lg:inline">Get SMS number</span>
+                                    <span className="lg:hidden">Send SMS from</span>
                                 </label>
                                 <button
                                     type="button"
                                     onClick={() =>
                                         setActiveDropdown(
                                             activeDropdown === "sender" ? null : "sender",
-                                        )}
+                                        )
+                                    }
                                     className="w-full border border-gray-200 rounded-xl px-4 py-3 flex items-center justify-between bg-white hover:border-gray-300 transition text-left cursor-pointer"
                                 >
                                     <span className="text-sm font-semibold text-gray-900 truncate">
@@ -605,8 +683,8 @@ export default function SmsEmailCredits() {
 
                                 {/* Sender ID Popover */}
                                 {activeDropdown === "sender" && (
-                                    <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-white rounded-2xl p-2.5 shadow-2xl border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
-                                        <div className="flex flex-col gap-1">
+                                    <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-white rounded-2xl shadow-xl border border-gray-100/90 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                                        <div className="flex flex-col">
                                             {SENDER_ID_OPTIONS.map((opt) => {
                                                 const isSelected = selectedSenderId.id === opt.id;
                                                 return (
@@ -617,12 +695,12 @@ export default function SmsEmailCredits() {
                                                             setSelectedSenderId(opt);
                                                             setActiveDropdown(null);
                                                         }}
-                                                        className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl transition text-left cursor-pointer ${isSelected
-                                                                ? "bg-gray-100 font-bold"
+                                                        className={`w-full flex items-center justify-between px-6 py-3.5 transition text-left cursor-pointer ${isSelected
+                                                                ? "bg-[#ECECEC]"
                                                                 : "hover:bg-gray-50"
                                                             }`}
                                                     >
-                                                        <span className="text-xs sm:text-sm font-semibold text-gray-900">
+                                                        <span className="text-sm sm:text-base font-semibold text-gray-900">
                                                             {opt.label}
                                                         </span>
                                                         <span className="text-xs font-bold text-[#37137F] shrink-0 ml-2">
@@ -635,112 +713,26 @@ export default function SmsEmailCredits() {
                                     </div>
                                 )}
                             </div>
+
+                            {/* 📱 On Mobile: Cost Breakdown is nested inside Card 2 (Matching Image 2) */}
+                            <div className="w-full border-t border-gray-100 my-2 lg:hidden" />
+                            <div className="lg:hidden">
+                                {renderCostBreakdown(true)}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 📱 On Mobile: When SMS is disabled, render Cost Breakdown card below Card 1 */}
+                    {!addSmsCredit && (
+                        <div className="lg:hidden bg-white rounded-3xl p-6 sm:p-7 shadow-xs border border-gray-100">
+                            {renderCostBreakdown(true)}
                         </div>
                     )}
                 </div>
 
-                {/* 👉 RIGHT COLUMN: Cost Breakdown Card */}
-                <div className="lg:col-span-5 bg-white rounded-3xl p-7 shadow-xs border border-gray-100 flex flex-col justify-between min-h-[460px]">
-                    <div>
-                        <h2 className="text-xl font-bold text-[#37137F] mb-6">
-                            Cost breakdown
-                        </h2>
-
-                        <div className="flex flex-col gap-4">
-                            {/* Email Cost */}
-                            <div className="flex justify-between items-center text-sm">
-                                <span className="font-bold text-gray-900">Email:</span>
-                                <span className="font-bold text-gray-900">
-                                    {selectedEmail ? formatNumber(emailCost, "£") : "£0.00"}
-                                </span>
-                            </div>
-
-                            {/* SMS Cost (if enabled) */}
-                            {addSmsCredit && (
-                                <div className="flex justify-between items-start text-sm">
-                                    <div className="flex flex-col">
-                                        <span className="font-bold text-gray-900">
-                                            {selectedSms.count} SMS
-                                        </span>
-                                        <span className="text-xs text-gray-500 font-medium">
-                                            £{selectedSms.rate} per SMS
-                                        </span>
-                                    </div>
-                                    <span className="font-bold text-gray-900">
-                                        {formatNumber(smsCost, "£")}
-                                    </span>
-                                </div>
-                            )}
-
-                            {/* Alphanumeric Sender ID */}
-                            {addSmsCredit && (
-                                <div className="flex justify-between items-start text-sm">
-                                    <div className="flex flex-col leading-tight">
-                                        <span className="font-bold text-gray-900">
-                                            Alphanumeric
-                                        </span>
-                                        <span className="font-bold text-gray-900">
-                                            Sender ID
-                                        </span>
-                                    </div>
-                                    <span className="font-bold text-gray-900">
-                                        {senderIdCost > 0 ? formatNumber(senderIdCost, "£") : "Free"}
-                                    </span>
-                                </div>
-                            )}
-
-                            {/* Processing Fee */}
-                            <div className="flex justify-between items-center text-sm pt-2">
-                                <span className="font-bold text-emerald-600">
-                                    Processing fee:
-                                </span>
-                                <span className="font-bold text-emerald-600">
-                                    {formatNumber(processingFee, "£")}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Bottom: Estimated credits + Buy Now + Auto Recharge */}
-                    <div className="flex flex-col gap-4 pt-6 border-t border-gray-100 mt-6">
-                        <div>
-                            <p className="text-xs font-medium text-gray-700">
-                                Estimated credits required:
-                            </p>
-                            <h3 className="text-3xl sm:text-4xl font-extrabold text-emerald-600 mt-0.5">
-                                {formatNumber(totalCredits, "£")}
-                            </h3>
-                            <p className="text-[11px] text-gray-500 mt-0.5 font-medium">
-                                for all selected pay-as-you-go services
-                            </p>
-                        </div>
-
-                        {/* Buy Now Button */}
-                        <button
-                            type="button"
-                            onClick={handleBuyNow}
-                            disabled={purchaseBundleMutation.isPending || isLoadingBundles || !selectedEmail}
-                            className="w-full py-3.5 px-6 rounded-2xl bg-[#37137F] hover:bg-[#2c0f66] text-white font-bold text-sm sm:text-base transition duration-150 shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
-                        >
-                            {purchaseBundleMutation.isPending ? (
-                                <>
-                                    <Spinner size="sm" color="current" />
-                                    <span>Initializing Purchase...</span>
-                                </>
-                            ) : (
-                                "Buy Now"
-                            )}
-                        </button>
-
-                        {/* Auto Recharge Button */}
-                        <button
-                            type="button"
-                            onClick={() => setShowAutoRecharge(true)}
-                            className="text-xs font-bold text-gray-900 hover:text-[#37137F] transition text-center cursor-pointer"
-                        >
-                            Auto Recharge
-                        </button>
-                    </div>
+                {/* 👉 RIGHT COLUMN on Desktop: Cost Breakdown Card (Matching Image 1) */}
+                <div className="hidden lg:flex lg:col-span-5 bg-white rounded-3xl p-7 shadow-xs border border-gray-100 flex-col justify-between min-h-[460px]">
+                    {renderCostBreakdown(false)}
                 </div>
             </div>
 

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Header } from "../../components/common";
-import { LineChart } from "@mui/x-charts/LineChart";
+import ReactECharts from "echarts-for-react";
+import * as echarts from "echarts";
 import {
     LuLayoutGrid,
     LuCalendarDays,
@@ -724,50 +725,67 @@ export default function Management() {
                         </div>
 
                         <div className="w-full h-64 mt-4">
-                            <LineChart
-                                dataset={[
-                                    { month: "JAN", revenue: 15000 },
-                                    { month: "MAR", revenue: 22000 },
-                                    { month: "MAY", revenue: 19000 },
-                                    { month: "JUL", revenue: 38000 },
-                                    { month: "SEP", revenue: 25000 },
-                                    { month: "NOV", revenue: 21000 },
-                                    { month: "DEC", revenue: 48000 },
-                                ]}
-                                xAxis={[
-                                    {
-                                        scaleType: "point",
-                                        dataKey: "month",
+                            <ReactECharts
+                                option={{
+                                    tooltip: {
+                                        trigger: "axis",
+                                        backgroundColor: "#1F2937",
+                                        borderColor: "#374151",
+                                        borderWidth: 1,
+                                        padding: [8, 12],
+                                        textStyle: { color: "#F9FAFB", fontSize: 12 },
+                                        formatter: (params: unknown) => {
+                                            if (!Array.isArray(params) || params.length === 0) return "";
+                                            const p = params[0] as { name: string; value: number };
+                                            return `<div style="font-weight:600;color:#fff;">${p.name}</div><div>Revenue: <strong>£${Number(p.value).toLocaleString()}</strong></div>`;
+                                        },
                                     },
-                                ]}
-                                series={[
-                                    {
-                                        dataKey: "revenue",
-                                        color: "#2563EB",
-                                        curve: "natural",
-                                        area: true,
-                                        showMark: false,
+                                    grid: {
+                                        left: "3%",
+                                        right: "3%",
+                                        top: "10%",
+                                        bottom: "10%",
+                                        containLabel: true,
                                     },
-                                ]}
-                                height={240}
-                                margin={{ left: 20, right: 20, top: 20, bottom: 20 }}
-                                sx={{
-                                    width: "100%",
-                                    height: "100%",
-                                    "& .MuiChartsLegend-root": { display: "none" },
-                                    "& .MuiChartsAxis-tickLabel": {
-                                        fontSize: 11,
-                                        fill: "#9CA3AF",
+                                    xAxis: {
+                                        type: "category",
+                                        boundaryGap: false,
+                                        data: ["JAN", "MAR", "MAY", "JUL", "SEP", "NOV", "DEC"],
+                                        axisLine: { show: false },
+                                        axisTick: { show: false },
+                                        axisLabel: { color: "#9CA3AF", fontSize: 11 },
                                     },
-                                    "& .MuiChartsGrid-line": { stroke: "transparent" },
-                                    "& .MuiAreaElement-root": {
-                                        opacity: 0.1,
-                                        fill: "#2563EB",
+                                    yAxis: {
+                                        type: "value",
+                                        splitLine: { show: false },
+                                        axisLine: { show: false },
+                                        axisTick: { show: false },
+                                        axisLabel: {
+                                            color: "#9CA3AF",
+                                            fontSize: 11,
+                                            formatter: (val: number) => `£${val / 1000}k`,
+                                        },
                                     },
-                                    "& .MuiLineElement-root": {
-                                        strokeWidth: 2.5,
-                                    },
+                                    series: [
+                                        {
+                                            name: "Revenue",
+                                            type: "line",
+                                            smooth: true,
+                                            showSymbol: false,
+                                            lineStyle: { color: "#2563EB", width: 2.5 },
+                                            areaStyle: {
+                                                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                                    { offset: 0, color: "rgba(37, 99, 235, 0.25)" },
+                                                    { offset: 1, color: "rgba(37, 99, 235, 0.01)" },
+                                                ]),
+                                            },
+                                            data: [15000, 22000, 19000, 38000, 25000, 21000, 48000],
+                                        },
+                                    ],
                                 }}
+                                style={{ height: 240, width: "100%" }}
+                                opts={{ renderer: "svg" }}
+                                notMerge={true}
                             />
                         </div>
                     </div>

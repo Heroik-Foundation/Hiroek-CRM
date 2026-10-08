@@ -21,6 +21,8 @@
     "@tanstack/react-query": "^5.101.4",
     "axios": "^1.20.0",
     "clsx": "^2.1.1",
+    "echarts": "^6.1.0",
+    "echarts-for-react": "^3.0.6",
     "format-number": "^3.0.0",
     "formik": "^2.4.9",
     "framer-motion": "^12.43.0",

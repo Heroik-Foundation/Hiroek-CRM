@@ -1,5 +1,6 @@
-import { useRef, useState, useEffect } from "react";
-import { LineChart } from "@mui/x-charts/LineChart";
+import ReactECharts from "echarts-for-react";
+import type { EChartsOption } from "echarts";
+import * as echarts from "echarts";
 import { LoadingLayout } from "../../layout";
 
 export interface AttendanceTrendItem {
@@ -9,11 +10,11 @@ export interface AttendanceTrendItem {
   revenue?: number;
   value?: number;
   forecast?: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface AttendanceTrendChartProps {
-  data?: any;
+  data?: unknown;
   isLoading?: boolean;
   dataKey?: string;
   xAxisKey?: string;
@@ -34,79 +35,33 @@ export default function AttendanceTrendChart({
   xAxisKey = "month",
   label = "Attendance",
   color = "#7047EB",
-  height,
+  height = 280,
   showLegend = true,
   legendLabel = "Last 30 Days",
   yAxisMax,
-  curve = "natural",
   valueFormatter,
 }: AttendanceTrendChartProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [dimensions, setDimensions] = useState<{ width: number; height: number }>({
-    width: 0,
-    height: height ?? 280,
-  });
-
-  useEffect(() => {
-    if (!containerRef.current) return;
-
-    const updateDimensions = () => {
-      if (containerRef.current) {
-        const { clientWidth, clientHeight } = containerRef.current;
-        if (clientWidth > 0) {
-          setDimensions({
-            width: clientWidth,
-            height: height ?? (clientHeight > 140 ? clientHeight : 280),
-          });
-        }
-      }
-    };
-
-    updateDimensions();
-
-    if (typeof ResizeObserver !== "undefined") {
-      const observer = new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          const { width, height: observedHeight } = entry.contentRect;
-          if (width > 0) {
-            setDimensions({
-              width: Math.floor(width),
-              height: height ?? (observedHeight > 140 ? Math.floor(observedHeight) : 280),
-            });
-          }
-        }
-      });
-      observer.observe(containerRef.current);
-      return () => observer.disconnect();
-    }
-  }, [height]);
-
-  const isMobile = dimensions.width > 0 ? dimensions.width < 540 : false;
-  const isVerySmall = dimensions.width > 0 ? dimensions.width < 380 : false;
-
-  const chartMargin = {
-    left: isVerySmall ? 28 : isMobile ? 34 : 42,
-    right: isVerySmall ? 6 : isMobile ? 12 : 18,
-    top: 15,
-    bottom: isMobile ? 22 : 28,
-  };
-
   const dataSource =
-    propData && typeof propData === "object" && !Array.isArray(propData) && propData.data !== undefined
-      ? (Array.isArray(propData.data)
-          ? propData.data
-          : Array.isArray(propData.data.forecast)
-          ? propData.data.forecast
-          : Array.isArray(propData.data.trend)
-          ? propData.data.trend
-          : propData.data)
+    propData &&
+    typeof propData === "object" &&
+    !Array.isArray(propData) &&
+    "data" in (propData as Record<string, unknown>)
+      ? (() => {
+          const d = (propData as Record<string, unknown>).data;
+          if (d && typeof d === "object" && !Array.isArray(d)) {
+            const dObj = d as Record<string, unknown>;
+            if (Array.isArray(dObj.forecast)) return dObj.forecast;
+            if (Array.isArray(dObj.trend)) return dObj.trend;
+          }
+          return d;
+        })()
       : propData;
 
-  let rawItems: any[] = [];
+  let rawItems: Record<string, unknown>[] = [];
   if (Array.isArray(dataSource)) {
-    rawItems = dataSource;
+    rawItems = dataSource as Record<string, unknown>[];
   } else if (dataSource && typeof dataSource === "object") {
-    rawItems = Object.entries(dataSource)
+    rawItems = Object.entries(dataSource as Record<string, unknown>)
       .filter(([key]) => key !== "status" && key !== "message")
       .map(([key, val]) => ({
         [xAxisKey]: key,
@@ -114,25 +69,26 @@ export default function AttendanceTrendChart({
           typeof val === "number"
             ? val
             : Number(
-                (val as any)?.attendance ??
-                  (val as any)?.revenue ??
-                  (val as any)?.forecast ??
-                  (val as any)?.projected ??
-                  (val as any)?.value ??
+                (val as Record<string, unknown>)?.attendance ??
+                  (val as Record<string, unknown>)?.revenue ??
+                  (val as Record<string, unknown>)?.forecast ??
+                  (val as Record<string, unknown>)?.projected ??
+                  (val as Record<string, unknown>)?.value ??
                   0
               ),
       }));
   }
 
-  const chartData: AttendanceTrendItem[] = rawItems.map((item: any, index: number) => ({
+  const chartData: AttendanceTrendItem[] = rawItems.map((item, index) => ({
     ...item,
-    [xAxisKey]:
+    [xAxisKey]: String(
       item[xAxisKey] ??
-      item.label ??
-      item.date ??
-      item.period ??
-      item.month ??
-      `Period ${index + 1}`,
+        item.label ??
+        item.date ??
+        item.period ??
+        item.month ??
+        `Period ${index + 1}`
+    ),
     [dataKey]: Number(
       item[dataKey] ??
         item.revenue ??
@@ -148,88 +104,138 @@ export default function AttendanceTrendChart({
     (max, d) => Math.max(max, Number(d[dataKey] ?? 0)),
     0
   );
-  const computedYMax = yAxisMax ?? (maxValue > 0 ? undefined : 100);
+  const computedYMax = yAxisMax ?? (maxValue > 0 ? Math.ceil(maxValue * 1.2) : 100);
 
-  const defaultValueFormatter = (val: number | null) => {
-    if (dataKey === "revenue" || label.toLowerCase().includes("revenue")) {
+  const isRevenue = dataKey === "revenue" || label.toLowerCase().includes("revenue");
+
+  const formatValue = (val: number | null | undefined): string => {
+    if (valueFormatter) {
+      return valueFormatter(val ?? null);
+    }
+    if (isRevenue) {
       return `£${Number(val ?? 0).toLocaleString()}`;
     }
-    return `${val ?? 0}`;
+    return Number(val ?? 0).toLocaleString();
+  };
+
+  const option: EChartsOption = {
+    tooltip: {
+      trigger: "axis",
+      axisPointer: {
+        type: "line",
+        lineStyle: {
+          color: color,
+          type: "dashed",
+          width: 1.5,
+        },
+      },
+      backgroundColor: "#1F2937",
+      borderColor: "#374151",
+      borderWidth: 1,
+      padding: [8, 12],
+      textStyle: {
+        color: "#F9FAFB",
+        fontSize: 12,
+        fontWeight: 500,
+      },
+      formatter: (params) => {
+        if (!Array.isArray(params) || params.length === 0) return "";
+        const p = params[0];
+        const val = Number(p.value ?? 0);
+        return `
+          <div style="font-weight: 600; margin-bottom: 4px; color: #FFFFFF;">${p.name}</div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${color};"></span>
+            <span>${label}: <strong>${formatValue(val)}</strong></span>
+          </div>
+        `;
+      },
+    },
+    grid: {
+      left: "3%",
+      right: "3%",
+      top: "12%",
+      bottom: "6%",
+      containLabel: true,
+    },
+    xAxis: {
+      type: "category",
+      boundaryGap: false,
+      data: chartData.map((d) => String(d[xAxisKey] ?? "")),
+      axisTick: { show: false },
+      axisLine: {
+        show: true,
+        lineStyle: { color: "#E5E7EB" },
+      },
+      axisLabel: {
+        color: "#6B7280",
+        fontSize: 12,
+        fontWeight: 600,
+        margin: 12,
+      },
+    },
+    yAxis: {
+      type: "value",
+      min: 0,
+      max: computedYMax,
+      splitLine: {
+        show: true,
+        lineStyle: {
+          color: "#F3F4F6",
+          type: "dashed",
+        },
+      },
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: {
+        color: "#9CA3AF",
+        fontSize: 11,
+        fontWeight: 500,
+        formatter: (val: number) => {
+          if (isRevenue) return `£${Number(val).toLocaleString()}`;
+          return Number(val).toLocaleString();
+        },
+      },
+    },
+    series: [
+      {
+        name: label,
+        type: "line",
+        smooth: true,
+        symbol: "circle",
+        symbolSize: 8,
+        itemStyle: {
+          color: color,
+          borderColor: "#FFFFFF",
+          borderWidth: 2,
+        },
+        lineStyle: {
+          color: color,
+          width: 3,
+          shadowColor: "rgba(112, 71, 235, 0.2)",
+          shadowBlur: 10,
+          shadowOffsetY: 4,
+        },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: "rgba(112, 71, 235, 0.28)" },
+            { offset: 1, color: "rgba(112, 71, 235, 0.01)" },
+          ]),
+        },
+        data: chartData.map((d) => Number(d[dataKey] ?? 0)),
+      },
+    ],
   };
 
   return (
     <div className="w-full h-full min-h-[260px] sm:min-h-[300px] flex flex-col justify-between">
       <LoadingLayout loading={isLoading} length={chartData.length}>
-        <div
-          ref={containerRef}
-          className="w-full flex-1 min-h-[230px] sm:min-h-[270px] flex items-center justify-center relative min-w-0"
-        >
-          <LineChart
-            dataset={chartData}
-            width={dimensions.width > 0 ? dimensions.width : undefined}
-            height={dimensions.height}
-            margin={chartMargin}
-            xAxis={[
-              {
-                scaleType: "point",
-                dataKey: xAxisKey,
-              },
-            ]}
-            yAxis={[
-              {
-                min: 0,
-                ...(computedYMax ? { max: computedYMax } : {}),
-                valueFormatter: (val: number | null) => {
-                  if (dataKey === "revenue" || label.toLowerCase().includes("revenue")) {
-                    return `${Number(val ?? 0).toLocaleString()}`;
-                  }
-                  return `${val ?? 0}`;
-                },
-              },
-            ]}
-            series={[
-              {
-                dataKey,
-                label,
-                color,
-                area: true,
-                showMark: true,
-                curve,
-                valueFormatter: valueFormatter ?? defaultValueFormatter,
-              },
-            ]}
-            grid={{
-              horizontal: true,
-              vertical: false,
-            }}
-            sx={{
-              width: "100%",
-              height: "100%",
-              "& .MuiChartsLegend-root": {
-                display: "none",
-              },
-              "& .MuiChartsAxis-tickLabel": {
-                fontSize: isMobile ? 10 : 12,
-                fill: "#6B7280",
-              },
-              "& .MuiChartsGrid-line": {
-                stroke: "#F3F4F6",
-                strokeDasharray: "4 4",
-              },
-              "& .MuiAreaElement-root": {
-                opacity: 0.15,
-                fill: color,
-              },
-              "& .MuiLineElement-root": {
-                strokeWidth: 2.5,
-              },
-              "& .MuiMarkElement-root": {
-                scale: isMobile ? "0.7" : "0.85",
-                fill: "#1E1E1E",
-                stroke: "#fff",
-                strokeWidth: 1.5,
-              },
-            }}
+        <div className="w-full flex-1 min-h-[230px] sm:min-h-[270px]">
+          <ReactECharts
+            option={option}
+            style={{ height, width: "100%" }}
+            opts={{ renderer: "svg" }}
+            notMerge={true}
           />
         </div>
 

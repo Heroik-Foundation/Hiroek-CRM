@@ -1,4 +1,5 @@
-import { PieChart, pieClasses } from "@mui/x-charts/PieChart";
+import ReactECharts from "echarts-for-react";
+import type { EChartsOption } from "echarts";
 import { LoadingLayout } from "../../layout";
 
 export interface AgeDistributionItem {
@@ -9,12 +10,12 @@ export interface AgeDistributionItem {
 }
 
 export interface AgeDistributionChartProps {
-  data?: any;
+  data?: unknown;
   isLoading?: boolean;
   height?: number;
   innerRadius?: number;
   outerRadius?: number;
-  valueFormatter?: (item: any) => string;
+  valueFormatter?: (item: unknown) => string;
 }
 
 const DEFAULT_PALETTE = [
@@ -31,24 +32,26 @@ export default function AgeDistributionChart({
   data: propData,
   isLoading = false,
   height = 240,
-  innerRadius = 55,
-  outerRadius = 100,
+  innerRadius = 50,
+  outerRadius = 90,
   valueFormatter,
 }: AgeDistributionChartProps) {
   // Detect if incoming data is the Ticket Spend Distribution Stat (free/paid tickets)
   const statSource =
     propData && typeof propData === "object" && !Array.isArray(propData)
-      ? (propData.data && typeof propData.data === "object" && !Array.isArray(propData.data)
-          ? propData.data
-          : propData)
+      ? (propData as Record<string, unknown>).data &&
+        typeof (propData as Record<string, unknown>).data === "object" &&
+        !Array.isArray((propData as Record<string, unknown>).data)
+        ? ((propData as Record<string, unknown>).data as Record<string, unknown>)
+        : (propData as Record<string, unknown>)
       : null;
 
   const isTicketSpendStat = Boolean(
     statSource &&
-    ("freeTickets" in statSource ||
-      "paidTickets" in statSource ||
-      "freePercentage" in statSource ||
-      "paidPercentage" in statSource)
+      ("freeTickets" in statSource ||
+        "paidTickets" in statSource ||
+        "freePercentage" in statSource ||
+        "paidPercentage" in statSource)
   );
 
   if (isTicketSpendStat && statSource) {
@@ -70,19 +73,51 @@ export default function AgeDistributionChart({
     const pieSeriesData = hasData
       ? [
           {
-            id: "paid",
-            label: "Paid Tickets",
+            name: "Paid Tickets",
             value: Math.round(paidPct),
-            color: "#37137F",
+            itemStyle: { color: "#37137F" },
           },
           {
-            id: "free",
-            label: "Free Tickets",
+            name: "Free Tickets",
             value: Math.round(freePct),
-            color: "#FFA043",
+            itemStyle: { color: "#FFA043" },
           },
         ]
       : [];
+
+    const option: EChartsOption = {
+      tooltip: {
+        trigger: "item",
+        backgroundColor: "#1F2937",
+        borderColor: "#374151",
+        borderWidth: 1,
+        padding: [8, 12],
+        textStyle: { color: "#F9FAFB", fontSize: 12 },
+        formatter: "{b}: {c}%",
+      },
+      series: [
+        {
+          name: "Ticket Type",
+          type: "pie",
+          radius: "78%",
+          center: ["50%", "50%"],
+          avoidLabelOverlap: false,
+          label: {
+            show: true,
+            position: "inside",
+            formatter: (params) => {
+              const val = Number(params.value ?? 0);
+              return val > 0 ? `${params.name}\n${val}%` : "";
+            },
+            color: "#FFFFFF",
+            fontWeight: "bold",
+            fontSize: 11,
+            lineHeight: 16,
+          },
+          data: pieSeriesData,
+        },
+      ],
+    };
 
     return (
       <div className="w-full h-full min-h-80 flex flex-col justify-between">
@@ -90,38 +125,11 @@ export default function AgeDistributionChart({
           {/* Main Chart Row with Side Legend */}
           <div className="relative w-full flex items-center justify-between">
             <div className="flex-1 flex items-center justify-center">
-              <PieChart
-                height={height}
-                series={[
-                  {
-                    data: pieSeriesData,
-                    innerRadius: 0,
-                    outerRadius: 95,
-                    paddingAngle: 1,
-                    cornerRadius: 0,
-                    arcLabel: (item) => (Number(item?.value ?? 0) > 0 ? `${item.label}\n${item.value}%` : ""),
-                    arcLabelMinAngle: 20,
-                    arcLabelRadius: "55%",
-                    valueFormatter: (item: any) => {
-                      const val = typeof item === "number" ? item : Number(item?.value ?? 0);
-                      return `${val}%`;
-                    },
-                  },
-                ]}
-                sx={{
-                  width: "100%",
-                  height: "100%",
-                  [`& .${pieClasses.arcLabel}`]: {
-                    fill: "#fff",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    textAnchor: "middle",
-                    whiteSpace: "pre-line",
-                  },
-                  "& .MuiChartsLegend-root": {
-                    display: "none",
-                  },
-                }}
+              <ReactECharts
+                option={option}
+                style={{ height, width: "100%" }}
+                opts={{ renderer: "svg" }}
+                notMerge={true}
               />
             </div>
 
@@ -165,9 +173,11 @@ export default function AgeDistributionChart({
   // Detect if incoming data is Donor Frequency ({ totalDonors, buckets })
   const freqSource =
     propData && typeof propData === "object" && !Array.isArray(propData)
-      ? (propData.data && typeof propData.data === "object" && !Array.isArray(propData.data)
-          ? propData.data
-          : propData)
+      ? (propData as Record<string, unknown>).data &&
+        typeof (propData as Record<string, unknown>).data === "object" &&
+        !Array.isArray((propData as Record<string, unknown>).data)
+        ? ((propData as Record<string, unknown>).data as Record<string, unknown>)
+        : (propData as Record<string, unknown>)
       : null;
 
   const isDonationFrequency =
@@ -186,78 +196,96 @@ export default function AgeDistributionChart({
       "4-plus-times": "4+ Times",
     };
 
-    const buckets: any[] = Array.isArray(freqSource.buckets) ? freqSource.buckets : [];
+    const buckets = Array.isArray(freqSource.buckets) ? freqSource.buckets : [];
     const totalFreqVal = buckets.reduce(
-      (sum, b) => sum + Number(b.percentage ?? b.count ?? 0),
+      (sum, b) =>
+        sum +
+        Number(
+          (b as Record<string, unknown>).percentage ??
+            (b as Record<string, unknown>).count ??
+            0
+        ),
       0
     );
 
     const pieSeriesData =
       totalFreqVal > 0
-        ? buckets.map((b: any, index: number) => {
-            const key = String(b.frequency ?? "").toLowerCase();
-            const label = FREQ_LABELS[key] ?? b.label ?? `Bucket ${index + 1}`;
-            const color = FREQ_COLORS[key] ?? DEFAULT_PALETTE[index % DEFAULT_PALETTE.length];
-            const value = Number(b.percentage ?? b.count ?? 0);
+        ? buckets.map((b, index) => {
+            const bObj = b as Record<string, unknown>;
+            const key = String(bObj.frequency ?? "").toLowerCase();
+            const label = FREQ_LABELS[key] ?? String(bObj.label ?? `Bucket ${index + 1}`);
+            const color =
+              FREQ_COLORS[key] ?? DEFAULT_PALETTE[index % DEFAULT_PALETTE.length];
+            const value = Number(bObj.percentage ?? bObj.count ?? 0);
             return {
-              id: b.frequency ?? index,
-              label,
+              name: label,
               value,
-              color,
+              itemStyle: { color },
             };
           })
         : [];
+
+    const option: EChartsOption = {
+      tooltip: {
+        trigger: "item",
+        backgroundColor: "#1F2937",
+        borderColor: "#374151",
+        borderWidth: 1,
+        padding: [8, 12],
+        textStyle: { color: "#F9FAFB", fontSize: 12 },
+        formatter: "{b}: {c}%",
+      },
+      series: [
+        {
+          name: "Frequency",
+          type: "pie",
+          radius: "78%",
+          center: ["50%", "50%"],
+          avoidLabelOverlap: false,
+          label: {
+            show: true,
+            position: "inside",
+            formatter: (params) => {
+              const val = Number(params.value ?? 0);
+              return val > 0 ? `${params.name}\n${val}%` : "";
+            },
+            color: "#FFFFFF",
+            fontWeight: "bold",
+            fontSize: 11,
+            lineHeight: 16,
+          },
+          data: pieSeriesData,
+        },
+      ],
+    };
 
     return (
       <div className="w-full h-full min-h-80 flex items-center justify-between">
         <LoadingLayout loading={isLoading} length={pieSeriesData.length}>
           <div className="flex-1 flex items-center justify-center">
-            <PieChart
-              height={height}
-              series={[
-                {
-                  data: pieSeriesData,
-                  innerRadius: 0,
-                  outerRadius: 95,
-                  paddingAngle: 1,
-                  cornerRadius: 0,
-                  arcLabel: (item: any) =>
-                    Number(item?.value ?? 0) > 0 ? `${item.label}\n${item.value}%` : "",
-                  arcLabelMinAngle: 20,
-                  arcLabelRadius: "55%",
-                  valueFormatter: (item: any) => {
-                    const val = typeof item === "number" ? item : Number(item?.value ?? 0);
-                    return `${val}%`;
-                  },
-                },
-              ]}
-              sx={{
-                width: "100%",
-                height: "100%",
-                [`& .${pieClasses.arcLabel}`]: {
-                  fill: "#fff",
-                  fontSize: 11,
-                  fontWeight: 700,
-                  textAnchor: "middle",
-                  whiteSpace: "pre-line",
-                },
-                "& .MuiChartsLegend-root": {
-                  display: "none",
-                },
-              }}
+            <ReactECharts
+              option={option}
+              style={{ height, width: "100%" }}
+              opts={{ renderer: "svg" }}
+              notMerge={true}
             />
           </div>
 
           {/* Right Side Legend */}
           <div className="flex flex-col gap-3 pr-6">
-            {pieSeriesData.map((item: any) => (
-              <div key={item.label} className="flex items-center gap-2">
+            {pieSeriesData.map((item) => (
+              <div key={item.name} className="flex items-center gap-2">
                 <span
                   className="w-3 h-3 rounded-full shrink-0"
-                  style={{ backgroundColor: item.color }}
+                  style={{
+                    backgroundColor:
+                      typeof item.itemStyle?.color === "string"
+                        ? item.itemStyle.color
+                        : "#37137F",
+                  }}
                 />
                 <span className="text-xs text-gray-700 font-medium whitespace-nowrap">
-                  {item.label}
+                  {item.name}
                 </span>
               </div>
             ))}
@@ -269,76 +297,120 @@ export default function AgeDistributionChart({
 
   // Normal Age Distribution Chart
   const normalSource =
-    propData && typeof propData === "object" && !Array.isArray(propData) && propData.data
-      ? propData.data
+    propData &&
+    typeof propData === "object" &&
+    !Array.isArray(propData) &&
+    (propData as Record<string, unknown>).data
+      ? (propData as Record<string, unknown>).data
       : propData;
 
-  let rawItems: any[] = [];
+  let rawItems: Record<string, unknown>[] = [];
   if (Array.isArray(normalSource)) {
-    rawItems = normalSource;
+    rawItems = normalSource as Record<string, unknown>[];
   } else if (normalSource && typeof normalSource === "object") {
-    rawItems = Object.entries(normalSource).map(([key, val], idx) => ({
-      id: idx,
-      label: key,
-      value: typeof val === "number" ? val : Number((val as any)?.value ?? (val as any)?.count ?? (val as any)?.percentage ?? 0),
-    }));
+    rawItems = Object.entries(normalSource as Record<string, unknown>).map(
+      ([key, val], idx) => ({
+        id: idx,
+        label: key,
+        value:
+          typeof val === "number"
+            ? val
+            : Number(
+                (val as Record<string, unknown>)?.value ??
+                  (val as Record<string, unknown>)?.count ??
+                  (val as Record<string, unknown>)?.percentage ??
+                  0
+              ),
+      })
+    );
   }
 
-  const chartData: AgeDistributionItem[] = rawItems.map((item: any, index: number) => ({
-    id: item.id ?? item._id ?? index,
-    label: item.label ?? item.age_group ?? item.range ?? item._id ?? `Group ${index + 1}`,
+  const chartData: AgeDistributionItem[] = rawItems.map((item, index) => ({
+    id: (item.id ?? item._id ?? index) as string | number,
+    label: String(
+      item.label ??
+        item.age_group ??
+        item.range ??
+        item._id ??
+        `Group ${index + 1}`
+    ),
     value: Number(item.value ?? item.percentage ?? item.count ?? 0),
-    color: item.color ?? DEFAULT_PALETTE[index % DEFAULT_PALETTE.length],
+    color: String(item.color ?? DEFAULT_PALETTE[index % DEFAULT_PALETTE.length]),
   }));
 
-  const totalChartValue = chartData.reduce((sum, item) => sum + (item.value || 0), 0);
+  const totalChartValue = chartData.reduce(
+    (sum, item) => sum + (item.value || 0),
+    0
+  );
   const effectiveLength = totalChartValue > 0 ? chartData.length : 0;
+
+  const innerPct = `${Math.round((innerRadius / 120) * 100)}%`;
+  const outerPct = `${Math.round((outerRadius / 120) * 100)}%`;
+
+  const normalOption: EChartsOption = {
+    tooltip: {
+      trigger: "item",
+      backgroundColor: "#1F2937",
+      borderColor: "#374151",
+      borderWidth: 1,
+      padding: [8, 12],
+      textStyle: { color: "#F9FAFB", fontSize: 12 },
+      formatter: (params) => {
+        if (valueFormatter) {
+          try {
+            const formatted = valueFormatter(params);
+            if (formatted) return formatted;
+          } catch {
+            // fallback
+          }
+        }
+        const p = Array.isArray(params) ? params[0] : params;
+        const name = (p as { name?: string })?.name ?? "";
+        const val = (p as { value?: unknown })?.value ?? 0;
+        return `${name}: <strong>${val}%</strong>`;
+      },
+    },
+    series: [
+      {
+        name: "Age Distribution",
+        type: "pie",
+        radius: [innerPct, outerPct],
+        center: ["50%", "50%"],
+        avoidLabelOverlap: true,
+        itemStyle: {
+          borderRadius: 4,
+          borderColor: "#FFFFFF",
+          borderWidth: 2,
+        },
+        label: {
+          show: true,
+          position: "inside",
+          formatter: (params) => {
+            const val = Number(params.value ?? 0);
+            return val > 0 ? `${val}%` : "";
+          },
+          color: "#FFFFFF",
+          fontWeight: "bold",
+          fontSize: 11,
+        },
+        data: chartData.map((d) => ({
+          name: d.label,
+          value: d.value,
+          itemStyle: { color: d.color },
+        })),
+      },
+    ],
+  };
 
   return (
     <div className="relative w-full h-full min-h-80 flex flex-col justify-center items-center">
       <LoadingLayout loading={isLoading} length={effectiveLength}>
         <div className="relative w-full h-75 flex items-center justify-center">
-          <PieChart
-            height={height}
-            series={[
-              {
-                data: chartData,
-                innerRadius,
-                outerRadius,
-                paddingAngle: 2,
-                cornerRadius: 4,
-                arcLabel: (item) => (Number(item?.value ?? 0) > 0 ? `${item.value}%` : ""),
-                arcLabelMinAngle: 20,
-                valueFormatter: (item: any) => {
-                  if (valueFormatter) {
-                    try {
-                      const formatted = valueFormatter(
-                        typeof item === "object" && item !== null
-                          ? item
-                          : { value: Number(item ?? 0) }
-                      );
-                      if (formatted && !formatted.includes("undefined")) return formatted;
-                    } catch {
-                      // fallback to standard format
-                    }
-                  }
-                  const val = typeof item === "number" ? item : Number(item?.value ?? 0);
-                  return `${val}%`;
-                },
-              },
-            ]}
-            sx={{
-              width: "100%",
-              height: "100%",
-              [`& .${pieClasses.arcLabel}`]: {
-                fill: "#fff",
-                fontSize: 12,
-                fontWeight: 700,
-              },
-              "& .MuiChartsLegend-root": {
-                display: "none",
-              },
-            }}
+          <ReactECharts
+            option={normalOption}
+            style={{ height, width: "100%" }}
+            opts={{ renderer: "svg" }}
+            notMerge={true}
           />
         </div>
 

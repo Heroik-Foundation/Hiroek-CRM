@@ -4,3 +4,5 @@ export { default as AudienceLocationChart, type AudienceLocationChartProps, type
 export { default as AttendanceTrendChart, type AttendanceTrendChartProps, type AttendanceTrendItem } from "./attendanceTrendChart";
 export { default as ConversionFunnelChart, type ConversionFunnelChartProps, type FunnelItem } from "./conversionFunnelChart";
 export { default as AcquisitionChannel, type AcquisitionChannelProps, type AcquisitionChannelItem } from "./acquisitionChannel";
+export { default as TicketSpendDistributionChart, type TicketSpendDistributionChartProps, type SpendDistributionItem } from "./ticketSpendDistributionChart";
+export { default as AttendanceByDayChart, type AttendanceByDayChartProps, type AttendanceByDayItem } from "./attendanceByDayChart";

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AudienceCard } from "../../components/cards";
 import { Header } from "../../components/common";
 import CustomTable from "../../components/ui/customTable";
@@ -6,16 +7,18 @@ import type { Column } from "../../type/table";
 import { CustomField } from "../../components/ui";
 import { IoSearch, IoChevronDown } from "react-icons/io5";
 import { FiMail } from "react-icons/fi";
-import { LuFileSpreadsheet, LuUsers } from "react-icons/lu";
+import { LuFileSpreadsheet, LuUsers, LuCloudUpload } from "react-icons/lu";
 import { MdFilterList } from "react-icons/md";
 import useAudienceSegment from "../../hooks/useAudienceSegment";
 
 export default function Audience() {
+    const navigate = useNavigate();
     const [page, setPage] = useState(1);
     const [selectedSegment, setSelectedSegment] = useState<string>("frequentBuyers");
     const [search, setSearch] = useState<string>("");
     const [isSegmentDropdownOpen, setIsSegmentDropdownOpen] = useState(false);
     const [isEventFilterOpen, setIsEventFilterOpen] = useState(false);
+    const [isDataMenuOpen, setIsDataMenuOpen] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState("Filter by Events");
 
     const { useGetAudienceSegmentMetrics, useGetAudienceSegmentCustomer } =
@@ -83,13 +86,47 @@ export default function Audience() {
 
     const totalPages = Math.max(1, Math.ceil(totalUsers / 10));
 
-    const rows = rawRecords.map((item: any, index: number) => ({
-        ...item,
-        id: item._id ?? item.id ?? (page - 1) * 10 + index + 1,
-        sNo: (page - 1) * 10 + index + 1,
-    }));
+    interface AudienceTableRow {
+        id: string | number;
+        sNo: number;
+        name?: string;
+        firstName?: string;
+        lastName?: string;
+        email?: string;
+        eventsCount?: number;
+        totalEvents?: number;
+        totalSpent?: number;
+        spent?: number;
+        amount?: number;
+        lastActiveDate?: string;
+        updatedAt?: string;
+        location?: string;
+        country?: string;
+        city?: string;
+        user?: {
+            _id?: string;
+            fullname?: string;
+            email?: string;
+        };
+        [key: string]: unknown;
+    }
 
-    const columns: Column<any>[] = [
+    const rows: AudienceTableRow[] = rawRecords.map((item: unknown, index: number) => {
+        const itemObj = (item && typeof item === "object" ? item : {}) as Record<string, unknown>;
+        return {
+            ...itemObj,
+            id: (itemObj._id || itemObj.id || (page - 1) * 10 + index + 1) as string | number,
+            sNo: (page - 1) * 10 + index + 1,
+            name: typeof itemObj.name === "string" ? itemObj.name : undefined,
+            firstName: typeof itemObj.firstName === "string" ? itemObj.firstName : undefined,
+            lastName: typeof itemObj.lastName === "string" ? itemObj.lastName : undefined,
+            email: typeof itemObj.email === "string" ? itemObj.email : undefined,
+            lastActiveDate: typeof itemObj.lastActiveDate === "string" ? itemObj.lastActiveDate : undefined,
+            updatedAt: typeof itemObj.updatedAt === "string" ? itemObj.updatedAt : undefined,
+        };
+    });
+
+    const columns: Column<AudienceTableRow>[] = [
         {
             id: "sNo",
             name: "S/No",
@@ -123,7 +160,7 @@ export default function Audience() {
             name: "Events",
             render: (value, item) => (
                 <span className="text-sm font-semibold text-gray-800 whitespace-nowrap">
-                    {value ?? item.eventsCount ?? item.totalEvents ?? 0}
+                    {Number(value ?? item.eventsCount ?? item.totalEvents ?? 0)}
                 </span>
             ),
         },
@@ -367,33 +404,78 @@ export default function Audience() {
                         {/* Search and Action Buttons */}
                         <div className="w-full sm:w-auto flex flex-wrap items-center gap-2.5 sm:gap-3">
                             <div className="w-full sm:w-64 md:w-72">
-                                <CustomField
+                                <CustomField<string>
                                     prefix={<IoSearch />}
                                     placeholder="Search Users..."
                                     value={search}
-                                    onChange={(e: any) => {
-                                        setSearch(e.target.value);
+                                    onChange={(e) => {
+                                        const val =
+                                            typeof e === "string"
+                                                ? e
+                                                : (e as unknown as { target?: { value?: string } })?.target?.value ?? "";
+                                        setSearch(val);
                                         setPage(1);
                                     }}
                                 />
                             </div>
                             <div className="flex items-center gap-2 w-full sm:w-auto">
-                                <button className="flex-1 sm:flex-none bg-[#E59E39] hover:bg-[#d48e2b] transition-colors rounded-xl px-3.5 sm:px-4 font-semibold text-white h-10 sm:h-11 text-xs flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer whitespace-nowrap">
+                                <button
+                                    onClick={() => navigate("/dashboard/audience/message")}
+                                    className="flex-1 sm:flex-none bg-[#E59E39] hover:bg-[#d48e2b] transition-colors rounded-xl px-3.5 sm:px-4 font-semibold text-white h-10 sm:h-11 text-xs flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer whitespace-nowrap"
+                                >
                                     <FiMail size={14} />
                                     <span>Send Message</span>
                                 </button>
-                                <button className="flex-1 sm:flex-none bg-[#37137F] hover:bg-[#2c0f66] transition-colors rounded-xl px-3.5 sm:px-4 font-semibold text-white h-10 sm:h-11 text-xs flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer whitespace-nowrap">
-                                    <LuFileSpreadsheet size={14} />
-                                    <span>Export Data</span>
-                                    <IoChevronDown size={13} />
-                                </button>
+                                <div className="relative">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsDataMenuOpen(!isDataMenuOpen)}
+                                        className="flex-1 sm:flex-none bg-[#37137F] hover:bg-[#2c0f66] transition-colors rounded-xl px-3.5 sm:px-4 font-semibold text-white h-10 sm:h-11 text-xs flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer whitespace-nowrap"
+                                    >
+                                        <LuFileSpreadsheet size={14} />
+                                        <span>Export Data</span>
+                                        <IoChevronDown
+                                            size={13}
+                                            className={`transition-transform duration-200 ${
+                                                isDataMenuOpen ? "rotate-180" : ""
+                                            }`}
+                                        />
+                                    </button>
+
+                                    {isDataMenuOpen && (
+                                        <div className="absolute right-0 mt-1.5 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-1.5 z-50 flex flex-col">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setIsDataMenuOpen(false);
+                                                    navigate("/dashboard/audience/export");
+                                                }}
+                                                className="w-full text-left px-3.5 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 flex items-center gap-2 cursor-pointer transition-colors"
+                                            >
+                                                <LuFileSpreadsheet size={14} className="text-[#37137F]" />
+                                                <span>Export Data</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setIsDataMenuOpen(false);
+                                                    navigate("/dashboard/audience/import");
+                                                }}
+                                                className="w-full text-left px-3.5 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 flex items-center gap-2 cursor-pointer transition-colors"
+                                            >
+                                                <LuCloudUpload size={14} className="text-[#37137F]" />
+                                                <span>Import Data</span>
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     {/* Table */}
                     <div className="w-full overflow-hidden">
-                        <CustomTable<any>
+                        <CustomTable<AudienceTableRow>
                             columns={columns}
                             rows={rows}
                             rowKey="id"

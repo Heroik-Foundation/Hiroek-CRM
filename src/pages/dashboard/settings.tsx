@@ -28,7 +28,7 @@ export default function Settings() {
 
     return (
         <>
-            {pathname?.search !== "?tab=plan" && (
+            {pathname?.search !== "?tab=plan" && pathname?.search !== "?tab=credit" && (
                 <section className="w-full flex flex-col gap-6">
                     <Header
                         title="Settings"
@@ -124,7 +124,6 @@ export default function Settings() {
                             )}
                             {pathname?.search === "?tab=security" && <Security />}
                             {pathname?.search === "?tab=subscriptions" && <CurrentPlan />}
-                            {pathname?.search === "?tab=credit" && <SmsEmailCredits />}
                             {pathname?.search === "?tab=permissions" && <GetUsersRole />}
                             {pathname?.search === "?tab=permissions&action=add" && (
                                 <AddUsersRole />
@@ -141,6 +140,7 @@ export default function Settings() {
                 </section>
             )}
             {pathname?.search === "?tab=plan" && <SelectPlan />}
+            {pathname?.search === "?tab=credit" && <SmsEmailCredits />}
         </>
     );
 }

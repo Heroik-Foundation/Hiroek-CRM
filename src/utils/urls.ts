@@ -9,6 +9,7 @@ export const URLS = {
 
     GET_SPENDING: (eventPartnerId: string) => `/analytics/ticket-spend-distribution/${eventPartnerId}`,
     GET_TICKET_SPEND_DISTRIBUTION: (eventPartnerId: string) => `/analytics/ticket-spend-distribution-stat/${eventPartnerId}`,
+    GET_TOP_SPENDERS: (organizerId: string) => `/analytics/top-spenders/${organizerId}`,
 
 
     GET_PEAK_EVENT_TIMES: (eventPartnerId: string) => `/analytics/peak-event-times/${eventPartnerId}`,
@@ -54,5 +55,7 @@ export const URLS = {
         `/email-bundles/purchase-bundle/${bundleId}`,
     GET_TICKET_SCAN_LOGS: "/events/ticket-scan-logs",
     GET_ALL_EVENTS: "/events/all-events",
+    SCAN_TICKET: (eventTicketCode: string) =>
+        `/event-partners/ticket-scanner/${encodeURIComponent(eventTicketCode)}`,
     CREATE_CAMPAIGN: "/event-partners/campaign/create-campaign",
 };   

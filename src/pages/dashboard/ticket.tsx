@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { TicketCard } from "../../components/cards";
 import { Header } from "../../components/common";
 import type { Column } from "../../type/table";
@@ -11,6 +12,7 @@ import useTicketScans, { type TicketScanLogItem } from "../../hooks/useTicketSca
 import useDashboard from "../../hooks/useDashboard";
 
 export default function Ticket() {
+    const navigate = useNavigate();
     const [page, setPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedEvent, setSelectedEvent] = useState("All Events");
@@ -497,10 +499,19 @@ export default function Ticket() {
                                 />
                             </div>
 
+                            {/* Launch Scanner Button */}
+                            <button
+                                onClick={() => navigate("/dashboard/ticket-scanner")}
+                                className="bg-[#31117D] hover:bg-[#250d61] transition-colors rounded-xl px-4 py-2.5 font-semibold text-white text-xs flex items-center justify-center gap-2 shadow-xs cursor-pointer shrink-0"
+                            >
+                                <LuScanLine size={15} />
+                                <span>Launch Scanner</span>
+                            </button>
+
                             {/* Export Data Button */}
                             <button
                                 onClick={handleExportData}
-                                className="bg-[#37137F] hover:bg-[#2e0e6c] transition-colors rounded-xl px-4 py-2.5 font-semibold text-white text-xs flex items-center justify-center gap-2 shadow-xs cursor-pointer shrink-0"
+                                className="border border-gray-200 hover:bg-gray-50 transition-colors rounded-xl px-4 py-2.5 font-semibold text-gray-700 text-xs flex items-center justify-center gap-2 shadow-xs cursor-pointer shrink-0"
                             >
                                 <LuDownload size={15} />
                                 <span>Export Data</span>

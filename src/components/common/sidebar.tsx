@@ -2,10 +2,23 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { sidebarLink } from "../../utils/dataBank";
 import { LuLogOut } from "react-icons/lu";
 import { FiArrowRight } from "react-icons/fi";
+import { useMemo } from "react";
+import useEmailBundles from "../../hooks/settings/useEmailBundles";
 
 export default function Sidebar() {
     const navigate = useNavigate();
     const pathname = useLocation();
+
+    // ✉️ Dynamic Email Balance
+    const { useGetEmailBalance } = useEmailBundles();
+    const { data: balanceApiData } = useGetEmailBalance();
+
+    const emailBalance = useMemo(() => {
+        if (typeof balanceApiData?.balance === "number") return balanceApiData.balance;
+        if (typeof balanceApiData?.data?.balance === "number") return balanceApiData.data.balance;
+        if (typeof balanceApiData?.result?.balance === "number") return balanceApiData.result.balance;
+        return null;
+    }, [balanceApiData]);
 
     return (
         <div className="w-full h-screen flex flex-col justify-between overflow-y-auto bg-white border-r border-[#00000015]">
@@ -22,7 +35,10 @@ export default function Sidebar() {
 
                 <div className="w-full py-4 px-3 flex flex-col gap-1">
                     {sidebarLink?.map((item) => {
-                        const isActive = item?.link === pathname.pathname;
+                        const isActive =
+                            item?.link === pathname.pathname ||
+                            (item?.link !== "/dashboard" &&
+                                pathname.pathname.startsWith(item?.link + "/"));
                         return (
                             <button
                                 key={item?.name}
@@ -72,10 +88,14 @@ export default function Sidebar() {
                         <h4 className="font-bold text-sm text-white mt-0.5">
                             CreatorPro
                         </h4>
-                        <p className="text-[10px] text-white/80">£99.99/Month</p>
+                        <p className="text-[10px] text-white/80">£99.98/Month</p>
                     </div>
                     <div className="pt-2 border-t border-white/10 text-[9px] text-white/70 flex flex-col gap-0.5">
-                        <span>10,000 of 20,000 emails used</span>
+                        <span>
+                            {emailBalance !== null
+                                ? `${Number(emailBalance).toLocaleString()} of 20,000 emails used`
+                                : "10,000 of 20,000 emails used"}
+                        </span>
                         <span>50 of 100 SMS used</span>
                     </div>
                 </div>

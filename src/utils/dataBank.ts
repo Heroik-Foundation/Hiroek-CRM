@@ -1,6 +1,5 @@
-import { Card, Lock1, People } from "iconsax-reactjs";
+import { Card, People } from "iconsax-reactjs";
 import { BiSolidMessageEdit, BiSupport } from "react-icons/bi";
-import { BsPeople } from "react-icons/bs";
 import { FaPoundSign } from "react-icons/fa";
 import { HiOutlineTicket, HiTrendingUp } from "react-icons/hi";
 import { IoIosContact } from "react-icons/io";
@@ -51,12 +50,12 @@ export const sidebarLink = [
         link: "/dashboard/impact",
         search: ""
     },
-    {
-        icon: BsPeople,
-        name: "Client Management",
-        link: "/dashboard/client",
-        search: ""
-    },
+    // {
+    //     icon: BsPeople,
+    //     name: "Client Management",
+    //     link: "/dashboard/client",
+    //     search: ""
+    // },
     {
         icon: BiSolidMessageEdit,
         name: "Reviews",
@@ -77,16 +76,16 @@ export const settingLink = [
         name: "Account & Profile",
         link: "/dashboard/settings?tab=profile"
     },
-    {
-        icon: Lock1,
-        name: "Login & Security",
-        link: "/dashboard/settings?tab=security"
-    },
-    {
-        icon: Card,
-        name: "Subscriptions & Payment",
-        link: "/dashboard/settings?tab=subscriptions"
-    },
+    // {
+    //     icon: Lock1,
+    //     name: "Login & Security",
+    //     link: "/dashboard/settings?tab=security"
+    // },
+    // {
+    //     icon: Card,
+    //     name: "Subscriptions & Payment",
+    //     link: "/dashboard/settings?tab=subscriptions"
+    // },
     {
         icon: Card,
         name: "SMS & Email Credits",

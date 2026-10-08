@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAtom, useAtomValue } from "jotai";
 import { AnimatePresence, motion } from "framer-motion";
@@ -8,12 +8,24 @@ import { FiArrowRight } from "react-icons/fi";
 import { sidebarLink } from "../../utils/dataBank";
 import { drawerAtom } from "../../utils/atom/drawer";
 import { userAtom } from "../../utils/atom/user";
+import useEmailBundles from "../../hooks/settings/useEmailBundles";
 
 export default function Drawer() {
     const [isOpen, setIsOpen] = useAtom(drawerAtom);
     const user = useAtomValue(userAtom);
     const navigate = useNavigate();
     const location = useLocation();
+
+    // ✉️ Dynamic Email Balance
+    const { useGetEmailBalance } = useEmailBundles();
+    const { data: balanceApiData } = useGetEmailBalance();
+
+    const emailBalance = useMemo(() => {
+        if (typeof balanceApiData?.balance === "number") return balanceApiData.balance;
+        if (typeof balanceApiData?.data?.balance === "number") return balanceApiData.data.balance;
+        if (typeof balanceApiData?.result?.balance === "number") return balanceApiData.result.balance;
+        return null;
+    }, [balanceApiData]);
 
     // Lock body scroll when drawer is open
     useEffect(() => {
@@ -127,8 +139,30 @@ export default function Drawer() {
                             </div>
                         </div>
 
-                        {/* Bottom: Log Out */}
-                        <div className="w-full pt-4 border-t border-gray-100">
+                        {/* Bottom: Log Out & Current Plan */}
+                        <div className="w-full pt-4 border-t border-gray-100 flex flex-col gap-3">
+                            {/* Current Plan Card */}
+                            <div className="w-full bg-linear-to-r from-[#261353] via-[#7B1B62] to-[#E11D48] rounded-2xl p-4 text-white shadow-sm flex flex-col gap-2">
+                                <div>
+                                    <span className="text-[10px] font-semibold text-white/70 uppercase tracking-wider">
+                                        Current Plan
+                                    </span>
+                                    <h4 className="font-bold text-sm text-white mt-0.5">
+                                        CreatorPro
+                                    </h4>
+                                    <p className="text-[10px] text-white/80">£99.98/Month</p>
+                                </div>
+                                <div className="pt-2 border-t border-white/10 text-[9px] text-white/70 flex flex-col gap-0.5">
+                                    <span>
+                                        {emailBalance !== null
+                                            ? `${Number(emailBalance).toLocaleString()} of 20,000 emails used`
+                                            : "10,000 of 20,000 emails used"}
+                                    </span>
+                                    <span>50 of 100 SMS used</span>
+                                </div>
+                            </div>
+
+                            {/* Log Out Button */}
                             <button
                                 onClick={handleLogout}
                                 className="w-full bg-[#FEF2F2] hover:bg-[#FEE2E2] text-[#D02124] border border-[#D0212426] rounded-2xl px-4 py-3.5 flex items-center justify-between transition-colors cursor-pointer"

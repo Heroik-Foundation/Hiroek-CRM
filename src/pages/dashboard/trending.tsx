@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import {
+    AttendanceByDayChart,
     AttendanceTrendChart,
     AudienceLocationChart,
-    GenderSplitChart,
 } from "../../components/charts";
 import { Header, KeyInsight } from "../../components/common";
 import { ChartLayout } from "../../components/layout";
@@ -41,9 +41,9 @@ export default function Trending() {
             forecastData?.data?.insights;
 
         if (Array.isArray(rawInsights) && rawInsights.length > 0) {
-            return rawInsights.map((item: any) => ({
-                title: item.title ?? item.label ?? "Insight",
-                body: item.body ?? item.description ?? item.text ?? String(item),
+            return rawInsights.map((item: Record<string, unknown>) => ({
+                title: String(item.title ?? item.label ?? "Insight"),
+                body: String(item.body ?? item.description ?? item.text ?? item),
             }));
         }
 
@@ -53,8 +53,8 @@ export default function Trending() {
         const attendanceSource = attendanceByDateData?.data ?? attendanceByDateData;
         let attendanceEntries: { day: string; count: number }[] = [];
         if (Array.isArray(attendanceSource)) {
-            attendanceEntries = attendanceSource.map((item: any) => ({
-                day: item.day ?? item.date ?? item.label ?? item.name ?? item._id ?? "",
+            attendanceEntries = attendanceSource.map((item: Record<string, unknown>) => ({
+                day: String(item.day ?? item.date ?? item.label ?? item.name ?? item._id ?? ""),
                 count: Number(
                     item.count ??
                     item.ticketsSold ??
@@ -65,21 +65,25 @@ export default function Trending() {
                 ),
             }));
         } else if (attendanceSource && typeof attendanceSource === "object") {
-            attendanceEntries = Object.entries(attendanceSource)
+            const dataObj = attendanceSource as Record<string, unknown>;
+            attendanceEntries = Object.entries(dataObj)
                 .filter(([k]) => k !== "status" && k !== "data" && k !== "message")
-                .map(([day, val]) => ({
-                    day,
-                    count:
-                        typeof val === "number"
-                            ? val
-                            : Number(
-                                  (val as any)?.count ??
-                                  (val as any)?.ticketsSold ??
-                                  (val as any)?.attendance ??
-                                  (val as any)?.value ??
-                                  0
-                              ),
-                }));
+                .map(([day, val]) => {
+                    const valObj = typeof val === "object" && val !== null ? (val as Record<string, unknown>) : null;
+                    return {
+                        day,
+                        count:
+                            typeof val === "number"
+                                ? val
+                                : Number(
+                                      valObj?.count ??
+                                      valObj?.ticketsSold ??
+                                      valObj?.attendance ??
+                                      valObj?.value ??
+                                      0
+                                  ),
+                    };
+                });
         }
 
         const validDays = attendanceEntries.filter((d) => d.count > 0 && d.day);
@@ -98,20 +102,24 @@ export default function Trending() {
         const categorySource = eventCategoryPopularityData?.data ?? eventCategoryPopularityData;
         let categoryEntries: { category: string; value: number }[] = [];
         if (Array.isArray(categorySource)) {
-            categoryEntries = categorySource.map((item: any) => ({
-                category: item.category ?? item.name ?? item.label ?? item.city ?? item._id ?? "",
+            categoryEntries = categorySource.map((item: Record<string, unknown>) => ({
+                category: String(item.category ?? item.name ?? item.label ?? item.city ?? item._id ?? ""),
                 value: Number(item.percentage ?? item.value ?? item.count ?? 0),
             }));
         } else if (categorySource && typeof categorySource === "object") {
-            categoryEntries = Object.entries(categorySource)
+            const catObj = categorySource as Record<string, unknown>;
+            categoryEntries = Object.entries(catObj)
                 .filter(([k]) => k !== "status" && k !== "data" && k !== "message")
-                .map(([category, val]) => ({
-                    category,
-                    value:
-                        typeof val === "number"
-                            ? val
-                            : Number((val as any)?.percentage ?? (val as any)?.value ?? (val as any)?.count ?? 0),
-                }));
+                .map(([category, val]) => {
+                    const valObj = typeof val === "object" && val !== null ? (val as Record<string, unknown>) : null;
+                    return {
+                        category,
+                        value:
+                            typeof val === "number"
+                                ? val
+                                : Number(valObj?.percentage ?? valObj?.value ?? valObj?.count ?? 0),
+                    };
+                });
         }
 
         const validCategories = categoryEntries.filter((c) => c.value > 0 && c.category);
@@ -142,10 +150,10 @@ export default function Trending() {
                     />
                 </ChartLayout>
                 <ChartLayout title="Attendance by Day of Week">
-                    <GenderSplitChart
+                    <AttendanceByDayChart
                         data={attendanceByDateData}
                         isLoading={isAttendanceByDateLoading}
-                        barColor="#37137F"
+                        barColor="#2E0F74"
                     />
                 </ChartLayout>
             </div>

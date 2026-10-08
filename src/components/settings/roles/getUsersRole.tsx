@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Formik, Form } from "formik";
 import { LoadingLayout } from "../../layout";
-import { Header } from "../../common";
 import { CustomButton, FormikField } from "../../ui";
 import { UserRolesCard } from "../../cards";
 import { useNavigate } from "react-router-dom";
@@ -9,6 +8,8 @@ import useRoles, { getMemberUserId } from "../../../hooks/settings/useRoles";
 import type { ITeamMember } from "../../../type/user";
 import { BiErrorCircle, BiTrash, BiX } from "react-icons/bi";
 import { Spinner, toast } from "@heroui/react";
+import { useAtomValue } from "jotai";
+import { userAtom } from "../../../utils/atom/user";
 
 const ROLE_OPTIONS = [
     { label: "Creator", value: "owner" },
@@ -18,6 +19,7 @@ const ROLE_OPTIONS = [
 
 export default function GetUsersRole() {
     const navigate = useNavigate();
+    const user = useAtomValue(userAtom);
     const { useGetUsersRoles, deleteTeamMember, updateTeamMember } = useRoles();
     const { data, isLoading } = useGetUsersRoles();
 
@@ -43,7 +45,7 @@ export default function GetUsersRole() {
     };
 
     const handleRoleChange = (member: ITeamMember, newRole: string) => {
-        const memberUserId = member._id;
+        const memberUserId = getMemberUserId(member) || member._id;
         if (!memberUserId) return;
 
         setUpdatingMemberId(memberUserId);
@@ -60,34 +62,87 @@ export default function GetUsersRole() {
         );
     };
 
-    const members = data?.data || [];
+    /** 📲 Send Scanner Handler -> Navigate to Scanner Page */
+    const handleSendScanner = (member: ITeamMember) => {
+        navigate("/dashboard/ticket-scanner", { state: { member } });
+    };
 
-    console.log(members);
-    console.log(memberToEdit);
+    const rawMembers = data?.data || [];
 
+    // Synthesize creator/owner card from logged-in organizer if not already included in list
+    const ownerItem: ITeamMember | null = useMemo(() => {
+        if (!user) return null;
+        return {
+            _id: user._id || user.userId || "owner",
+            user: {
+                _id: user.userId || user._id,
+                fullname: user.name || "Creator",
+                email: user.email || "",
+                photo: user.logo || null,
+            },
+            fullname: user.name || "Creator",
+            email: user.email || "",
+            account: user._id,
+            accountType: "organizer",
+            role: "owner",
+            permissions: ["Full Access"],
+            createdAt: user.createdAt || "",
+            updatedAt: user.updatedAt || "",
+            __v: 0,
+        };
+    }, [user]);
+
+    const members: ITeamMember[] = useMemo(() => {
+        const hasOwner = rawMembers.some(
+            (m) =>
+                (m.role || "").toLowerCase() === "owner" ||
+                (m.role || "").toLowerCase() === "creator",
+        );
+        if (ownerItem && !hasOwner) {
+            return [ownerItem, ...rawMembers];
+        }
+        return rawMembers;
+    }, [ownerItem, rawMembers]);
 
     return (
         <LoadingLayout loading={isLoading}>
-            <section className="flex-1 rounded-2xl p-5 bg-white flex flex-col gap-6">
-                {/* Header and Add Button */}
-                <div className="w-full flex justify-between items-center gap-4 flex-wrap">
-                    <Header
-                        title="User Roles & Permissions"
-                        body="Manage team access and permissions"
-                    />
-                    <CustomButton
+            <section className="flex-1 rounded-2xl p-5 sm:p-6 bg-white border border-gray-100 shadow-xs flex flex-col gap-6">
+                {/* Header & Add Button */}
+                <div className="w-full flex justify-between items-start sm:items-center gap-4 flex-wrap">
+                    <div>
+                        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
+                            User Roles & Permissions
+                        </h2>
+                        <p className="text-xs sm:text-sm text-gray-500 font-medium mt-0.5">
+                            Manage Team Access And Permissions
+                        </p>
+                    </div>
+
+                    {/* Desktop Add Button */}
+                    <button
+                        type="button"
                         onClick={() =>
-                            navigate(
-                                "/dashboard/settings?tab=permissions&action=add",
-                            )
+                            navigate("/dashboard/settings?tab=permissions&action=add")
                         }
+                        className="hidden sm:inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-[#37137F] hover:bg-[#2c0f66] text-white text-sm font-bold transition shadow-xs cursor-pointer active:scale-95"
                     >
                         + Add Team Member
-                    </CustomButton>
+                    </button>
                 </div>
 
+                {/* Mobile Full-Width Add Button */}
+                <button
+                    type="button"
+                    onClick={() =>
+                        navigate("/dashboard/settings?tab=permissions&action=add")
+                    }
+                    className="sm:hidden w-full py-3.5 px-5 rounded-2xl bg-[#37137F] hover:bg-[#2c0f66] text-white text-sm font-bold transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                >
+                    + Add Team Member
+                </button>
+
                 {/* Team Members List */}
-                <div className="w-full flex flex-col gap-3">
+                <div className="w-full flex flex-col gap-3 sm:gap-4">
                     {members.length > 0 ? (
                         members.map((item, index) => {
                             const itemId = getMemberUserId(item) || item?._id || String(index);
@@ -98,6 +153,7 @@ export default function GetUsersRole() {
                                     onEdit={(m) => setMemberToEdit(m)}
                                     onDelete={(m) => setMemberToDelete(m)}
                                     onRoleChange={handleRoleChange}
+                                    onSendScanner={handleSendScanner}
                                     isDeleting={
                                         Boolean(
                                             deleteTeamMember.isPending &&
@@ -146,6 +202,24 @@ export default function GetUsersRole() {
                             </CustomButton>
                         </div>
                     )}
+                </div>
+
+                {/* 📋 Permission Levels Breakdown Card (Matching Mockup) */}
+                <div className="w-full bg-[#ECEAF8] rounded-2xl p-5 sm:p-6 flex flex-col gap-2.5 mt-2">
+                    <h4 className="text-sm sm:text-base font-bold text-[#37137F]">
+                        Permission Levels
+                    </h4>
+                    <div className="flex flex-col gap-1.5 text-xs sm:text-sm text-[#4A209B]">
+                        <p>
+                            <span className="font-bold text-[#37137F]">Owner:</span> Full Access To All Features.
+                        </p>
+                        <p>
+                            <span className="font-bold text-[#37137F]">Admin:</span> Manage Events, View Analytics & Reports, Manage Team, Scan Tickets.
+                        </p>
+                        <p>
+                            <span className="font-bold text-[#37137F]">Viewer:</span> Read-Only Access To Dashboard, Scan Tickets.
+                        </p>
+                    </div>
                 </div>
 
                 {/* ⚠️ DELETE CONFIRMATION WARNING MODAL */}

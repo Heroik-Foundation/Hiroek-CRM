@@ -8,8 +8,12 @@ const Home = lazy(() => import("../pages/dashboard/home"));
 const Spending = lazy(() => import("../pages/dashboard/spending"));
 const Trending = lazy(() => import("../pages/dashboard/trending"));
 const Audience = lazy(() => import("../pages/dashboard/audience"));
+const SendMessage = lazy(() => import("../pages/dashboard/sendMessage"));
+const ExportData = lazy(() => import("../pages/dashboard/exportData"));
+const ImportData = lazy(() => import("../pages/dashboard/importData"));
 const Revenue = lazy(() => import("../pages/dashboard/revenue"));
 const Ticket = lazy(() => import("../pages/dashboard/ticket"));
+const TicketScanner = lazy(() => import("../pages/dashboard/ticketScanner"));
 const Donation = lazy(() => import("../pages/dashboard/donation"));
 const Management = lazy(() => import("../pages/dashboard/management"));
 const Review = lazy(() => import("../pages/dashboard/review"));
@@ -35,8 +39,14 @@ export const router = createBrowserRouter([
             { path: "spending", element: withSuspense(<Spending />) },
             { path: "trends", element: withSuspense(<Trending />) },
             { path: "audience", element: withSuspense(<Audience />) },
+            { path: "audience/message", element: withSuspense(<SendMessage />) },
+            { path: "audience/send-message", element: withSuspense(<SendMessage />) },
+            { path: "audience/export", element: withSuspense(<ExportData />) },
+            { path: "audience/import", element: withSuspense(<ImportData />) },
             { path: "revenue", element: withSuspense(<Revenue />) },
             { path: "ticket", element: withSuspense(<Ticket />) },
+            { path: "ticket-scanner", element: withSuspense(<TicketScanner />) },
+            { path: "ticket/scan", element: withSuspense(<TicketScanner />) },
             { path: "impact", element: withSuspense(<Donation />) },
             { path: "client", element: withSuspense(<Management />) },
             { path: "reviews", element: withSuspense(<Review />) },

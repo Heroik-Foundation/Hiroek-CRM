@@ -34,7 +34,7 @@ export default function KeyInsight({
     return (
         <section
             style={{ backgroundColor: bg, borderColor: border }}
-            className=" h-full p-5 rounded-2xl w-full flex border bg-[#08AF0F0D] gap-4 flex-col "
+            className=" h-full p-5 rounded-2xl w-full hidden border bg-[#08AF0F0D] gap-4 flex-col "
         >
             <div className=" w-full flex gap-2 ">
                 <div
