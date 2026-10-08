@@ -360,7 +360,7 @@ export default function GetUsersRole() {
                                     initialValues={initialValues}
                                     enableReinitialize
                                     onSubmit={(values) => {
-                                        const memberUserId = memberToEdit?._id;
+                                        const memberUserId = memberToEdit?.user?._id;
                                         if (!memberUserId) {
                                             toast.danger("Could not determine team member user ID");
                                             return;

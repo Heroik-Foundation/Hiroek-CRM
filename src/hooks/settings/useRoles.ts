@@ -9,13 +9,13 @@ import type { ITeamMember, ITeamMembersResponse } from "../../type/user";
 import { toast } from "@heroui/react";
 
 export function getMemberUserId(member: ITeamMember): string {
-    if (typeof member?.user === "object" && member.user?._id) {
-        return member.user._id;
-    }
-    if (typeof member?.user === "string" && member.user) {
-        return member.user;
-    }
-    return (member as any)?.userId || member?._id || "";
+    // if (typeof member?.user === "object" && member.user?._id) {
+    return member.user._id;
+    // }
+    // if (typeof member?.user === "string" && member.user) {
+    //     return member.user;
+    // }
+    // return (member as any)?.userId || member?._id || "";
 }
 
 const useRoles = () => {
