@@ -159,8 +159,8 @@ export default function Messaging() {
             messageType === "notifications"
                 ? "notification"
                 : messageType === "in_app"
-                ? "in_app"
-                : "email";
+                    ? "in_app"
+                    : "email";
 
         // Build recipients from selected
         const selectedRecipients = isSendToAll
@@ -168,7 +168,7 @@ export default function Messaging() {
             : filteredRecipients.filter((r) => selectedIds.has(r.id));
 
         const customerIds: string[] = [];
-        const importedEmails: { email: string; name?: string }[] = [];
+        // const importedEmails: { email: string; name?: string }[] = [];
 
         selectedRecipients.forEach((r) => {
             const rawId = r.rawCustomer?.customerId || r.rawCustomer?._id || r.id;
@@ -176,16 +176,16 @@ export default function Messaging() {
             if (/^[0-9a-fA-F]{24}$/.test(strId)) {
                 customerIds.push(strId);
             }
-            if (r.email && r.email.trim() && r.email.includes("@")) {
-                importedEmails.push({
-                    email: r.email.trim(),
-                    name: r.name || undefined,
-                });
-            }
+            // if (r.email && r.email.trim() && r.email.includes("@")) {
+            //     importedEmails.push({
+            //         email: r.email.trim(),
+            //         name: r.name || undefined,
+            //     });
+            // }
         });
 
         // Validation for email channel: check that we have either customerIds or importedEmails
-        if (channel === "email" && customerIds.length === 0 && importedEmails.length === 0) {
+        if (channel === "email" && customerIds.length === 0) {
             toast.danger("The selected recipient(s) do not have a valid email address or customer ID");
             return;
         }
@@ -200,8 +200,8 @@ export default function Messaging() {
                 channels: [channel],
                 recipients: {
                     customerIds: customerIds.length > 0 ? customerIds : undefined,
-                    importedEmails:
-                        importedEmails.length > 0 ? importedEmails : undefined,
+                    // importedEmails:
+                    //     importedEmails.length > 0 ? importedEmails : undefined,
                 },
                 title: title.trim(),
                 body: body.trim(),
@@ -345,11 +345,10 @@ export default function Messaging() {
                 <button
                     key={p}
                     onClick={() => setPage(p)}
-                    className={`min-w-8 h-8 px-2.5 rounded-lg text-xs font-semibold transition-colors ${
-                        isActive
+                    className={`min-w-8 h-8 px-2.5 rounded-lg text-xs font-semibold transition-colors ${isActive
                             ? "bg-[#37137F] text-white shadow-xs"
                             : "border border-gray-200 text-gray-700 hover:bg-gray-50 bg-white"
-                    }`}
+                        }`}
                 >
                     {p}
                 </button>
@@ -396,11 +395,10 @@ export default function Messaging() {
                         {/* Send To All Button */}
                         <button
                             onClick={handleSendToAllToggle}
-                            className={`px-4 py-2.5 rounded-xl font-semibold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-xs ${
-                                isSendToAll
+                            className={`px-4 py-2.5 rounded-xl font-semibold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-xs ${isSendToAll
                                     ? "bg-[#250d56] text-white ring-2 ring-[#37137F]"
                                     : "bg-[#37137F] hover:bg-[#2e0f6c] text-white"
-                            }`}
+                                }`}
                         >
                             <LuSquareCheck size={15} />
                             <span>Send To All</span>
@@ -503,9 +501,8 @@ export default function Messaging() {
                                 className="flex items-center gap-2.5 cursor-pointer select-none"
                             >
                                 <div
-                                    className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
-                                        isChecked ? "border-[#37137F]" : "border-purple-300"
-                                    }`}
+                                    className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${isChecked ? "border-[#37137F]" : "border-purple-300"
+                                        }`}
                                 >
                                     {isChecked && (
                                         <div className="w-2 h-2 rounded-full bg-[#37137F]" />
