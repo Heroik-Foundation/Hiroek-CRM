@@ -11,7 +11,7 @@ import {
     LuAlignCenter,
     LuAlignRight,
     LuImage,
-    LuSparkles,
+    // LuSparkles,
 } from "react-icons/lu";
 import { FiBold, FiItalic, FiUnderline } from "react-icons/fi";
 import CustomTable from "../../components/ui/customTable";
@@ -40,7 +40,7 @@ export default function SendMessage() {
     const [isSendToAll, setIsSendToAll] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [page, setPage] = useState(1);
-    const [isAiLoading, setIsAiLoading] = useState(false);
+    // const [isAiLoading, setIsAiLoading] = useState(false);
 
     // Properties panel state
     const [fontFamily, setFontFamily] = useState("Arial");
@@ -127,7 +127,7 @@ export default function SendMessage() {
                 item.city ||
                 (typeof item.user === "object" && item.user !== null
                     ? (item.user as Record<string, unknown>).location ||
-                      (item.user as Record<string, unknown>).city
+                    (item.user as Record<string, unknown>).city
                     : null) ||
                 "London";
 
@@ -193,23 +193,23 @@ export default function SendMessage() {
     };
 
     // AI Message Generator
-    const handleWriteWithAI = () => {
-        setIsAiLoading(true);
-        setTimeout(() => {
-            const drafts = [
-                `Exciting news! We're hosting an exclusive gathering for our top community members next Friday. RSVP below to secure your complimentary VIP ticket before slots fill up!`,
-                `Hey there! Thank you for being an active part of our community. We have upcoming event announcements that you won't want to miss. Check out the details and reserve your spot today!`,
-                `Special Invitation: Get early-bird access to our next headline showcase. Limited passes are available for verified attendees—claim yours now with the link below!`,
-            ];
-            const randomDraft = drafts[Math.floor(Math.random() * drafts.length)];
-            setBody(randomDraft);
-            if (!title) {
-                setTitle("Exclusive Invitation & Upcoming Event Announcement");
-            }
-            setIsAiLoading(false);
-            toast.success("Draft created with AI!");
-        }, 600);
-    };
+    // const handleWriteWithAI = () => {
+    //     setIsAiLoading(true);
+    //     setTimeout(() => {
+    //         const drafts = [
+    //             `Exciting news! We're hosting an exclusive gathering for our top community members next Friday. RSVP below to secure your complimentary VIP ticket before slots fill up!`,
+    //             `Hey there! Thank you for being an active part of our community. We have upcoming event announcements that you won't want to miss. Check out the details and reserve your spot today!`,
+    //             `Special Invitation: Get early-bird access to our next headline showcase. Limited passes are available for verified attendees—claim yours now with the link below!`,
+    //         ];
+    //         const randomDraft = drafts[Math.floor(Math.random() * drafts.length)];
+    //         setBody(randomDraft);
+    //         if (!title) {
+    //             setTitle("Exclusive Invitation & Upcoming Event Announcement");
+    //         }
+    //         setIsAiLoading(false);
+    //         toast.success("Draft created with AI!");
+    //     }, 600);
+    // };
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -245,15 +245,15 @@ export default function SendMessage() {
             messageType === "notifications"
                 ? "notification"
                 : messageType === "in_app"
-                ? "in_app"
-                : "email";
+                    ? "in_app"
+                    : "email";
 
         const selectedRecipients = isSendToAll
             ? filteredRecipients
             : filteredRecipients.filter((r) => selectedIds.has(r.id));
 
         const customerIds: string[] = [];
-        const importedEmails: { email: string; name?: string }[] = [];
+        // const importedEmails: { email: string; name?: string }[] = [];
 
         selectedRecipients.forEach((r) => {
             const rawId = (r.rawCustomer?.customerId || r.rawCustomer?._id || r.id) as string;
@@ -261,10 +261,10 @@ export default function SendMessage() {
                 customerIds.push(rawId);
             }
             if (r.email && r.email.includes("@")) {
-                importedEmails.push({
-                    email: r.email.trim(),
-                    name: r.name || undefined,
-                });
+                // importedEmails.push({
+                //     email: r.email.trim(),
+                //     name: r.name || undefined,
+                // });
             }
         });
 
@@ -276,7 +276,7 @@ export default function SendMessage() {
                 channels: [channel],
                 recipients: {
                     customerIds: customerIds.length > 0 ? customerIds : undefined,
-                    importedEmails: importedEmails.length > 0 ? importedEmails : undefined,
+                    // importedEmails: importedEmails.length > 0 ? importedEmails : undefined,
                 },
                 title: title.trim(),
                 body: body.trim(),
@@ -301,69 +301,69 @@ export default function SendMessage() {
         phone: string;
         location: string;
     }>[] = [
-        {
-            id: "sNo",
-            name: "S/No",
-            render: (_value, item) => (
-                <span className="w-8 h-8 rounded-full bg-[#F3F0FA] text-[#2E0F74] flex items-center justify-center text-xs font-bold shrink-0">
-                    {item.sNo}
-                </span>
-            ),
-        },
-        {
-            id: "name",
-            name: "User",
-            render: (_value, item) => (
-                <span className="font-bold text-gray-900 text-xs sm:text-sm whitespace-nowrap">
-                    {item.name}
-                </span>
-            ),
-        },
-        {
-            id: "email",
-            name: "Email",
-            render: (_value, item) => (
-                <span className="text-xs sm:text-sm font-semibold text-gray-800">
-                    {item.email || "Jimmy.C@Email.Com"}
-                </span>
-            ),
-        },
-        {
-            id: "phone",
-            name: "Contact Number",
-            render: (_value, item) => (
-                <span className="text-xs sm:text-sm font-semibold text-gray-800 whitespace-nowrap">
-                    {item.phone || "+44 701 2539 399 1122"}
-                </span>
-            ),
-        },
-        {
-            id: "location",
-            name: "Location",
-            render: (_value, item) => (
-                <span className="text-xs sm:text-sm font-semibold text-gray-800 whitespace-nowrap">
-                    {item.location}
-                </span>
-            ),
-        },
-        {
-            id: "select",
-            name: "Select",
-            render: (_value, item) => {
-                const checked = isSendToAll || selectedIds.has(item.id);
-                return (
-                    <div className="flex items-center justify-center w-full">
-                        <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => toggleSelect(item.id)}
-                            className="w-4 h-4 rounded text-[#2E0F74] accent-[#2E0F74] border-gray-300 cursor-pointer"
-                        />
-                    </div>
-                );
+            {
+                id: "sNo",
+                name: "S/No",
+                render: (_value, item) => (
+                    <span className="w-8 h-8 rounded-full bg-[#F3F0FA] text-[#2E0F74] flex items-center justify-center text-xs font-bold shrink-0">
+                        {item.sNo}
+                    </span>
+                ),
             },
-        },
-    ];
+            {
+                id: "name",
+                name: "User",
+                render: (_value, item) => (
+                    <span className="font-bold text-gray-900 text-xs sm:text-sm whitespace-nowrap">
+                        {item.name}
+                    </span>
+                ),
+            },
+            {
+                id: "email",
+                name: "Email",
+                render: (_value, item) => (
+                    <span className="text-xs sm:text-sm font-semibold text-gray-800">
+                        {item.email || "Jimmy.C@Email.Com"}
+                    </span>
+                ),
+            },
+            {
+                id: "phone",
+                name: "Contact Number",
+                render: (_value, item) => (
+                    <span className="text-xs sm:text-sm font-semibold text-gray-800 whitespace-nowrap">
+                        {item.phone || "+44 701 2539 399 1122"}
+                    </span>
+                ),
+            },
+            {
+                id: "location",
+                name: "Location",
+                render: (_value, item) => (
+                    <span className="text-xs sm:text-sm font-semibold text-gray-800 whitespace-nowrap">
+                        {item.location}
+                    </span>
+                ),
+            },
+            {
+                id: "select",
+                name: "Select",
+                render: (_value, item) => {
+                    const checked = isSendToAll || selectedIds.has(item.id);
+                    return (
+                        <div className="flex items-center justify-center w-full">
+                            <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => toggleSelect(item.id)}
+                                className="w-4 h-4 rounded text-[#2E0F74] accent-[#2E0F74] border-gray-300 cursor-pointer"
+                            />
+                        </div>
+                    );
+                },
+            },
+        ];
 
     // ─── RECIPIENTS VIEW (Matches Image 1) ──────────────────────────────────
     if (currentView === "recipients") {
@@ -458,11 +458,10 @@ export default function SendMessage() {
                                                 <button
                                                     key={idx}
                                                     onClick={() => setPage(pageNum)}
-                                                    className={`w-9 h-9 rounded-xl text-xs font-bold transition-colors ${
-                                                        isActive
-                                                            ? "bg-[#2E0F74] text-white shadow-xs"
-                                                            : "border border-gray-200 text-gray-700 hover:bg-gray-50 bg-white"
-                                                    }`}
+                                                    className={`w-9 h-9 rounded-xl text-xs font-bold transition-colors ${isActive
+                                                        ? "bg-[#2E0F74] text-white shadow-xs"
+                                                        : "border border-gray-200 text-gray-700 hover:bg-gray-50 bg-white"
+                                                        }`}
                                                 >
                                                     {pageNum}
                                                 </button>
@@ -542,11 +541,10 @@ export default function SendMessage() {
                                     className="flex items-center gap-2 cursor-pointer select-none"
                                 >
                                     <div
-                                        className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
-                                            isChecked
-                                                ? "border-[#7047EB]"
-                                                : "border-purple-300 hover:border-purple-400"
-                                        }`}
+                                        className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${isChecked
+                                            ? "border-[#7047EB]"
+                                            : "border-purple-300 hover:border-purple-400"
+                                            }`}
                                     >
                                         {isChecked && (
                                             <div className="w-2 h-2 rounded-full bg-[#37137F]" />
@@ -594,7 +592,7 @@ export default function SendMessage() {
                     </label>
                     <div className="relative w-full">
                         {/* Write with AI action */}
-                        <button
+                        {/* <button
                             type="button"
                             onClick={handleWriteWithAI}
                             disabled={isAiLoading}
@@ -602,7 +600,7 @@ export default function SendMessage() {
                         >
                             <LuSparkles size={14} className="text-[#2E0F74]" />
                             <span>{isAiLoading ? "Writing..." : "Write with AI"}</span>
-                        </button>
+                        </button> */}
 
                         <textarea
                             rows={7}
@@ -617,7 +615,7 @@ export default function SendMessage() {
                                 textDecoration: isUnderline ? "underline" : "none",
                                 textAlign: textAlign,
                             }}
-                            className="w-full px-4 pt-10 pb-4 bg-white border border-gray-200 rounded-xl text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#2E0F74] focus:ring-1 focus:ring-[#2E0F74] transition-all resize-y min-h-40"
+                            className="w-full px-4 pt-4 pb-4 bg-white border border-gray-200 rounded-xl text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#2E0F74] focus:ring-1 focus:ring-[#2E0F74] transition-all resize-y min-h-40"
                         />
                     </div>
                 </div>
@@ -695,33 +693,30 @@ export default function SendMessage() {
                             <button
                                 type="button"
                                 onClick={() => setIsBold(!isBold)}
-                                className={`w-7 h-7 rounded-lg border text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${
-                                    isBold
-                                        ? "bg-[#2E0F74] text-white border-[#2E0F74]"
-                                        : "border-gray-200 text-gray-700 hover:bg-gray-50"
-                                }`}
+                                className={`w-7 h-7 rounded-lg border text-xs font-bold flex items-center justify-center transition-colors cursor-pointer ${isBold
+                                    ? "bg-[#2E0F74] text-white border-[#2E0F74]"
+                                    : "border-gray-200 text-gray-700 hover:bg-gray-50"
+                                    }`}
                             >
                                 <FiBold size={13} />
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setIsItalic(!isItalic)}
-                                className={`w-7 h-7 rounded-lg border text-xs italic flex items-center justify-center transition-colors cursor-pointer ${
-                                    isItalic
-                                        ? "bg-[#2E0F74] text-white border-[#2E0F74]"
-                                        : "border-gray-200 text-gray-700 hover:bg-gray-50"
-                                }`}
+                                className={`w-7 h-7 rounded-lg border text-xs italic flex items-center justify-center transition-colors cursor-pointer ${isItalic
+                                    ? "bg-[#2E0F74] text-white border-[#2E0F74]"
+                                    : "border-gray-200 text-gray-700 hover:bg-gray-50"
+                                    }`}
                             >
                                 <FiItalic size={13} />
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setIsUnderline(!isUnderline)}
-                                className={`w-7 h-7 rounded-lg border text-xs underline flex items-center justify-center transition-colors cursor-pointer ${
-                                    isUnderline
-                                        ? "bg-[#2E0F74] text-white border-[#2E0F74]"
-                                        : "border-gray-200 text-gray-700 hover:bg-gray-50"
-                                }`}
+                                className={`w-7 h-7 rounded-lg border text-xs underline flex items-center justify-center transition-colors cursor-pointer ${isUnderline
+                                    ? "bg-[#2E0F74] text-white border-[#2E0F74]"
+                                    : "border-gray-200 text-gray-700 hover:bg-gray-50"
+                                    }`}
                             >
                                 <FiUnderline size={13} />
                             </button>
@@ -756,33 +751,30 @@ export default function SendMessage() {
                                 <button
                                     type="button"
                                     onClick={() => setTextAlign("left")}
-                                    className={`w-7 h-7 rounded-lg border text-xs flex items-center justify-center transition-colors cursor-pointer ${
-                                        textAlign === "left"
-                                            ? "bg-[#2E0F74] text-white border-[#2E0F74]"
-                                            : "border-gray-200 text-gray-600 hover:bg-gray-50"
-                                    }`}
+                                    className={`w-7 h-7 rounded-lg border text-xs flex items-center justify-center transition-colors cursor-pointer ${textAlign === "left"
+                                        ? "bg-[#2E0F74] text-white border-[#2E0F74]"
+                                        : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                                        }`}
                                 >
                                     <LuAlignLeft size={13} />
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setTextAlign("center")}
-                                    className={`w-7 h-7 rounded-lg border text-xs flex items-center justify-center transition-colors cursor-pointer ${
-                                        textAlign === "center"
-                                            ? "bg-[#2E0F74] text-white border-[#2E0F74]"
-                                            : "border-gray-200 text-gray-600 hover:bg-gray-50"
-                                    }`}
+                                    className={`w-7 h-7 rounded-lg border text-xs flex items-center justify-center transition-colors cursor-pointer ${textAlign === "center"
+                                        ? "bg-[#2E0F74] text-white border-[#2E0F74]"
+                                        : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                                        }`}
                                 >
                                     <LuAlignCenter size={13} />
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setTextAlign("right")}
-                                    className={`w-7 h-7 rounded-lg border text-xs flex items-center justify-center transition-colors cursor-pointer ${
-                                        textAlign === "right"
-                                            ? "bg-[#2E0F74] text-white border-[#2E0F74]"
-                                            : "border-gray-200 text-gray-600 hover:bg-gray-50"
-                                    }`}
+                                    className={`w-7 h-7 rounded-lg border text-xs flex items-center justify-center transition-colors cursor-pointer ${textAlign === "right"
+                                        ? "bg-[#2E0F74] text-white border-[#2E0F74]"
+                                        : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                                        }`}
                                 >
                                     <LuAlignRight size={13} />
                                 </button>
@@ -834,33 +826,30 @@ export default function SendMessage() {
                             <button
                                 type="button"
                                 onClick={() => setButtonAlign("left")}
-                                className={`flex-1 py-1.5 rounded-lg border text-xs flex items-center justify-center transition-colors cursor-pointer ${
-                                    buttonAlign === "left"
-                                        ? "bg-[#2E0F74] text-white border-[#2E0F74]"
-                                        : "border-gray-200 text-gray-600 hover:bg-gray-50"
-                                }`}
+                                className={`flex-1 py-1.5 rounded-lg border text-xs flex items-center justify-center transition-colors cursor-pointer ${buttonAlign === "left"
+                                    ? "bg-[#2E0F74] text-white border-[#2E0F74]"
+                                    : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                                    }`}
                             >
                                 <LuAlignLeft size={13} />
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setButtonAlign("center")}
-                                className={`flex-1 py-1.5 rounded-lg border text-xs flex items-center justify-center transition-colors cursor-pointer ${
-                                    buttonAlign === "center"
-                                        ? "bg-[#2E0F74] text-white border-[#2E0F74]"
-                                        : "border-gray-200 text-gray-600 hover:bg-gray-50"
-                                }`}
+                                className={`flex-1 py-1.5 rounded-lg border text-xs flex items-center justify-center transition-colors cursor-pointer ${buttonAlign === "center"
+                                    ? "bg-[#2E0F74] text-white border-[#2E0F74]"
+                                    : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                                    }`}
                             >
                                 <LuAlignCenter size={13} />
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setButtonAlign("right")}
-                                className={`flex-1 py-1.5 rounded-lg border text-xs flex items-center justify-center transition-colors cursor-pointer ${
-                                    buttonAlign === "right"
-                                        ? "bg-[#2E0F74] text-white border-[#2E0F74]"
-                                        : "border-gray-200 text-gray-600 hover:bg-gray-50"
-                                }`}
+                                className={`flex-1 py-1.5 rounded-lg border text-xs flex items-center justify-center transition-colors cursor-pointer ${buttonAlign === "right"
+                                    ? "bg-[#2E0F74] text-white border-[#2E0F74]"
+                                    : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                                    }`}
                             >
                                 <LuAlignRight size={13} />
                             </button>
