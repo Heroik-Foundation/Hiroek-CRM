@@ -70,24 +70,23 @@ export default function GetUsersRole() {
     const rawMembers = data?.data || [];
 
     // Synthesize creator/owner card from logged-in organizer if not already included in list
-    const ownerItem: ITeamMember | null = useMemo(() => {
-        if (!user) return null;
+    const ownerItem: ITeamMember = useMemo(() => {
         return {
-            _id: user._id || user.userId || "owner",
+            _id: user?._id ?? "owner",
             user: {
-                _id: user.userId || user._id,
-                fullname: user.name || "Creator",
-                email: user.email || "",
-                photo: user.logo || null,
+                _id: user?._id ?? "owner",
+                fullname: user?.name ?? "Creator",
+                email: user?.email ?? "",
+                photo: user?.logo ?? "",
             },
-            fullname: user.name || "Creator",
-            email: user.email || "",
-            account: user._id,
+            fullname: user?.name ?? "Creator",
+            email: user?.email ?? "",
+            account: user?._id ?? "",
             accountType: "organizer",
             role: "owner",
             permissions: ["Full Access"],
-            createdAt: user.createdAt || "",
-            updatedAt: user.updatedAt || "",
+            createdAt: user?.createdAt ?? "",
+            updatedAt: user?.updatedAt ?? "",
             __v: 0,
         };
     }, [user]);

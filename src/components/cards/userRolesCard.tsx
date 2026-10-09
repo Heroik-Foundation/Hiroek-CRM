@@ -40,10 +40,9 @@ export default function UserRolesCard({
     const userObj = typeof member.user === "object" ? member.user : null;
     const name =
         member.fullname ||
-        userObj?.fullname ||
-        (typeof member.user === "string" ? `Member (${member.user.slice(-6)})` : "Team Member");
+        userObj?.fullname
 
-    const email = member.email || userObj?.email || "—";
+    const email = member.email || userObj?.email || "";
     const photo = userObj?.photo || null;
     const rawRole = String(member.role || "viewer").toLowerCase();
     const isOwner = rawRole === "owner" || rawRole === "creator";
@@ -52,8 +51,8 @@ export default function UserRolesCard({
     const displayRole = isOwner
         ? "Creator"
         : rawRole === "admin"
-        ? "Admin"
-        : "Viewer";
+            ? "Admin"
+            : "Viewer";
 
     // Permissions summary line matching mockup
     const getPermissionsText = () => {
@@ -137,9 +136,8 @@ export default function UserRolesCard({
                             <span>{displayRole}</span>
                             <BiSolidChevronDownCircle
                                 size={17}
-                                className={`text-[#37137F] shrink-0 transition-transform ${
-                                    isRoleDropdownOpen ? "rotate-180" : ""
-                                }`}
+                                className={`text-[#37137F] shrink-0 transition-transform ${isRoleDropdownOpen ? "rotate-180" : ""
+                                    }`}
                             />
                         </button>
 
@@ -160,11 +158,10 @@ export default function UserRolesCard({
                                                 }
                                                 setIsRoleDropdownOpen(false);
                                             }}
-                                            className={`w-full text-left px-3.5 py-2 text-xs font-semibold transition cursor-pointer ${
-                                                isSelected
-                                                    ? "bg-[#37137F15] text-[#37137F]"
-                                                    : "text-gray-700 hover:bg-gray-50"
-                                            }`}
+                                            className={`w-full text-left px-3.5 py-2 text-xs font-semibold transition cursor-pointer ${isSelected
+                                                ? "bg-[#37137F15] text-[#37137F]"
+                                                : "text-gray-700 hover:bg-gray-50"
+                                                }`}
                                         >
                                             {r.label}
                                         </button>
