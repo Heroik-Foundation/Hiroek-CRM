@@ -2,7 +2,6 @@ import { useState } from "react";
 import ReactECharts from "echarts-for-react";
 import type { EChartsOption } from "echarts";
 import { LoadingLayout } from "../../layout";
-import { IoChevronDown } from "react-icons/io5";
 
 export interface AttendanceByDayItem {
   day: string;
