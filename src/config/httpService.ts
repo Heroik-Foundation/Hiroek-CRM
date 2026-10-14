@@ -63,6 +63,17 @@ export const tokenStorage = {
   },
 };
 
+export const LOGIN_URL = "http://localhost:3000/auth/login";
+
+/** Redirects user to login portal */
+export function redirectToLogin() {
+  if (typeof window !== "undefined") {
+    if (window.location.href !== LOGIN_URL) {
+      window.location.href = LOGIN_URL;
+    }
+  }
+}
+
 /** Clears tokens and client session keys. Safe to call from UI or interceptors. */
 export function clearSession() {
   tokenStorage.clearAll();
@@ -134,7 +145,13 @@ async function refreshAccessToken(): Promise<string> {
 
 unsecureHttpService.interceptors.response.use(
   (response: AxiosResponse): AxiosResponse => response,
-  (error: AxiosError<unknown>): Promise<never> => Promise.reject(error)
+  (error: AxiosError<unknown>): Promise<never> => {
+    if (error.response?.status === 401) {
+      clearSession();
+      redirectToLogin();
+    }
+    return Promise.reject(error);
+  }
 );
 
 // ─── Secured Instance — Request Interceptor ───────────────────────────────────
@@ -159,45 +176,58 @@ httpService.interceptors.response.use(
       | (InternalAxiosRequestConfig & { _retry?: boolean })
       | undefined;
 
-    // Only attempt refresh on 401 and only once per request
-    if (error.response?.status !== 401 || !originalRequest || originalRequest._retry) {
-      return Promise.reject(error);
-    }
+    // Check if error is unauthorized (401)
+    if (error.response?.status === 401) {
+      // If already retried once or no original request, redirect immediately
+      if (!originalRequest || originalRequest._retry) {
+        clearSession();
+        redirectToLogin();
+        return Promise.reject(error);
+      }
 
-    // If a refresh is already in-flight, queue this request
-    if (isRefreshing) {
-      return new Promise<AxiosResponse>((resolve, reject) => {
-        failedQueue.push({
-          resolve: (token: string) => {
-            originalRequest.headers.set("Authorization", `Bearer ${token}`);
-            resolve(httpService(originalRequest));
-          },
-          reject,
+      // If a refresh is already in-flight, queue this request
+      if (isRefreshing) {
+        return new Promise<AxiosResponse>((resolve, reject) => {
+          failedQueue.push({
+            resolve: (token: string) => {
+              originalRequest.headers.set("Authorization", `Bearer ${token}`);
+              resolve(httpService(originalRequest));
+            },
+            reject: (err) => {
+              clearSession();
+              redirectToLogin();
+              reject(err);
+            },
+          });
         });
-      });
+      }
+
+      const refreshToken = tokenStorage.getRefresh();
+      if (!refreshToken) {
+        clearSession();
+        redirectToLogin();
+        return Promise.reject(error);
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const newToken = await refreshAccessToken();
+        processQueue(null, newToken);
+        originalRequest.headers.set("Authorization", `Bearer ${newToken}`);
+        return httpService(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        clearSession();
+        redirectToLogin();
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
     }
 
-    const refreshToken = tokenStorage.getRefresh();
-    if (!refreshToken) {
-      clearSession();
-      return Promise.reject(error);
-    }
-
-    originalRequest._retry = true;
-    isRefreshing = true;
-
-    try {
-      const newToken = await refreshAccessToken();
-      processQueue(null, newToken);
-      originalRequest.headers.set("Authorization", `Bearer ${newToken}`);
-      return httpService(originalRequest);
-    } catch (refreshError) {
-      processQueue(refreshError, null);
-      clearSession();
-      return Promise.reject(refreshError);
-    } finally {
-      isRefreshing = false;
-    }
+    return Promise.reject(error);
   }
 );
 

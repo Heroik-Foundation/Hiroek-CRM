@@ -39,16 +39,16 @@ export default function GenderSplitChart({
   isLoading = false,
   height = 280,
   showLegend = true,
-  legendLabel = "Last 30 Days",
+  legendLabel = "2026",
   yAxisMax,
   barColor,
   borderRadius = 14,
 }: GenderSplitChartProps) {
   const dataSource =
     propData &&
-    typeof propData === "object" &&
-    !Array.isArray(propData) &&
-    "data" in (propData as Record<string, unknown>)
+      typeof propData === "object" &&
+      !Array.isArray(propData) &&
+      "data" in (propData as Record<string, unknown>)
       ? (propData as Record<string, unknown>).data
       : propData;
 
@@ -61,21 +61,21 @@ export default function GenderSplitChart({
           const itemObj = item as Record<string, unknown>;
           const label = String(
             itemObj.gender ??
-              itemObj.label ??
-              itemObj.name ??
-              itemObj.category ??
-              itemObj.range ??
-              itemObj._id ??
-              ""
+            itemObj.label ??
+            itemObj.name ??
+            itemObj.category ??
+            itemObj.range ??
+            itemObj._id ??
+            ""
           ).trim();
           const val = Number(
             itemObj.count ??
-              itemObj.value ??
-              itemObj.ticketsSold ??
-              itemObj.attendance ??
-              itemObj.amount ??
-              itemObj.revenue ??
-              0
+            itemObj.value ??
+            itemObj.ticketsSold ??
+            itemObj.attendance ??
+            itemObj.amount ??
+            itemObj.revenue ??
+            0
           );
           if (label) {
             rawEntries.push({ label, value: val });
@@ -98,11 +98,11 @@ export default function GenderSplitChart({
             const valObj = val as Record<string, unknown>;
             num = Number(
               valObj.count ??
-                valObj.value ??
-                valObj.ticketsSold ??
-                valObj.attendance ??
-                valObj.amount ??
-                0
+              valObj.value ??
+              valObj.ticketsSold ??
+              valObj.attendance ??
+              valObj.amount ??
+              0
             );
           }
           rawEntries.push({ label: key.trim(), value: num });
@@ -128,8 +128,8 @@ export default function GenderSplitChart({
       (index === 0
         ? GENDER_PALETTES.male
         : index === 1
-        ? GENDER_PALETTES.female
-        : GENDER_PALETTES["prefer not to say"]);
+          ? GENDER_PALETTES.female
+          : GENDER_PALETTES["prefer not to say"]);
 
     return {
       label: displayLabel,
@@ -270,11 +270,11 @@ export default function GenderSplitChart({
               color: barColor
                 ? barColor
                 : new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-                    { offset: 0, color: shadow },
-                    { offset: 0.45, color: highlight },
-                    { offset: 0.85, color: itemColor },
-                    { offset: 1, color: shadow },
-                  ]),
+                  { offset: 0, color: shadow },
+                  { offset: 0.45, color: highlight },
+                  { offset: 0.85, color: itemColor },
+                  { offset: 1, color: shadow },
+                ]),
               borderRadius: [borderRadius, borderRadius, borderRadius, borderRadius],
               shadowColor: "rgba(0, 0, 0, 0.08)",
               shadowBlur: 6,
@@ -314,7 +314,7 @@ export default function GenderSplitChart({
 
         {showLegend && chartData.length > 0 && (
           <div className="w-full flex items-center justify-center gap-6 pt-2 border-t border-gray-100">
-            {chartData.map((item) => (
+            {/* {chartData.map((item) => (
               <div key={item.label} className="flex items-center gap-1.5">
                 <span
                   className="w-2.5 h-2.5 rounded-sm"
@@ -324,7 +324,7 @@ export default function GenderSplitChart({
                   {item.label}: {Number(item.value).toLocaleString()}
                 </span>
               </div>
-            ))}
+            ))} */}
             {legendLabel && (
               <span className="text-xs font-medium text-gray-400">
                 ({legendLabel})

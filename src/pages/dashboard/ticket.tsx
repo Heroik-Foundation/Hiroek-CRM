@@ -303,8 +303,8 @@ export default function Ticket() {
                 return (
                     <span
                         className={`rounded-full px-4 py-1 text-xs font-semibold inline-block whitespace-nowrap ${isVVIP
-                                ? "bg-[#F5EBE1] text-[#935D2E]"
-                                : "bg-[#EDE9FE] text-[#6D28D9]"
+                            ? "bg-[#F5EBE1] text-[#935D2E]"
+                            : "bg-[#EDE9FE] text-[#6D28D9]"
                             }`}
                     >
                         {typeStr}
@@ -354,8 +354,8 @@ export default function Ticket() {
                     key={p}
                     onClick={() => setPage(p)}
                     className={`min-w-8 h-8 px-2.5 rounded-lg text-xs font-semibold transition-colors ${isActive
-                            ? "bg-[#37137F] text-white shadow-xs"
-                            : "border border-gray-200 text-gray-700 hover:bg-gray-50 bg-white"
+                        ? "bg-[#37137F] text-white shadow-xs"
+                        : "border border-gray-200 text-gray-700 hover:bg-gray-50 bg-white"
                         }`}
                 >
                     {p}
@@ -415,8 +415,8 @@ export default function Ticket() {
                             <button
                                 onClick={() => setActiveTab("frequent")}
                                 className={`flex items-center gap-2 text-xs sm:text-sm font-semibold transition-colors cursor-pointer ${activeTab === "frequent"
-                                        ? "text-black"
-                                        : "text-gray-500 hover:text-gray-900"
+                                    ? "text-black"
+                                    : "text-gray-500 hover:text-gray-900"
                                     }`}
                             >
                                 <MdFilterList size={18} className="text-gray-700" />
@@ -427,8 +427,8 @@ export default function Ticket() {
                             <button
                                 onClick={() => setActiveTab("recent")}
                                 className={`text-xs sm:text-sm font-bold transition-colors cursor-pointer ${activeTab === "recent"
-                                        ? "text-black"
-                                        : "text-gray-500 hover:text-gray-900"
+                                    ? "text-black"
+                                    : "text-gray-500 hover:text-gray-900"
                                     }`}
                             >
                                 Recent Scans
@@ -464,8 +464,8 @@ export default function Ticket() {
                                                         setPage(1);
                                                     }}
                                                     className={`w-full text-left px-4 py-2 text-xs font-medium hover:bg-gray-50 transition-colors flex items-center justify-between ${selectedEvent === evt
-                                                            ? "text-[#37137F] font-semibold bg-gray-50/70"
-                                                            : "text-gray-700"
+                                                        ? "text-[#37137F] font-semibold bg-gray-50/70"
+                                                        : "text-gray-700"
                                                         }`}
                                                 >
                                                     <span className="truncate pr-2">{evt}</span>
@@ -495,18 +495,9 @@ export default function Ticket() {
                                         setPage(1);
                                     }}
                                     placeholder="Search Ticket ID, Name..."
-                                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#37137F] focus:ring-1 focus:ring-[#37137F] transition-all"
+                                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#37137F] transition-all"
                                 />
                             </div>
-
-                            {/* Launch Scanner Button */}
-                            <button
-                                onClick={() => navigate("/dashboard/ticket-scanner")}
-                                className="bg-[#31117D] hover:bg-[#250d61] transition-colors rounded-xl px-4 py-2.5 font-semibold text-white text-xs flex items-center justify-center gap-2 shadow-xs cursor-pointer shrink-0"
-                            >
-                                <LuScanLine size={15} />
-                                <span>Launch Scanner</span>
-                            </button>
 
                             {/* Export Data Button */}
                             <button

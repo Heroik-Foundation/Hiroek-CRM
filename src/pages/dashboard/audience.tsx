@@ -10,6 +10,7 @@ import { FiMail } from "react-icons/fi";
 import { LuFileSpreadsheet, LuUsers, LuCloudUpload } from "react-icons/lu";
 import { MdFilterList } from "react-icons/md";
 import useAudienceSegment from "../../hooks/useAudienceSegment";
+import { dateFormat, timeFormat } from "../../config/dateFormat";
 
 export default function Audience() {
     const navigate = useNavigate();
@@ -93,6 +94,7 @@ export default function Audience() {
         firstName?: string;
         lastName?: string;
         email?: string;
+        fullname?: string;
         eventsCount?: number;
         totalEvents?: number;
         totalSpent?: number;
@@ -142,7 +144,7 @@ export default function Audience() {
             render: (_value, item) => (
                 <div className="flex flex-col py-1">
                     <span className="font-semibold text-gray-900 text-sm leading-snug">
-                        {item.name ||
+                        {item.fullname ||
                             (item.firstName
                                 ? `${item.firstName} ${item.lastName ?? ""}`.trim()
                                 : null) ||
@@ -183,14 +185,15 @@ export default function Audience() {
             name: "Last Active",
             render: (value, item) => (
                 <span className="text-sm text-gray-600 whitespace-nowrap">
-                    {String(
+                    {/* {String(
                         value ??
                         (item.lastActiveDate
                             ? new Date(item.lastActiveDate).toLocaleDateString()
                             : item.updatedAt
                                 ? new Date(item.updatedAt).toLocaleDateString()
                                 : "Recent")
-                    )}
+                    )} */}
+                    {dateFormat(String(value ?? item.updatedAt ?? "")) + " " + timeFormat(String(value ?? item.updatedAt ?? ""))}
                 </span>
             ),
         },
@@ -420,7 +423,7 @@ export default function Audience() {
                             </div>
                             <div className="flex items-center gap-2 w-full sm:w-auto">
                                 <button
-                                    onClick={() => navigate("/dashboard/audience/message")}
+                                    onClick={() => navigate("/dashboard/messaging")}
                                     className="flex-1 sm:flex-none bg-[#E59E39] hover:bg-[#d48e2b] transition-colors rounded-xl px-3.5 sm:px-4 font-semibold text-white h-10 sm:h-11 text-xs flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer whitespace-nowrap"
                                 >
                                     <FiMail size={14} />
@@ -436,9 +439,8 @@ export default function Audience() {
                                         <span>Export Data</span>
                                         <IoChevronDown
                                             size={13}
-                                            className={`transition-transform duration-200 ${
-                                                isDataMenuOpen ? "rotate-180" : ""
-                                            }`}
+                                            className={`transition-transform duration-200 ${isDataMenuOpen ? "rotate-180" : ""
+                                                }`}
                                         />
                                     </button>
 

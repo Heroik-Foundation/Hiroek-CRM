@@ -20,13 +20,19 @@ const ROLE_OPTIONS = [
 export default function GetUsersRole() {
     const navigate = useNavigate();
     const user = useAtomValue(userAtom);
-    const { useGetUsersRoles, deleteTeamMember, updateTeamMember } = useRoles();
+    const {
+        useGetUsersRoles,
+        deleteTeamMember,
+        updateTeamMember,
+        sendScanner,
+    } = useRoles();
     const { data, isLoading } = useGetUsersRoles();
 
     // Modal states
     const [memberToDelete, setMemberToDelete] = useState<ITeamMember | null>(null);
     const [memberToEdit, setMemberToEdit] = useState<ITeamMember | null>(null);
     const [updatingMemberId, setUpdatingMemberId] = useState<string | null>(null);
+    const [sendingScannerMemberId, setSendingScannerMemberId] = useState<string | null>(null);
 
     /** 🗑️ Delete Handler */
     const handleDeleteConfirm = () => {
@@ -62,9 +68,20 @@ export default function GetUsersRole() {
         );
     };
 
-    /** 📲 Send Scanner Handler -> Navigate to Scanner Page */
+    /** 📲 Send Scanner Handler -> Link to send-scanner API */
     const handleSendScanner = (member: ITeamMember) => {
-        navigate("/dashboard/ticket-scanner", { state: { member } });
+        const memberUserId = getMemberUserId(member) || member._id;
+        if (!memberUserId) {
+            toast.danger("Could not determine team member user ID");
+            return;
+        }
+
+        setSendingScannerMemberId(memberUserId);
+        sendScanner.mutate(memberUserId, {
+            onSettled: () => {
+                setSendingScannerMemberId(null);
+            },
+        });
     };
 
     const rawMembers = data?.data || [];
@@ -163,6 +180,10 @@ export default function GetUsersRole() {
                                     isUpdating={
                                         updateTeamMember.isPending &&
                                         updatingMemberId === itemId
+                                    }
+                                    isSendingScanner={
+                                        sendScanner.isPending &&
+                                        sendingScannerMemberId === itemId
                                     }
                                 />
                             );

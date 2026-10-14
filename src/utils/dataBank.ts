@@ -1,4 +1,4 @@
-import { Card, People } from "iconsax-reactjs";
+import { Card, Lock1, People } from "iconsax-reactjs";
 import { BiSolidMessageEdit, BiSupport } from "react-icons/bi";
 import { FaPoundSign } from "react-icons/fa";
 import { HiOutlineTicket, HiTrendingUp } from "react-icons/hi";
@@ -30,6 +30,12 @@ export const sidebarLink = [
         icon: RiTargetFill,
         name: "Audience Segments",
         link: "/dashboard/audience",
+        search: ""
+    },
+    {
+        icon: LuMail,
+        name: "Messaging & Notifications",
+        link: "/dashboard/messaging",
         search: ""
     },
     {
@@ -76,11 +82,11 @@ export const settingLink = [
         name: "Account & Profile",
         link: "/dashboard/settings?tab=profile"
     },
-    // {
-    //     icon: Lock1,
-    //     name: "Login & Security",
-    //     link: "/dashboard/settings?tab=security"
-    // },
+    {
+        icon: Lock1,
+        name: "Login & Security",
+        link: "/dashboard/settings?tab=security"
+    },
     // {
     //     icon: Card,
     //     name: "Subscriptions & Payment",
@@ -101,11 +107,11 @@ export const settingLink = [
         name: "Support & Legal",
         link: "/dashboard/settings?tab=legal"
     },
-    {
-        icon: LuMail,
-        name: "Messaging & Notifications",
-        link: "/dashboard/settings?tab=notifications"
-    }
+    // {
+    //     icon: LuMail,
+    //     name: "Messaging & Notifications",
+    //     link: "/dashboard/settings?tab=notifications"
+    // }
 ]
 
 export const locationData = [

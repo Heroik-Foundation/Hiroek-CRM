@@ -411,7 +411,7 @@ export default function SmsEmailCredits() {
     return (
         <div className="w-full flex flex-col items-center py-4 sm:py-6 px-3 sm:px-6">
             {/* Optional Back to Settings */}
-            <div className="w-full max-w-4xl flex items-center justify-start mb-3">
+            <div className="w-full max-w-4xl hidden lg:flex items-center justify-start mb-3">
                 <button
                     type="button"
                     onClick={() => navigate("/dashboard/settings?tab=profile")}
@@ -479,8 +479,8 @@ export default function SmsEmailCredits() {
                                                         setActiveDropdown(null);
                                                     }}
                                                     className={`w-full flex items-center px-6 py-3.5 transition text-left cursor-pointer ${isSelected
-                                                            ? "bg-[#ECECEC]"
-                                                            : "hover:bg-gray-50"
+                                                        ? "bg-[#ECECEC]"
+                                                        : "hover:bg-gray-50"
                                                         }`}
                                                 >
                                                     <span className="text-base font-bold text-gray-900">
@@ -577,8 +577,8 @@ export default function SmsEmailCredits() {
                                                                 setActiveDropdown(null);
                                                             }}
                                                             className={`w-full flex items-center gap-4 px-6 py-3.5 transition text-left cursor-pointer ${isSelected
-                                                                    ? "bg-[#ECECEC]"
-                                                                    : "hover:bg-gray-50"
+                                                                ? "bg-[#ECECEC]"
+                                                                : "hover:bg-gray-50"
                                                                 }`}
                                                         >
                                                             {c.flagSvg}
@@ -638,8 +638,8 @@ export default function SmsEmailCredits() {
                                                             setActiveDropdown(null);
                                                         }}
                                                         className={`w-full flex items-center px-6 py-3.5 transition text-left cursor-pointer ${isSelected
-                                                                ? "bg-[#ECECEC]"
-                                                                : "hover:bg-gray-50"
+                                                            ? "bg-[#ECECEC]"
+                                                            : "hover:bg-gray-50"
                                                             }`}
                                                     >
                                                         <span className="text-base font-bold text-gray-900">
@@ -696,8 +696,8 @@ export default function SmsEmailCredits() {
                                                             setActiveDropdown(null);
                                                         }}
                                                         className={`w-full flex items-center justify-between px-6 py-3.5 transition text-left cursor-pointer ${isSelected
-                                                                ? "bg-[#ECECEC]"
-                                                                : "hover:bg-gray-50"
+                                                            ? "bg-[#ECECEC]"
+                                                            : "hover:bg-gray-50"
                                                             }`}
                                                     >
                                                         <span className="text-sm sm:text-base font-semibold text-gray-900">

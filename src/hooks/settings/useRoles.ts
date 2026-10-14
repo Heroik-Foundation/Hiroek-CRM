@@ -9,13 +9,13 @@ import type { ITeamMember, ITeamMembersResponse } from "../../type/user";
 import { toast } from "@heroui/react";
 
 export function getMemberUserId(member: ITeamMember): string {
-    // if (typeof member?.user === "object" && member.user?._id) {
-    return member?.user?._id ?? "";
-    // }
-    // if (typeof member?.user === "string" && member.user) {
-    //     return member.user;
-    // }
-    // return (member as any)?.userId || member?._id || "";
+    if (typeof member?.user === "object" && member.user?._id) {
+        return member.user._id;
+    }
+    if (typeof member?.user === "string" && member.user) {
+        return member.user;
+    }
+    return (member as any)?.userId || member?._id || "";
 }
 
 const useRoles = () => {
@@ -130,6 +130,28 @@ const useRoles = () => {
         },
     });
 
+    /** 🔹 Send Scanner to Team Member */
+    const sendScanner = useMutation({
+        mutationFn: async (memberUserId: string) => {
+            const url = URLS.SEND_SCANNER(memberUserId);
+            return await httpService.post(url);
+        },
+        onSuccess: (res: any) => {
+            const successMsg =
+                res?.data?.message ||
+                "Scanner sent to team member successfully";
+            toast.success(successMsg);
+        },
+        onError: (err: any) => {
+            const msg =
+                err?.response?.data?.error?.details?.message ||
+                err?.response?.data?.message ||
+                err?.message ||
+                "Failed to send scanner link";
+            toast.danger(msg);
+        },
+    });
+
     const formik = useFormik({
         initialValues: {
             fullname: "",
@@ -163,6 +185,7 @@ const useRoles = () => {
         addTeamMember,
         deleteTeamMember,
         updateTeamMember,
+        sendScanner,
         formik,
         isLoading,
     };

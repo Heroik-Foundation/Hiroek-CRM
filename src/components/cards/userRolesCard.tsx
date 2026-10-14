@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { BiTrash, BiShow, BiSolidChevronDownCircle, BiUserCircle } from "react-icons/bi";
+import { Spinner } from "@heroui/react";
 import type { ITeamMember } from "../../type/user";
 
 export interface UserRolesCardProps {
@@ -10,6 +11,7 @@ export interface UserRolesCardProps {
     onSendScanner?: (member: ITeamMember) => void;
     isDeleting?: boolean;
     isUpdating?: boolean;
+    isSendingScanner?: boolean;
 }
 
 export default function UserRolesCard({
@@ -20,6 +22,7 @@ export default function UserRolesCard({
     onSendScanner,
     isDeleting = false,
     isUpdating = false,
+    isSendingScanner = false,
 }: UserRolesCardProps) {
     if (!member) return null;
 
@@ -175,9 +178,17 @@ export default function UserRolesCard({
                     <button
                         type="button"
                         onClick={() => onSendScanner?.(member)}
-                        className="order-2 sm:order-1 py-1.5 px-3.5 sm:py-2 sm:px-4 rounded-xl bg-[#37137F] hover:bg-[#2c0f66] text-white font-bold text-xs sm:text-sm transition cursor-pointer shadow-xs active:scale-95 text-center whitespace-nowrap"
+                        disabled={isSendingScanner || isDeleting || isUpdating}
+                        className="order-2 sm:order-1 py-1.5 px-3.5 sm:py-2 sm:px-4 rounded-xl bg-[#37137F] hover:bg-[#2c0f66] text-white font-bold text-xs sm:text-sm transition cursor-pointer shadow-xs active:scale-95 text-center whitespace-nowrap disabled:opacity-50 flex items-center justify-center gap-1.5"
                     >
-                        Send Scanner
+                        {isSendingScanner ? (
+                            <>
+                                <Spinner size="sm" color="current" />
+                                <span>Sending...</span>
+                            </>
+                        ) : (
+                            <span>Send Scanner</span>
+                        )}
                     </button>
 
                     {/* Delete User Button:

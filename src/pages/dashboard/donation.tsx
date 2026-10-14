@@ -166,8 +166,8 @@ export default function Donation() {
                         item.lastDonated
                             ? new Date(item.lastDonated).toLocaleDateString()
                             : item.updatedAt
-                            ? new Date(item.updatedAt).toLocaleDateString()
-                            : item.lastDonatedText ?? "Recent"
+                                ? new Date(item.updatedAt).toLocaleDateString()
+                                : item.lastDonatedText ?? "Recent"
                     )}
                 </span>
             ),
@@ -219,11 +219,10 @@ export default function Donation() {
                 const isEnded = rawStatus.includes("END") || rawStatus.includes("COMPLETE");
                 return (
                     <span
-                        className={`px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider inline-block ${
-                            isEnded
-                                ? "bg-[#ECFDF5] text-[#059669]"
-                                : "bg-[#FEF2F2] text-[#DC2626]"
-                        }`}
+                        className={`px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider inline-block ${isEnded
+                            ? "bg-[#ECFDF5] text-[#059669]"
+                            : "bg-[#FEF2F2] text-[#DC2626]"
+                            }`}
                     >
                         {rawStatus}
                     </span>
@@ -238,17 +237,17 @@ export default function Donation() {
                     {String(
                         item.date
                             ? new Date(item.date).toLocaleDateString("en-US", {
-                                  month: "short",
-                                  day: "2-digit",
-                                  year: "numeric",
-                              })
+                                month: "short",
+                                day: "2-digit",
+                                year: "numeric",
+                            })
                             : item.eventDate
-                            ? new Date(item.eventDate).toLocaleDateString("en-US", {
-                                  month: "short",
-                                  day: "2-digit",
-                                  year: "numeric",
-                              })
-                            : "-"
+                                ? new Date(item.eventDate).toLocaleDateString("en-US", {
+                                    month: "short",
+                                    day: "2-digit",
+                                    year: "numeric",
+                                })
+                                : "-"
                     )}
                 </span>
             ),
@@ -308,14 +307,11 @@ export default function Donation() {
 
             {/* Top Donors & Key Insights */}
             <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div className="lg:col-span-2 p-5 rounded-2xl bg-white flex flex-col gap-4 border border-gray-100 shadow-sm">
+                <div className="lg:col-span-2 min-w-0 max-w-full p-5 rounded-2xl bg-white flex flex-col gap-4 border border-gray-100 shadow-sm overflow-hidden">
                     <div className="w-full flex justify-between items-center">
                         <p className="font-semibold text-gray-900 text-sm">
                             Top Donors
                         </p>
-                        <button className="text-[#37137F] rounded-[44px] px-3 font-semibold bg-[#37137F26] h-7 text-xs hover:bg-[#37137F33] transition-colors">
-                            View All
-                        </button>
                     </div>
 
                     <CustomTable<any>
@@ -330,7 +326,7 @@ export default function Donation() {
                     />
                 </div>
 
-                <div className="lg:col-span-1">
+                <div className="lg:col-span-1 min-w-0">
                     <KeyInsight
                         bg="#D021240D"
                         border="#D0212426"
@@ -346,16 +342,12 @@ export default function Donation() {
             </div>
 
             {/* Donations via Events Table */}
-            <div className="w-full flex gap-4">
-                <div className="flex-1 p-5 rounded-2xl bg-white flex flex-col gap-4 border border-gray-100 shadow-sm">
+            <div className="w-full min-w-0">
+                <div className="w-full min-w-0 max-w-full p-5 rounded-2xl bg-white flex flex-col gap-4 border border-gray-100 shadow-sm overflow-hidden">
                     <div className="w-full flex justify-between items-center">
                         <p className="font-semibold text-gray-900 text-sm">
                             Donations via Events
                         </p>
-                        <button className="text-xs font-semibold text-gray-700 hover:text-black transition-colors flex items-center gap-1">
-                            <span>View All</span>
-                            <span>&rarr;</span>
-                        </button>
                     </div>
 
                     <CustomTable<any>

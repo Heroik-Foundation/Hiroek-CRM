@@ -49,6 +49,8 @@ export const URLS = {
         `/event-partners/account-management/delete-member/${memberUserId}`,
     UPDATE_TEAM_MEMBER: (memberUserId: string) =>
         `/event-partners/account-management/update-member-details/${memberUserId}`,
+    SEND_SCANNER: (memberUserId: string) =>
+        `/event-partners/account-management/send-scanner/${memberUserId}`,
     GET_EMAIL_BUNDLES: "/email-bundles",
     GET_EMAIL_BALANCE: "/email-bundles/balance",
     PURCHASE_EMAIL_BUNDLE: (bundleId: string) =>

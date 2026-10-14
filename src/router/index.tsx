@@ -39,6 +39,7 @@ export const router = createBrowserRouter([
             { path: "spending", element: withSuspense(<Spending />) },
             { path: "trends", element: withSuspense(<Trending />) },
             { path: "audience", element: withSuspense(<Audience />) },
+            { path: "messaging", element: withSuspense(<SendMessage />) },
             { path: "audience/message", element: withSuspense(<SendMessage />) },
             { path: "audience/send-message", element: withSuspense(<SendMessage />) },
             { path: "audience/export", element: withSuspense(<ExportData />) },

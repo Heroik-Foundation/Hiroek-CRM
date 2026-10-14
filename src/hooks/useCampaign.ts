@@ -55,8 +55,10 @@ const useCampaign = () => {
             },
             onError: (err: any) => {
                 const msg =
-                    err?.response?.data?.message ||
+                    err?.response?.data?.error?.details?.message ||
+                    err?.response?.data?.details?.message ||
                     err?.response?.data?.error?.message ||
+                    err?.response?.data?.message ||
                     err?.message ||
                     "Failed to create campaign";
                 toast.danger(msg);

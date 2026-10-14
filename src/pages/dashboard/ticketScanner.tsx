@@ -586,8 +586,8 @@ export default function TicketScanner() {
                                             setIsEventDropdownOpen(false);
                                         }}
                                         className={`w-full text-left px-4 py-2.5 text-xs sm:text-sm font-semibold transition ${selectedEvent === ev
-                                                ? "bg-[#31117D15] text-[#31117D]"
-                                                : "text-gray-700 hover:bg-gray-50"
+                                            ? "bg-[#31117D15] text-[#31117D]"
+                                            : "text-gray-700 hover:bg-gray-50"
                                             }`}
                                     >
                                         {ev}
