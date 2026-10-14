@@ -284,18 +284,6 @@ export default function AttendanceByDayChart({
       {/* Top action filter button */}
       <div className="absolute -top-12 right-0 z-30">
         <div className="relative">
-          {/* <button
-            type="button"
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#2E0F74] text-white text-xs font-semibold shadow-xs hover:bg-[#37137F] cursor-pointer transition-colors"
-          >
-            <span>{selectedRange}</span>
-            <IoChevronDown
-              className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                isDropdownOpen ? "rotate-180" : ""
-              }`}
-            />
-          </button> */}
 
           {isDropdownOpen && (
             <div className="absolute right-0 mt-1.5 w-32 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
@@ -308,8 +296,8 @@ export default function AttendanceByDayChart({
                     setIsDropdownOpen(false);
                   }}
                   className={`w-full text-left px-3 py-1.5 text-xs font-semibold hover:bg-gray-50 cursor-pointer ${selectedRange === range
-                      ? "text-[#2E0F74] font-bold"
-                      : "text-gray-700"
+                    ? "text-[#2E0F74] font-bold"
+                    : "text-gray-700"
                     }`}
                 >
                   {range}
