@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { TicketCard } from "../../components/cards";
 import { Header } from "../../components/common";
 import type { Column } from "../../type/table";
@@ -12,7 +11,6 @@ import useTicketScans, { type TicketScanLogItem } from "../../hooks/useTicketSca
 import useDashboard from "../../hooks/useDashboard";
 
 export default function Ticket() {
-    const navigate = useNavigate();
     const [page, setPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedEvent, setSelectedEvent] = useState("All Events");
