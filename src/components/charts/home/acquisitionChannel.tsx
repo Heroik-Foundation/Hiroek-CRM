@@ -19,6 +19,66 @@ export interface AcquisitionChannelProps {
   legendLabel?: string;
 }
 
+const CHANNEL_ABBREVIATIONS: Record<string, string> = {
+  instagram: "IG",
+  ig: "IG",
+  facebook: "FB",
+  fb: "FB",
+  twitter: "X",
+  x: "X",
+  linkedin: "LI",
+  tiktok: "TT",
+  youtube: "YT",
+  yt: "YT",
+  whatsapp: "WA",
+  "word of mouth": "WOM",
+  word_of_mouth: "WOM",
+  wom: "WOM",
+  referral: "Ref",
+  referrals: "Ref",
+  "email marketing": "Email",
+  "email campaign": "Email",
+  "email campaigns": "Email",
+  email: "Email",
+  "direct traffic": "Direct",
+  direct: "Direct",
+  "organic search": "Organic",
+  "paid search": "Paid",
+  "google search": "Google",
+  "google ads": "Ads",
+  ads: "Ads",
+  search: "Search",
+  website: "Web",
+  in_app: "In-App",
+  notification: "Notif",
+  push_notification: "Push",
+};
+
+export function abbreviateChannel(name: string): string {
+  if (!name) return "";
+  const cleaned = name.trim();
+  const lower = cleaned.toLowerCase();
+
+  if (CHANNEL_ABBREVIATIONS[lower]) {
+    return CHANNEL_ABBREVIATIONS[lower];
+  }
+
+  if (cleaned.length <= 6) {
+    return cleaned;
+  }
+
+  const words = cleaned.split(/[\s_-]+/);
+  if (words.length > 1) {
+    const acronym = words.map((w) => w[0]?.toUpperCase() ?? "").join("");
+    if (acronym.length >= 2 && acronym.length <= 4) {
+      return acronym;
+    }
+    return words.map((w) => (w.length > 3 ? w.slice(0, 3) : w)).join(" ");
+  }
+
+  return `${cleaned.slice(0, 5)}.`;
+}
+
 export default function AcquisitionChannel({
   data: propData,
   isLoading = false,
@@ -134,6 +194,31 @@ export default function AcquisitionChannel({
         fontSize: 12,
         fontWeight: 500,
       },
+      formatter: (params) => {
+        if (!Array.isArray(params) || params.length === 0) return "";
+        const title = (params[0].axisValue ?? params[0].name) as string;
+        const items = params
+          .map((p) => {
+            const val = Number(p.value ?? 0);
+            const dotColor =
+              (p.color as string) ||
+              (p.seriesName === "Joined" ? joinedColor : attendedColor);
+            return `
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 4px;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background-color:${dotColor};"></span>
+                  <span style="color:#D1D5DB;font-size:12px;">${p.seriesName}:</span>
+                </div>
+                <strong style="color:#FFFFFF;font-size:12px;">${val.toLocaleString()}</strong>
+              </div>
+            `;
+          })
+          .join("");
+        return `
+          <div style="font-weight: 600; margin-bottom: 6px; color: #FFFFFF; font-size: 13px;">${title}</div>
+          ${items}
+        `;
+      },
     },
     grid: {
       left: "3%",
@@ -151,10 +236,12 @@ export default function AcquisitionChannel({
         lineStyle: { color: "#E5E7EB" },
       },
       axisLabel: {
+        interval: 0,
         color: "#6B7280",
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: 600,
-        margin: 12,
+        margin: 10,
+        formatter: (val: string) => abbreviateChannel(val),
       },
     },
     yAxis: {

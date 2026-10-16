@@ -34,27 +34,6 @@ export default function Security() {
                                     </p>
                                 </div>
                             </div>
-                            <div className=" w-full flex flex-col gap-1 ">
-                                <p className=" text-sm font-medium text-[#00000080] ">
-                                    Two-factor Autthentication
-                                </p>
-                                <div className=" w-full rounded-xl bg-[#E50004] py-5 flex items-center justify-between px-4 text-white ">
-                                    <div className=" flex-col gap-2 flex text-sm ">
-                                        <p className=" font-semibold ">
-                                            Two-factor authentication is
-                                            disabled
-                                        </p>
-
-                                        <p className=" font-medium ">
-                                            Add an extra layer of security to
-                                            your account
-                                        </p>
-                                    </div>
-                                    <button className=" px-5 h-12 rounded-2xl font-semibold text-xs bg-white text-[#37137F]  ">
-                                        Enable
-                                    </button>
-                                </div>
-                            </div>
                         </div>
                         <CustomButton fullWidth>Update Security Settings</CustomButton>
                     </section>

@@ -124,9 +124,6 @@ export default function Spending() {
                 <div className=" flex-1 p-4 rounded-2xl bg-white flex flex-col gap-4 overflow-hidden ">
                     <div className=" w-full flex justify-between items-center ">
                         <p className=" font-semibold ">Top 10 Spenders</p>
-                        <button className=" text-[#37137F] rounded-[44px] px-2 font-semibold bg-[#37137F26] h-6.5 text-xs cursor-pointer ">
-                            View All
-                        </button>
                     </div>
                     <div className=" w-full flex flex-col "></div>
                     <CustomTable<TopSpenderItem>

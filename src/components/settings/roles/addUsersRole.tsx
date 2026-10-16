@@ -1,8 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { BiArrowBack } from "react-icons/bi";
 import { FormikProvider } from "formik";
-import { Header } from "../../common";
+import { LuChevronLeft } from "react-icons/lu";
 import useRoles from "../../../hooks/settings/useRoles";
 import { CustomButton, DateOfBirthField, FilePicker, FormikField } from "../../ui";
 
@@ -10,10 +9,10 @@ export default function AddUsersRole() {
     const navigate = useNavigate();
     const { formik, isLoading, addTeamMember } = useRoles();
 
-    // Default role to "viewer" if not set yet
+    // Default role to "admin" if not set yet (matches UI mockup)
     useEffect(() => {
         if (!formik.values.role) {
-            formik.setFieldValue("role", "viewer");
+            formik.setFieldValue("role", "admin");
         }
     }, [formik]);
 
@@ -33,96 +32,118 @@ export default function AddUsersRole() {
         };
     }, []);
 
+    const role = formik.values.role || "admin";
+
     return (
         <form
             onSubmit={formik.handleSubmit}
             className="flex-1 rounded-2xl p-6 sm:p-7 bg-white flex flex-col gap-6 max-w-xl border border-gray-100 shadow-xs"
         >
             {/* Navigation Header */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3.5">
                 <button
                     type="button"
                     onClick={() => navigate("/dashboard/settings?tab=permissions")}
-                    className="p-2 rounded-xl border border-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition shrink-0"
+                    className="w-10 h-10 rounded-xl bg-[#2E0F74] hover:bg-[#37137F] text-white flex items-center justify-center transition shrink-0 cursor-pointer"
                     aria-label="Back to Team Members"
                 >
-                    <BiArrowBack size={18} />
+                    <LuChevronLeft size={22} />
                 </button>
-                <Header
-                    title="Add New Team Member"
-                    body="Add a new member and configure their access permissions"
-                />
+                <div className="flex flex-col">
+                    <h2 className="text-base sm:text-lg font-bold text-gray-900 leading-tight">
+                        Add New User
+                    </h2>
+                    <p className="text-xs sm:text-sm text-gray-500 font-medium mt-0.5">
+                        Add & Manage Team Access And Permissions
+                    </p>
+                </div>
             </div>
 
             <FormikProvider value={formik}>
                 <section className="w-full flex flex-col gap-4">
                     {/* Avatar / Photo */}
-                    <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-gray-700">
-                            Profile Photo (Optional)
-                        </label>
-                        <FilePicker name="photo" />
-                    </div>
+                    <FilePicker name="photo" />
 
                     {/* Member Details */}
                     <FormikField
                         name="fullname"
                         label="Full Name"
-                        placeholder="e.g. Alex Johnson"
-                    />
-
-                    <FormikField
-                        name="email"
-                        label="Email Address"
-                        type="email"
-                        placeholder="e.g. alex@example.com"
                     />
 
                     <FormikField
                         name="phone"
                         label="Phone Number"
                         type="tel"
-                        placeholder="e.g. +44 7123 456789"
+                    />
+
+                    <FormikField
+                        name="email"
+                        label="Email"
+                        type="email"
                     />
 
                     <DateOfBirthField
                         name="birthDate"
-                        label="Date of Birth"
+                        label="Date Of Birth"
                     />
 
-                    <FormikField
-                        as="select"
-                        options={[
-                            {
-                                label: "Admin - Full management access",
-                                value: "admin",
-                            },
-                            {
-                                label: "Viewer - Read-only dashboard access",
-                                value: "viewer",
-                            },
-                        ]}
-                        name="role"
-                        label="Assigned Role"
-                    />
+                    {/* Select Access Type */}
+                    <div className="flex flex-col gap-3 pt-1">
+                        <label className="text-sm font-bold text-gray-900">
+                            Select Access Type
+                        </label>
+                        <div className="flex flex-col gap-3.5">
+                            <label
+                                onClick={() => formik.setFieldValue("role", "admin")}
+                                className="flex items-center gap-3 cursor-pointer select-none w-fit"
+                            >
+                                <div
+                                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                                        role === "admin"
+                                            ? "border-[#2E0F74]"
+                                            : "border-gray-400"
+                                    }`}
+                                >
+                                    {role === "admin" && (
+                                        <div className="w-2.5 h-2.5 rounded-full bg-[#2E0F74]" />
+                                    )}
+                                </div>
+                                <span className="text-sm font-semibold text-gray-900">
+                                    Admin
+                                </span>
+                            </label>
 
-                    {/* Action Buttons */}
-                    <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100 mt-2">
-                        <button
-                            type="button"
-                            onClick={() => navigate("/dashboard/settings?tab=permissions")}
-                            disabled={isLoading}
-                            className="px-5 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition disabled:opacity-50"
-                        >
-                            Cancel
-                        </button>
-                        <CustomButton
-                            type="submit"
-                            loading={isLoading}
-                        >
-                            Add Team Member
-                        </CustomButton>
+                            <label
+                                onClick={() => formik.setFieldValue("role", "viewer")}
+                                className="flex items-center gap-3 cursor-pointer select-none w-fit"
+                            >
+                                <div
+                                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                                        role === "viewer"
+                                            ? "border-[#2E0F74]"
+                                            : "border-gray-400"
+                                    }`}
+                                >
+                                    {role === "viewer" && (
+                                        <div className="w-2.5 h-2.5 rounded-full bg-[#2E0F74]" />
+                                    )}
+                                </div>
+                                <span className="text-sm font-semibold text-gray-900">
+                                    Viewer
+                                </span>
+                            </label>
+                        </div>
                     </div>
+
+                    {/* Submit Button */}
+                    <CustomButton
+                        type="submit"
+                        loading={isLoading}
+                        fullWidth
+                        className="w-full h-12 bg-[#2E0F74] hover:bg-[#37137F] text-white font-semibold rounded-xl mt-3 transition"
+                    >
+                        Add New Member
+                    </CustomButton>
                 </section>
             </FormikProvider>
         </form>

@@ -11,6 +11,7 @@ import { LuFileSpreadsheet, LuUsers, LuCloudUpload } from "react-icons/lu";
 import { MdFilterList } from "react-icons/md";
 import useAudienceSegment from "../../hooks/useAudienceSegment";
 import { dateFormat, timeFormat } from "../../config/dateFormat";
+import moment from "moment";
 
 export default function Audience() {
     const navigate = useNavigate();
@@ -193,7 +194,7 @@ export default function Audience() {
                                 ? new Date(item.updatedAt).toLocaleDateString()
                                 : "Recent")
                     )} */}
-                    {dateFormat(String(value ?? item.updatedAt ?? "")) + " " + timeFormat(String(value ?? item.updatedAt ?? ""))}
+                    {moment(value ?? item.updatedAt ?? "").fromNow()}
                 </span>
             ),
         },

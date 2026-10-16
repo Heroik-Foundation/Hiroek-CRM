@@ -1,17 +1,17 @@
 import { FormikProvider } from "formik";
 import useSettings from "../../hooks/settings/useSettings";
-import { CustomButton, CustomField, FilePicker, FormikField } from "../ui"; 
+import { CustomButton, CustomField, FilePicker, FormikField, RichTextEditor } from "../ui";
 import { useEffect } from "react";
 import { useAtomValue } from "jotai";
 import { userAtom } from "../../utils/atom/user";
 
 export default function Account() {
-    const { formik, isLoading } = useSettings(); 
+    const { formik, isLoading } = useSettings();
 
     const user = useAtomValue(userAtom)
 
     useEffect(() => {
-        if(!formik.values?.name){
+        if (!formik.values?.name) {
             formik.setValues({
                 ...formik.values,
                 name: user?.name ?? "",
@@ -20,7 +20,7 @@ export default function Account() {
                 bio: user?.bio ?? ""
             })
         }
-    }, [user]) 
+    }, [user])
 
     return (
         <section className=" flex-1 ">
@@ -32,11 +32,31 @@ export default function Account() {
                         <FormikField
                             name="name"
                             label="Company Name or Full Name"
-                        /> 
-                        <CustomField disabled value={user?.email} label="Email" /> 
+                        />
+                        <CustomField disabled value={user?.email} label="Email" />
                         <FormikField name="telephone" label="Phone Number" />
                         <FormikField name="address" label="Address/Location" />
-                        <FormikField name="bio" label="Bio" as="textarea" /> 
+                        <div className="w-full flex flex-col gap-1.5">
+                            <label className="text-sm font-medium text-[#00000080]">
+                                Bio
+                            </label>
+                            <RichTextEditor
+                                value={formik.values.bio ?? ""}
+                                onChange={(content) => {
+                                    formik.setFieldValue("bio", content);
+                                }}
+                                onBlur={() => {
+                                    formik.setFieldTouched("bio", true);
+                                }}
+                                placeholder="Write a short bio or description of your organization..."
+                                minHeight="140px"
+                            />
+                            {formik.touched.bio && formik.errors.bio && (
+                                <p className="text-xs text-red-500 font-medium mt-0.5">
+                                    {formik.errors.bio}
+                                </p>
+                            )}
+                        </div>
                         <div className="flex flex-col gap-2 pt-1">
                             <p className="text-xs font-bold text-gray-900">Notification Preferences</p>
                             <label className="flex items-center gap-2.5 text-xs text-gray-700 cursor-pointer select-none">

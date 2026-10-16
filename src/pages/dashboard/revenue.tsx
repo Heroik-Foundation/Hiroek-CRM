@@ -201,23 +201,25 @@ export default function Revenue() {
 
             {/* Event Performance Details Table */}
             <div className="w-full flex gap-4">
-                <div className="flex-1 p-5 rounded-2xl bg-white flex flex-col gap-4 border border-gray-100 shadow-sm">
+                <div className="w-full flex-1 min-w-0 max-w-full p-4 sm:p-5 rounded-2xl bg-white flex flex-col gap-4 border border-gray-100 shadow-sm overflow-hidden">
                     <div className="w-full flex justify-between items-center">
                         <p className="font-semibold text-gray-900 text-sm">
                             Event Performance Details
                         </p>
                     </div>
 
-                    <CustomTable<any>
-                        columns={columns}
-                        rows={tableRows}
-                        rowKey="id"
-                        total={totalRecords}
-                        page={page}
-                        onPageChange={setPage}
-                        rowsPerPage={10}
-                        isLoading={isPerformanceLoading}
-                    />
+                    <div className="w-full overflow-x-auto">
+                        <CustomTable<any>
+                            columns={columns}
+                            rows={tableRows}
+                            rowKey="id"
+                            total={totalRecords}
+                            page={page}
+                            onPageChange={setPage}
+                            rowsPerPage={10}
+                            isLoading={isPerformanceLoading}
+                        />
+                    </div>
                 </div>
             </div>
         </section>

@@ -12,3 +12,4 @@ export { default as CustomCheckboxGroup } from "./customCheckboxGroup";
 export { default as CustomImage } from "./customImage";
 export { default as DataTable } from "./dataTable";
 export type { DataTableColumn, DataTableEmptyState, DataTableProps } from "./dataTable";
+export { default as RichTextEditor } from "./richTextEditor";

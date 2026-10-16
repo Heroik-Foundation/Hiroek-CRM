@@ -77,14 +77,16 @@ export default function UserRolesCard({
     return (
         <div className="relative w-full bg-white rounded-2xl border border-gray-200/80 hover:border-purple-200 p-4 sm:p-5 pt-8 sm:pt-5 transition shadow-2xs flex justify-between items-start sm:items-center gap-3 sm:gap-4">
             {/* 👁️ Eye Icon: Top-Left on Mobile, Top-Right on Desktop */}
-            <button
-                type="button"
-                onClick={() => onEdit?.(member)}
-                className="absolute top-3 left-4 sm:left-auto sm:right-5 sm:top-4 text-[#37137F] hover:opacity-75 transition cursor-pointer p-0.5"
-                title="View / Edit Member Details"
-            >
-                <BiShow size={20} />
-            </button>
+            {!isOwner && (
+                <button
+                    type="button"
+                    onClick={() => onEdit?.(member)}
+                    className="absolute top-3 left-4 sm:left-auto sm:right-5 sm:top-4 text-[#37137F] hover:opacity-75 transition cursor-pointer p-0.5"
+                    title="View / Edit Member Details"
+                >
+                    <BiShow size={20} />
+                </button>
+            )}
 
             {/* 👤 Left Side: Avatar + Details */}
             <div className="flex items-center gap-3.5 min-w-0 flex-1">

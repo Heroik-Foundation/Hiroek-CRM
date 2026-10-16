@@ -17,20 +17,25 @@ export default function DashboardLayout() {
     }, [data, setUser]);
 
     return (
-        <section className="w-full flex h-screen overflow-hidden">
-            <section className="hidden lg:block w-fit h-screen border-r border-r-[#00000026] shrink-0">
-                <div className="w-72 xl:w-85">
-                    <Sidebar />
-                </div>
-            </section>
-            <section className="w-full flex h-screen overflow-auto flex-col relative">
-                <div className="sticky top-0 z-20 w-full h-fit">
+        <section className="w-full flex h-screen h-[100dvh] overflow-hidden bg-[#F5F3F9]">
+            {/* Desktop Sidebar */}
+            <aside className="hidden lg:block w-72 xl:w-85 h-full shrink-0 border-r border-[#00000026] bg-white">
+                <Sidebar />
+            </aside>
+
+            {/* Main Area: Navbar Fixed at Top + Scrollable Content */}
+            <div className="w-full flex-1 flex flex-col h-full min-w-0 min-h-0 overflow-hidden">
+                {/* Navbar at top on both desktop & mobile */}
+                <header className="w-full shrink-0 z-20 bg-white">
                     <Navbar />
-                </div>
-                <div className="flex bg-[#F5F3F9] flex-1 gap-4 sm:gap-6 flex-col p-4 sm:p-6 overflow-x-hidden">
+                </header>
+
+                {/* Page Content scrollable independently */}
+                <main className="w-full flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 flex flex-col gap-4 sm:gap-6 bg-[#F5F3F9]">
                     <Outlet />
-                </div>
-            </section>
+                </main>
+            </div>
+
             <Drawer />
         </section>
     );

@@ -36,6 +36,7 @@ interface RichTextEditorProps {
     placeholder?: string;
     className?: string;
     minHeight?: string;
+    onBlur?: () => void;
 }
 
 export default function RichTextEditor({
@@ -44,6 +45,7 @@ export default function RichTextEditor({
     placeholder = "Type your message body here...",
     className = "",
     minHeight = "160px",
+    onBlur,
 }: RichTextEditorProps) {
     const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
     const [linkUrl, setLinkUrl] = useState("");
@@ -83,10 +85,13 @@ export default function RichTextEditor({
                 onChange(html);
             }
         },
+        onBlur: () => {
+            onBlur?.();
+        },
         editorProps: {
             attributes: {
                 class:
-                    "prose max-w-none focus:outline-none min-h-[160px] p-3 text-xs sm:text-sm text-gray-800 leading-relaxed",
+                    "prose max-w-none focus:outline-none min-h-[140px] p-3 text-xs sm:text-sm text-gray-800 leading-relaxed",
             },
         },
     });

@@ -1,34 +1,65 @@
 import { AiOutlineQuestionCircle } from "react-icons/ai";
-import { FiArrowRightCircle, FiMail } from "react-icons/fi";
+import { FiArrowRightCircle } from "react-icons/fi";
 
 export default function HelpAndSupport() {
+    const items = [
+        {
+            title: "Help Center",
+            description: "Browse articles, tutorials & platform guides",
+            icon: AiOutlineQuestionCircle,
+            href: "https://www.hiroek.io",
+            external: true,
+        },
+        // {
+        //     title: "Contact Support",
+        //     description: "Get in touch directly with our support team",
+        //     icon: FiMail,
+        //     href: "mailto:support@hiroek.io",
+        //     external: false,
+        // },
+    ];
+
     return (
-        <div className=" max-w-175 w-full rounded-xl p-6 flex flex-col gap-6 border border-[#37137F26] bg-white " >
-            <p className=" text-lg font-semibold " >Help & Support</p>
-            <div className=" w-full flex h-19 px-5 justify-between border border-[#37137F26] rounded-xl items-center " >
-                <div className=" flex gap-3 items-center " >
-                    <div className=" w-9 h-9 rounded-full bg-[#37137F26] text-[#37137F] flex justify-center items-center " >
-                        <AiOutlineQuestionCircle size={24} />
-                    </div>
-                    <div>
-                        <p className=" font-semibold text-[#1E1E1E] " >Help Center</p>
-                        <p className=" font-medium text-sm text-[#1E1E1EBF] " >browse articles & guides</p>
-                    </div>
-                </div>
-                <FiArrowRightCircle color="#37137F" size={24} />
+        <div className="max-w-175 w-full bg-white rounded-2xl p-5 sm:p-6 flex flex-col gap-5 border border-gray-100 shadow-xs">
+            <div>
+                <p className="text-lg font-bold text-gray-900">Help & Support</p>
+                <p className="text-xs sm:text-sm text-gray-500 font-medium mt-0.5">
+                    Find answers or reach out to our team for assistance
+                </p>
             </div>
-            <div className=" w-full flex h-19 px-5 justify-between border border-[#37137F26] rounded-xl items-center " >
-                <div className=" flex gap-3 items-center " >
-                    <div className=" w-9 h-9 rounded-full bg-[#37137F26] text-[#37137F] flex justify-center items-center " >
-                        <FiMail size={24} />
-                    </div>
-                    <div>
-                        <p className=" font-semibold text-[#1E1E1E] " >Contact Support</p>
-                        <p className=" font-medium text-sm text-[#1E1E1EBF] " >Get help from our team</p>
-                    </div>
-                </div>
-                <FiArrowRightCircle color="#37137F" size={24} />
+
+            <div className="w-full flex flex-col gap-3">
+                {items.map((item, idx) => {
+                    const Icon = item.icon;
+                    return (
+                        <a
+                            key={idx}
+                            href={item.href}
+                            target={item.external ? "_blank" : undefined}
+                            rel={item.external ? "noopener noreferrer" : undefined}
+                            className="w-full flex p-4 px-5 justify-between border border-gray-200/80 hover:border-purple-300 hover:bg-purple-50/20 rounded-xl items-center transition-all duration-200 group cursor-pointer"
+                        >
+                            <div className="flex gap-3.5 items-center min-w-0">
+                                <div className="w-10 h-10 rounded-full bg-[#37137F15] text-[#37137F] flex justify-center items-center shrink-0 group-hover:bg-[#37137F] group-hover:text-white transition-colors duration-200">
+                                    <Icon size={20} />
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="font-semibold text-gray-900 text-sm sm:text-base group-hover:text-[#37137F] transition-colors">
+                                        {item.title}
+                                    </p>
+                                    <p className="font-medium text-xs sm:text-sm text-gray-500 truncate">
+                                        {item.description}
+                                    </p>
+                                </div>
+                            </div>
+                            <FiArrowRightCircle
+                                className="text-[#37137F] shrink-0 group-hover:translate-x-0.5 transition-transform"
+                                size={22}
+                            />
+                        </a>
+                    );
+                })}
             </div>
         </div>
-    )
+    );
 }

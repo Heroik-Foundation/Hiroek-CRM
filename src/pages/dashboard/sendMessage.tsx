@@ -635,7 +635,7 @@ export default function SendMessage() {
                             </h2>
                             <p className="text-[11px] sm:text-xs font-medium text-gray-500 mt-0.5 leading-relaxed">
                                 Send Mass In-App Message & Email To Attendees About Future And
-                                Upcoming Events / Track Responses, Etc.
+                                Upcoming Events.
                             </p>
                         </div>
                     </div>
