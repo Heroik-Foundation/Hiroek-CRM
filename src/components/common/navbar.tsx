@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAtom, useAtomValue } from "jotai";
 import { userAtom } from "../../utils/atom/user";
 import { drawerAtom } from "../../utils/atom/drawer";
+import { periodAtom } from "../../utils/atom/period";
 import { Notification } from "iconsax-reactjs";
 import { IoChevronDownCircle } from "react-icons/io5";
 import { HiMenu } from "react-icons/hi";
@@ -9,7 +10,7 @@ import { HiMenu } from "react-icons/hi";
 export default function Navbar() {
     const user = useAtomValue(userAtom);
     const [, setIsDrawerOpen] = useAtom(drawerAtom);
-    const [selectedRange, setSelectedRange] = useState("Last 7 Days");
+    const [selectedRange, setSelectedRange] = useAtom(periodAtom);
     const [isOpen, setIsOpen] = useState(false);
 
     const timeRanges = [

@@ -3,17 +3,19 @@ import { useAtomValue } from "jotai";
 import { URLS } from "../utils/urls";
 import { useFetchData } from "./useFetchData";
 import { userAtom } from "../utils/atom/user";
+import { periodSlugAtom } from "../utils/atom/period";
 import type { IDashboard } from "../type/dashboard";
 
 const useDashboard = () => {
-
-    const user = useAtomValue(userAtom)
+    const user = useAtomValue(userAtom);
+    const period = useAtomValue(periodSlugAtom);
 
     const useGetAcquisitionData = () => {
         return useFetchData<any>({
             endpoint: URLS.GET_ACQUISITION_CHANNEL(user?._id ?? ""),
             name: [URLS.GET_ACQUISITION_CHANNEL(user?._id ?? "")],
-            enable: user?._id ? true : false
+            params: { period },
+            enable: Boolean(user?._id),
         });
     };
 
@@ -21,7 +23,8 @@ const useDashboard = () => {
         return useFetchData<any>({
             endpoint: URLS.GET_AUDIENCE_BY_LOCATION(user?._id ?? ""),
             name: [URLS.GET_AUDIENCE_BY_LOCATION(user?._id ?? "")],
-            enable: user?._id ? true : false
+            params: { period },
+            enable: Boolean(user?._id),
         });
     };
 
@@ -29,7 +32,8 @@ const useDashboard = () => {
         return useFetchData<any>({
             endpoint: URLS.GET_CONVERSION_FUNNEL(user?._id ?? ""),
             name: [URLS.GET_CONVERSION_FUNNEL(user?._id ?? "")],
-            enable: user?._id ? true : false
+            params: { period },
+            enable: Boolean(user?._id),
         });
     };
 
@@ -37,7 +41,8 @@ const useDashboard = () => {
         return useFetchData<any>({
             endpoint: URLS.GET_CUSTOMER_AGE_DISTRIBUTION(user?._id ?? ""),
             name: [URLS.GET_CUSTOMER_AGE_DISTRIBUTION(user?._id ?? "")],
-            enable: user?._id ? true : false
+            params: { period },
+            enable: Boolean(user?._id),
         });
     };
 
@@ -45,7 +50,8 @@ const useDashboard = () => {
         return useFetchData<any>({
             endpoint: URLS.GET_GENDER_SPLIT(user?._id ?? ""),
             name: [URLS.GET_GENDER_SPLIT(user?._id ?? "")],
-            enable: user?._id ? true : false
+            params: { period },
+            enable: Boolean(user?._id),
         });
     };
 
@@ -53,7 +59,8 @@ const useDashboard = () => {
         return useFetchData<IDashboard>({
             endpoint: URLS.GET_DASHBOARD_DATA(user?._id ?? ""),
             name: [URLS.GET_DASHBOARD_DATA(user?._id ?? "")],
-            enable: user?._id ? true : false
+            params: { period },
+            enable: Boolean(user?._id),
         });
     };
 

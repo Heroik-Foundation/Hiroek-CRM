@@ -2,6 +2,7 @@ import { useAtomValue } from "jotai";
 import { URLS } from "../utils/urls";
 import { useFetchData } from "./useFetchData";
 import { userAtom } from "../utils/atom/user";
+import { periodSlugAtom } from "../utils/atom/period";
 
 export interface ReviewUser {
     _id?: string;
@@ -98,19 +99,24 @@ export interface ReviewQueryParams {
     limit?: number;
     ratingFloor?: number | string;
     eventId?: string;
+    period?: string;
 }
 
 export interface ReviewStatsQueryParams {
     ratingFloor?: number | string;
     eventId?: string;
+    period?: string;
 }
 
 const useReview = () => {
     const user = useAtomValue(userAtom);
+    const period = useAtomValue(periodSlugAtom);
 
     const useGetReviews = (params?: ReviewQueryParams) => {
         // Filter out undefined / empty values
-        const cleanParams: Record<string, unknown> = {};
+        const cleanParams: Record<string, unknown> = {
+            period: params?.period ?? period,
+        };
         if (params?.page !== undefined) cleanParams.page = params.page;
         if (params?.pageSize !== undefined) cleanParams.pageSize = params.pageSize;
         if (params?.limit !== undefined) cleanParams.limit = params.limit;
@@ -131,7 +137,9 @@ const useReview = () => {
     };
 
     const useGetReviewStats = (params?: ReviewStatsQueryParams) => {
-        const cleanParams: Record<string, unknown> = {};
+        const cleanParams: Record<string, unknown> = {
+            period: params?.period ?? period,
+        };
         if (params?.ratingFloor !== undefined && params?.ratingFloor !== "") {
             cleanParams.ratingFloor = params.ratingFloor;
         }

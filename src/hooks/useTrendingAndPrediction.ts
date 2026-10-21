@@ -3,16 +3,18 @@ import { useAtomValue } from "jotai";
 import { URLS } from "../utils/urls";
 import { useFetchData } from "./useFetchData";
 import { userAtom } from "../utils/atom/user";
+import { periodSlugAtom } from "../utils/atom/period";
 
 const useTrendingAndPrediction = () => {
-
-    const user = useAtomValue(userAtom)
+    const user = useAtomValue(userAtom);
+    const period = useAtomValue(periodSlugAtom);
 
     const useGetPeakEventTimesData = () => {
         return useFetchData<any>({
             endpoint: URLS.GET_PEAK_EVENT_TIMES(user?._id ?? ""),
             name: [URLS.GET_PEAK_EVENT_TIMES(user?._id ?? "")],
-            enable: Boolean(user?._id)
+            params: { period },
+            enable: Boolean(user?._id),
         });
     };
 
@@ -20,7 +22,8 @@ const useTrendingAndPrediction = () => {
         return useFetchData<any>({
             endpoint: URLS.GET_ATTENDANCE_BY_DATE(user?._id ?? ""),
             name: [URLS.GET_ATTENDANCE_BY_DATE(user?._id ?? "")],
-            enable: Boolean(user?._id)
+            params: { period },
+            enable: Boolean(user?._id),
         });
     };
 
@@ -28,7 +31,8 @@ const useTrendingAndPrediction = () => {
         return useFetchData<any>({
             endpoint: URLS.GET_EVENT_CATEGORY_POPULARITY(user?._id ?? ""),
             name: [URLS.GET_EVENT_CATEGORY_POPULARITY(user?._id ?? "")],
-            enable: Boolean(user?._id)
+            params: { period },
+            enable: Boolean(user?._id),
         });
     };
 
@@ -36,7 +40,8 @@ const useTrendingAndPrediction = () => {
         return useFetchData<any>({
             endpoint: URLS.GET_FORCAST(user?._id ?? ""),
             name: [URLS.GET_FORCAST(user?._id ?? "")],
-            enable: Boolean(user?._id)
+            params: { period },
+            enable: Boolean(user?._id),
         });
     };
 

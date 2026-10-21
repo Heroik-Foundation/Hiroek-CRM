@@ -17,7 +17,7 @@ export default function DashboardLayout() {
     }, [data, setUser]);
 
     return (
-        <section className="w-full flex h-screen h-[100dvh] overflow-hidden bg-[#F5F3F9]">
+        <section className="w-full flex h-screen overflow-hidden bg-[#F5F3F9]">
             {/* Desktop Sidebar */}
             <aside className="hidden lg:block w-72 xl:w-85 h-full shrink-0 border-r border-[#00000026] bg-white">
                 <Sidebar />

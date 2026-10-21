@@ -1,7 +1,9 @@
 import { useState } from "react";
 import ReactECharts from "echarts-for-react";
 import type { EChartsOption } from "echarts";
+import { useAtom } from "jotai";
 import { LoadingLayout } from "../../layout";
+import { periodAtom } from "../../../utils/atom/period";
 
 export interface AttendanceByDayItem {
   day: string;
@@ -48,11 +50,11 @@ export default function AttendanceByDayChart({
   isLoading = false,
   barColor = "#2E0F74",
   showLegend = true,
-  legendLabel = "Last 7 Days",
+  legendLabel: _legendLabel,
   yAxisMax,
   height = 280,
 }: AttendanceByDayChartProps) {
-  const [selectedRange, setSelectedRange] = useState(legendLabel);
+  const [selectedRange, setSelectedRange] = useAtom(periodAtom);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const ranges = ["Last 7 Days", "Last 14 Days", "Last 30 Days"];

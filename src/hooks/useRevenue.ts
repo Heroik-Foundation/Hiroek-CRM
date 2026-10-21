@@ -2,6 +2,7 @@ import { useAtomValue } from "jotai";
 import { URLS } from "../utils/urls";
 import { useFetchData } from "./useFetchData";
 import { userAtom } from "../utils/atom/user";
+import { periodSlugAtom } from "../utils/atom/period";
 
 export interface RevenueMetrics {
     totalRevenue?: number;
@@ -29,15 +30,18 @@ export interface EventPerformanceParams {
     page?: number;
     limit?: number;
     search?: string;
+    period?: string;
 }
 
 const useRevenue = () => {
     const user = useAtomValue(userAtom);
+    const period = useAtomValue(periodSlugAtom);
 
     const useGetRevenueMetrics = () => {
         return useFetchData<RevenueMetrics>({
             endpoint: URLS.GET_REVENUE_METRICS(user?._id ?? ""),
             name: [URLS.GET_REVENUE_METRICS(user?._id ?? "")],
+            params: { period },
             enable: Boolean(user?._id),
         });
     };
@@ -46,6 +50,7 @@ const useRevenue = () => {
         return useFetchData<MonthlyRevenueTrendItem[]>({
             endpoint: URLS.GET_MONTHLY_REVENUE_TREND(user?._id ?? ""),
             name: [URLS.GET_MONTHLY_REVENUE_TREND(user?._id ?? "")],
+            params: { period },
             enable: Boolean(user?._id),
         });
     };
@@ -54,18 +59,24 @@ const useRevenue = () => {
         return useFetchData<EventRevenueItem[]>({
             endpoint: URLS.GET_REVENUE_BY_EVENT(user?._id ?? ""),
             name: [URLS.GET_REVENUE_BY_EVENT(user?._id ?? "")],
+            params: { period },
             enable: Boolean(user?._id),
         });
     };
 
     const useGetEventPerformanceRecord = (params?: EventPerformanceParams) => {
+        const cleanParams: Record<string, unknown> = {
+            period,
+            ...(params ?? {}),
+        };
+
         return useFetchData<any>({
             endpoint: URLS.GET_EVENT_PERFORMANCE_RECORD(user?._id ?? ""),
             name: [
                 URLS.GET_EVENT_PERFORMANCE_RECORD(user?._id ?? ""),
-                JSON.stringify(params ?? {}),
+                JSON.stringify(cleanParams),
             ],
-            params: params as Record<string, unknown>,
+            params: cleanParams,
             enable: Boolean(user?._id),
         });
     };

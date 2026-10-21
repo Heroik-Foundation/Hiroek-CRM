@@ -196,7 +196,7 @@ export default function AcquisitionChannel({
       },
       formatter: (params) => {
         if (!Array.isArray(params) || params.length === 0) return "";
-        const title = (params[0].axisValue ?? params[0].name) as string;
+        const title = ((params[0] as any).axisValue ?? params[0].name) as string;
         const items = params
           .map((p) => {
             const val = Number(p.value ?? 0);

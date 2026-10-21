@@ -1,7 +1,9 @@
 import ReactECharts from "echarts-for-react";
 import type { EChartsOption } from "echarts";
 import * as echarts from "echarts";
+import { useAtomValue } from "jotai";
 import { LoadingLayout } from "../../layout";
+import { periodAtom } from "../../../utils/atom/period";
 
 export interface AttendanceTrendItem {
   month?: string;
@@ -37,10 +39,12 @@ export default function AttendanceTrendChart({
   color = "#7047EB",
   height = 280,
   showLegend = true,
-  legendLabel = "Last 30 Days",
+  legendLabel,
   yAxisMax,
   valueFormatter,
 }: AttendanceTrendChartProps) {
+  const currentPeriod = useAtomValue(periodAtom);
+  const activeLegend = legendLabel ?? currentPeriod;
   const dataSource =
     propData &&
     typeof propData === "object" &&
@@ -246,7 +250,7 @@ export default function AttendanceTrendChart({
               <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#1E1E1E" }} />
               <span className="w-2.5 h-0.5 rounded-full" style={{ backgroundColor: color }} />
             </div>
-            <span className="text-xs font-medium text-gray-500">{legendLabel}</span>
+            <span className="text-xs font-medium text-gray-500">{activeLegend}</span>
           </div>
         )}
       </LoadingLayout>

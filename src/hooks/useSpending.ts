@@ -3,6 +3,7 @@ import { useAtomValue } from "jotai";
 import { URLS } from "../utils/urls";
 import { useFetchData } from "./useFetchData";
 import { userAtom } from "../utils/atom/user";
+import { periodSlugAtom } from "../utils/atom/period";
 
 export interface TopSpenderItem {
     id?: string | number;
@@ -36,13 +37,14 @@ export interface TopSpendersResponse {
 }
 
 const useSpending = () => {
-
     const user = useAtomValue(userAtom);
+    const period = useAtomValue(periodSlugAtom);
 
     const useGetSpendingData = () => {
         return useFetchData<any>({
             endpoint: URLS.GET_SPENDING(user?._id ?? ""),
             name: [URLS.GET_SPENDING(user?._id ?? "")],
+            params: { period },
             enable: Boolean(user?._id),
         });
     };
@@ -51,13 +53,14 @@ const useSpending = () => {
         return useFetchData<any>({
             endpoint: URLS.GET_TICKET_SPEND_DISTRIBUTION(user?._id ?? ""),
             name: [URLS.GET_TICKET_SPEND_DISTRIBUTION(user?._id ?? "")],
+            params: { period },
             enable: Boolean(user?._id),
         });
     };
 
     const useGetTopSpenders = (params?: TopSpendersParams) => {
         const cleanParams: Record<string, unknown> = {};
-        if (params?.period) cleanParams.period = params.period;
+        cleanParams.period = params?.period ?? period;
         if (params?.eventId) cleanParams.eventId = params.eventId;
         if (params?.page !== undefined) cleanParams.page = params.page;
         if (params?.pageSize !== undefined) cleanParams.pageSize = params.pageSize;

@@ -27,7 +27,6 @@ export default function Messaging() {
     // 🌐 Load all recipients from GET /api/analytics/audience-segments-customers/{organizerId}
     const { useGetAudienceSegmentCustomer } = useAudienceSegment();
     const { data: audienceData, isLoading } = useGetAudienceSegmentCustomer({
-        segment: "all",
         limit: 1000,
     });
 
@@ -346,8 +345,8 @@ export default function Messaging() {
                     key={p}
                     onClick={() => setPage(p)}
                     className={`min-w-8 h-8 px-2.5 rounded-lg text-xs font-semibold transition-colors ${isActive
-                            ? "bg-[#37137F] text-white shadow-xs"
-                            : "border border-gray-200 text-gray-700 hover:bg-gray-50 bg-white"
+                        ? "bg-[#37137F] text-white shadow-xs"
+                        : "border border-gray-200 text-gray-700 hover:bg-gray-50 bg-white"
                         }`}
                 >
                     {p}
@@ -396,8 +395,8 @@ export default function Messaging() {
                         <button
                             onClick={handleSendToAllToggle}
                             className={`px-4 py-2.5 rounded-xl font-semibold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-xs ${isSendToAll
-                                    ? "bg-[#250d56] text-white ring-2 ring-[#37137F]"
-                                    : "bg-[#37137F] hover:bg-[#2e0f6c] text-white"
+                                ? "bg-[#250d56] text-white ring-2 ring-[#37137F]"
+                                : "bg-[#37137F] hover:bg-[#2e0f6c] text-white"
                                 }`}
                         >
                             <LuSquareCheck size={15} />
