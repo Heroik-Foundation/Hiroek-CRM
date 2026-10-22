@@ -8,10 +8,9 @@ import {
 } from "react-icons/io5";
 import {
     LuSquareCheck,
-    LuLink,
-    LuChevronDown,
-    LuChevronUp,
-    LuImage,
+    // LuLink,
+    // LuChevronDown,
+    // LuChevronUp,
     LuMonitor,
     LuSmartphone,
 } from "react-icons/lu";
@@ -60,10 +59,10 @@ export default function SendMessage() {
     const rowsPerPage = 10;
 
     // Optional Call-to-Action Button state
-    const [showActionButton, setShowActionButton] = useState(false);
-    const [buttonLabel, setButtonLabel] = useState("RSVP Now");
-    const [buttonLink, setButtonLink] = useState("https://hiroek.com/events/rsvp");
-    const [buttonAlign, setButtonAlign] = useState<"left" | "center" | "right">("left");
+    // const [showActionButton, setShowActionButton] = useState(false);
+    // const [buttonLabel, setButtonLabel] = useState("RSVP Now");
+    // const [buttonLink, setButtonLink] = useState("https://hiroek.com/events/rsvp");
+    // const [buttonAlign, setButtonAlign] = useState<"left" | "center" | "right">("left");
 
     // Image & Preview state
     const [uploadedImage, setUploadedImage] = useState<string | null>(null);
@@ -362,18 +361,23 @@ export default function SendMessage() {
             return;
         }
 
-        const ctaButton =
-            showActionButton && buttonLabel.trim()
-                ? { label: buttonLabel.trim(), link: buttonLink.trim(), align: buttonAlign }
-                : null;
+        // const ctaButton =
+        //     showActionButton && buttonLabel.trim()
+        //         ? { label: buttonLabel.trim(), link: buttonLink.trim(), align: buttonAlign }
+        //         : null;
 
         // HTML mode: exact editor styling. Otherwise plain text with Unicode styling (backend escapes HTML).
         const useHtml = CAMPAIGN_SUPPORTS_HTML && channel === "email";
         const finalBody = useHtml
-            ? buildFullEmailHtml(body.trim(), { bannerImage: uploadedImage, actionButton: ctaButton })
-            : convertHtmlToStyledText(body.trim(), {
-                  actionButton: ctaButton,
-              });
+            ? buildFullEmailHtml(body.trim(), {
+                bannerImage: uploadedImage
+                // , actionButton: ctaButton 
+            })
+            : convertHtmlToStyledText(body.trim(),
+                //  {
+                //     actionButton: ctaButton,
+                // }
+            );
 
         const idempotencyKey = `campaign_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
@@ -721,7 +725,7 @@ export default function SendMessage() {
                             <label className="text-xs font-bold text-gray-900">
                                 Message Body
                             </label>
-                            {uploadedImage ? (
+                            {/* {uploadedImage ? (
                                 <span className="px-2 py-0.5 rounded-full bg-purple-50 text-[#2E0F74] text-[10px] font-bold border border-purple-100 flex items-center gap-1">
                                     <LuImage size={11} />
                                     <span>Banner Attached</span>
@@ -735,12 +739,12 @@ export default function SendMessage() {
                                     <LuImage size={12} />
                                     <span>+ Add Banner Image</span>
                                 </button>
-                            )}
-                            {showActionButton && buttonLabel.trim() && (
+                            )} */}
+                            {/* {showActionButton && buttonLabel.trim() && (
                                 <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-semibold border border-blue-100">
                                     CTA: {buttonLabel}
                                 </span>
-                            )}
+                            )} */}
                         </div>
 
                         {/* Edit / Preview Segmented Control */}
@@ -748,22 +752,20 @@ export default function SendMessage() {
                             <button
                                 type="button"
                                 onClick={() => setBodyMode("edit")}
-                                className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
-                                    bodyMode === "edit"
-                                        ? "bg-white text-gray-900 shadow-2xs font-bold"
-                                        : "text-gray-500 hover:text-gray-900"
-                                }`}
+                                className={`px-3 py-1 rounded-md transition-all cursor-pointer ${bodyMode === "edit"
+                                    ? "bg-white text-gray-900 shadow-2xs font-bold"
+                                    : "text-gray-500 hover:text-gray-900"
+                                    }`}
                             >
                                 Edit
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setBodyMode("preview")}
-                                className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
-                                    bodyMode === "preview"
-                                        ? "bg-white text-gray-900 shadow-2xs font-bold"
-                                        : "text-gray-500 hover:text-gray-900"
-                                }`}
+                                className={`px-3 py-1 rounded-md transition-all cursor-pointer ${bodyMode === "preview"
+                                    ? "bg-white text-gray-900 shadow-2xs font-bold"
+                                    : "text-gray-500 hover:text-gray-900"
+                                    }`}
                             >
                                 Live Preview
                             </button>
@@ -820,9 +822,8 @@ export default function SendMessage() {
                                     setIsBodyImageDragging(false);
                                 }}
                                 onDrop={handleBodyDrop}
-                                className={`w-full transition-all ${
-                                    isBodyImageDragging ? "ring-2 ring-[#2E0F74] rounded-xl" : ""
-                                }`}
+                                className={`w-full transition-all ${isBodyImageDragging ? "ring-2 ring-[#2E0F74] rounded-xl" : ""
+                                    }`}
                             >
                                 <RichTextEditor
                                     value={body}
@@ -846,11 +847,10 @@ export default function SendMessage() {
                                     <button
                                         type="button"
                                         onClick={() => setPreviewDevice("desktop")}
-                                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${
-                                            previewDevice === "desktop"
-                                                ? "bg-white text-gray-900 shadow-2xs font-bold"
-                                                : "text-gray-500 hover:text-gray-900"
-                                        }`}
+                                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${previewDevice === "desktop"
+                                            ? "bg-white text-gray-900 shadow-2xs font-bold"
+                                            : "text-gray-500 hover:text-gray-900"
+                                            }`}
                                         title="Desktop View (600px)"
                                     >
                                         <LuMonitor size={13} />
@@ -859,11 +859,10 @@ export default function SendMessage() {
                                     <button
                                         type="button"
                                         onClick={() => setPreviewDevice("mobile")}
-                                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${
-                                            previewDevice === "mobile"
-                                                ? "bg-white text-gray-900 shadow-2xs font-bold"
-                                                : "text-gray-500 hover:text-gray-900"
-                                        }`}
+                                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${previewDevice === "mobile"
+                                            ? "bg-white text-gray-900 shadow-2xs font-bold"
+                                            : "text-gray-500 hover:text-gray-900"
+                                            }`}
                                         title="Mobile View (375px)"
                                     >
                                         <LuSmartphone size={13} />
@@ -875,9 +874,8 @@ export default function SendMessage() {
                             {/* Email Client Wrapper */}
                             <div className="w-full bg-[#F3F4F6] border border-gray-200 rounded-2xl p-3 sm:p-6 flex justify-center items-start overflow-x-auto min-h-[360px]">
                                 <div
-                                    className={`w-full bg-white rounded-2xl border border-gray-200/90 shadow-sm overflow-hidden transition-all duration-200 flex flex-col ${
-                                        previewDevice === "mobile" ? "max-w-[375px]" : "max-w-[620px]"
-                                    }`}
+                                    className={`w-full bg-white rounded-2xl border border-gray-200/90 shadow-sm overflow-hidden transition-all duration-200 flex flex-col ${previewDevice === "mobile" ? "max-w-[375px]" : "max-w-[620px]"
+                                        }`}
                                 >
                                     {/* Email Header Simulation */}
                                     <div className="bg-[#FAF9FD] border-b border-gray-100 p-4 sm:p-5 flex flex-col gap-2.5">
@@ -941,22 +939,26 @@ export default function SendMessage() {
                                                 <div
                                                     className="w-full select-text break-words"
                                                     dangerouslySetInnerHTML={{
-                                                        __html: buildFullEmailHtml(body, {
-                                                            actionButton: showActionButton && buttonLabel.trim()
-                                                                ? { label: buttonLabel.trim(), link: buttonLink.trim(), align: buttonAlign }
-                                                                : null,
-                                                        }),
+                                                        __html: buildFullEmailHtml(body
+                                                            //     , {
+                                                            //     actionButton: showActionButton && buttonLabel.trim()
+                                                            //         ? { label: buttonLabel.trim(), link: buttonLink.trim(), align: buttonAlign }
+                                                            //         : null,
+                                                            // }
+                                                        ),
                                                     }}
                                                 />
                                             ) : (
-                                            <div className="w-full text-xs sm:text-sm text-gray-800 leading-relaxed select-text break-words whitespace-pre-wrap font-sans">
-                                                {convertHtmlToStyledText(body, {
-                                                    actionButton:
-                                                        showActionButton && buttonLabel.trim()
-                                                            ? { label: buttonLabel.trim(), link: buttonLink.trim() }
-                                                            : null,
-                                                })}
-                                            </div>
+                                                <div className="w-full text-xs sm:text-sm text-gray-800 leading-relaxed select-text break-words whitespace-pre-wrap font-sans">
+                                                    {convertHtmlToStyledText(body
+                                                        // , {
+                                                        //     actionButton:
+                                                        //         showActionButton && buttonLabel.trim()
+                                                        //             ? { label: buttonLabel.trim(), link: buttonLink.trim() }
+                                                        //             : null,
+                                                        // }
+                                                    )}
+                                                </div>
                                             )
                                         ) : (
                                             <div className="text-gray-400 italic text-xs py-8 text-center">
@@ -978,7 +980,7 @@ export default function SendMessage() {
                 </div>
 
                 {/* Optional Call to Action Button Toggle / Configuration */}
-                <div className="w-full border border-gray-200 rounded-xl overflow-hidden bg-gray-50/50">
+                {/* <div className="w-full border border-gray-200 rounded-xl overflow-hidden bg-gray-50/50">
                     <button
                         type="button"
                         onClick={() => setShowActionButton(!showActionButton)}
@@ -1062,7 +1064,7 @@ export default function SendMessage() {
                             </div>
                         </div>
                     )}
-                </div>
+                </div> */}
 
                 {/* Select Recipients Field */}
                 <div className="flex flex-col gap-2">
