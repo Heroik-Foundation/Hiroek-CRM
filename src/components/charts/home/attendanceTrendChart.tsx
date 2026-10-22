@@ -1,7 +1,9 @@
+import { useState, useRef, useEffect } from "react";
 import ReactECharts from "echarts-for-react";
 import type { EChartsOption } from "echarts";
 import * as echarts from "echarts";
-import { useAtomValue } from "jotai";
+import { useAtom } from "jotai";
+import { IoChevronDown } from "react-icons/io5";
 import { LoadingLayout } from "../../layout";
 import { periodAtom } from "../../../utils/atom/period";
 
@@ -28,6 +30,8 @@ export interface AttendanceTrendChartProps {
   yAxisMax?: number;
   curve?: "natural" | "linear" | "monotoneX" | "step";
   valueFormatter?: (value: number | null) => string;
+  showFilter?: boolean;
+  onPeriodChange?: (period: string) => void;
 }
 
 export default function AttendanceTrendChart({
@@ -42,9 +46,38 @@ export default function AttendanceTrendChart({
   legendLabel,
   yAxisMax,
   valueFormatter,
+  showFilter = false,
+  onPeriodChange,
 }: AttendanceTrendChartProps) {
-  const currentPeriod = useAtomValue(periodAtom);
+  const [currentPeriod, setCurrentPeriod] = useAtom(periodAtom);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
   const activeLegend = legendLabel ?? currentPeriod;
+
+  const ranges = [
+    "Last 7 Days",
+    "Last 14 Days",
+    "Last 30 Days",
+    "Last 3 Months",
+    "Last Year",
+    "All Time",
+  ];
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const dataSource =
     propData &&
     typeof propData === "object" &&
@@ -56,6 +89,10 @@ export default function AttendanceTrendChart({
             const dObj = d as Record<string, unknown>;
             if (Array.isArray(dObj.forecast)) return dObj.forecast;
             if (Array.isArray(dObj.trend)) return dObj.trend;
+            if (Array.isArray(dObj.attendance)) return dObj.attendance;
+            if (Array.isArray(dObj.purchases)) return dObj.purchases;
+            if (Array.isArray(dObj.records)) return dObj.records;
+            if (Array.isArray(dObj.items)) return dObj.items;
           }
           return d;
         })()
@@ -122,6 +159,9 @@ export default function AttendanceTrendChart({
     return Number(val ?? 0).toLocaleString();
   };
 
+  const itemCount = chartData.length;
+  const rotateXLabels = itemCount > 12;
+
   const option: EChartsOption = {
     tooltip: {
       trigger: "axis",
@@ -152,6 +192,7 @@ export default function AttendanceTrendChart({
             <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${color};"></span>
             <span>${label}: <strong>${formatValue(val)}</strong></span>
           </div>
+          <div style="margin-top: 4px; font-size: 11px; color: #9CA3AF;">Filter: ${activeLegend}</div>
         `;
       },
     },
@@ -159,13 +200,21 @@ export default function AttendanceTrendChart({
       left: "3%",
       right: "3%",
       top: "12%",
-      bottom: "6%",
+      bottom: rotateXLabels ? "16%" : "12%",
       containLabel: true,
     },
     xAxis: {
       type: "category",
       boundaryGap: false,
       data: chartData.map((d) => String(d[xAxisKey] ?? "")),
+      name: `Filter: ${activeLegend}`,
+      nameLocation: "middle",
+      nameGap: rotateXLabels ? 38 : 28,
+      nameTextStyle: {
+        color: "#6B7280",
+        fontSize: 11,
+        fontWeight: 600,
+      },
       axisTick: { show: false },
       axisLine: {
         show: true,
@@ -173,9 +222,11 @@ export default function AttendanceTrendChart({
       },
       axisLabel: {
         color: "#6B7280",
-        fontSize: 12,
+        fontSize: itemCount > 14 ? 10 : 12,
         fontWeight: 600,
-        margin: 12,
+        rotate: rotateXLabels ? 35 : 0,
+        interval: itemCount > 25 ? 1 : 0,
+        margin: 10,
       },
     },
     yAxis: {
@@ -232,7 +283,58 @@ export default function AttendanceTrendChart({
   };
 
   return (
-    <div className="w-full h-full min-h-[260px] sm:min-h-[300px] flex flex-col justify-between">
+    <div className="w-full h-full min-h-[260px] sm:min-h-[300px] flex flex-col justify-between relative">
+      {/* Optional Top Filter Dropdown */}
+      {showFilter && (
+        <div className="flex items-center justify-end w-full mb-1">
+          <div className="relative" ref={dropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsDropdownOpen((prev) => !prev)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-50 hover:bg-gray-100 border border-gray-200/90 text-gray-800 text-xs font-medium cursor-pointer transition-colors shadow-2xs"
+              aria-label="Filter by period"
+            >
+              <span className="text-gray-500 font-normal">Filter by Period:</span>
+              <span className="font-bold text-[#7047EB]">{activeLegend}</span>
+              <IoChevronDown
+                className={`w-3.5 h-3.5 text-gray-500 transition-transform duration-200 ${
+                  isDropdownOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {isDropdownOpen && (
+              <div className="absolute right-0 mt-1.5 w-44 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-gray-100 mb-1">
+                  Filter by Period
+                </div>
+                {ranges.map((range) => (
+                  <button
+                    key={range}
+                    type="button"
+                    onClick={() => {
+                      setCurrentPeriod(range);
+                      setIsDropdownOpen(false);
+                      onPeriodChange?.(range);
+                    }}
+                    className={`w-full text-left px-3 py-1.5 text-xs font-semibold hover:bg-gray-50 cursor-pointer flex items-center justify-between transition-colors ${
+                      currentPeriod === range
+                        ? "text-[#7047EB] font-bold bg-[#7047EB]/5"
+                        : "text-gray-700"
+                    }`}
+                  >
+                    <span>{range}</span>
+                    {currentPeriod === range && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#7047EB]" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <LoadingLayout loading={isLoading} length={chartData.length}>
         <div className="w-full flex-1 min-h-[230px] sm:min-h-[270px]">
           <ReactECharts
@@ -243,14 +345,21 @@ export default function AttendanceTrendChart({
           />
         </div>
 
+        {/* Bottom Bar: Shows Series Indicator and Active Filter Type */}
         {showLegend && chartData.length > 0 && (
-          <div className="w-full flex items-center justify-center gap-2 pt-2 border-t border-gray-100">
-            <div className="flex items-center gap-1">
-              <span className="w-2.5 h-0.5 rounded-full" style={{ backgroundColor: color }} />
-              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#1E1E1E" }} />
-              <span className="w-2.5 h-0.5 rounded-full" style={{ backgroundColor: color }} />
+          <div className="w-full flex items-center justify-between px-2 pt-2.5 border-t border-gray-100">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                <span className="w-2.5 h-0.5 rounded-full" style={{ backgroundColor: color }} />
+                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#1E1E1E" }} />
+                <span className="w-2.5 h-0.5 rounded-full" style={{ backgroundColor: color }} />
+              </div>
+              <span className="text-xs font-semibold text-gray-700">{label}</span>
             </div>
-            <span className="text-xs font-medium text-gray-500">{activeLegend}</span>
+            <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200/80 px-2.5 py-1 rounded-full text-xs">
+              <span className="text-gray-500 font-medium">Filter Type:</span>
+              <span className="font-bold text-[#7047EB]">{activeLegend}</span>
+            </div>
           </div>
         )}
       </LoadingLayout>

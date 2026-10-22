@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useAtomValue } from "jotai";
+import { periodAtom } from "../../utils/atom/period";
 import { RevenueCard } from "../../components/cards";
 import { AttendanceTrendChart, GenderSplitChart } from "../../components/charts";
 import { Header } from "../../components/common";
@@ -12,6 +14,7 @@ import useRevenue from "../../hooks/useRevenue";
 
 export default function Revenue() {
     const [page, setPage] = useState(1);
+    const periodLabel = useAtomValue(periodAtom);
 
     const {
         useGetRevenueMetrics,
@@ -183,7 +186,8 @@ export default function Revenue() {
                         dataKey="revenue"
                         xAxisKey="label"
                         label="Revenue Trend"
-                        legendLabel="Revenue Trend"
+                        legendLabel={periodLabel}
+                        showFilter={true}
                         color="#7047EB"
                     />
                 </ChartLayout>
@@ -194,7 +198,7 @@ export default function Revenue() {
                         isLoading={isEventRevenueLoading}
                         barColor="#B8ACF6"
                         borderRadius={8}
-                        legendLabel="Last 30 Days"
+                        legendLabel={periodLabel}
                     />
                 </ChartLayout>
             </div>

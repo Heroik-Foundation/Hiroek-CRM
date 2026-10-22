@@ -2,6 +2,7 @@ import { atom } from "jotai";
 
 export type PeriodLabel =
     | "Last 7 Days"
+    | "Last 14 Days"
     | "Last 30 Days"
     | "Last 3 Months"
     | "Last Year"
@@ -9,6 +10,7 @@ export type PeriodLabel =
 
 export type PeriodSlug =
     | "weekly"
+    | "biweekly"
     | "monthly"
     | "last3Months"
     | "lastYear"
@@ -16,6 +18,7 @@ export type PeriodSlug =
 
 export const PERIOD_MAPPING: Record<string, string> = {
     "Last 7 Days": "weekly",
+    "Last 14 Days": "biweekly",
     "Last 30 Days": "monthly",
     "Last 3 Months": "last3Months",
     "Last Year": "lastYear",

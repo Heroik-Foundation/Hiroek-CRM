@@ -15,6 +15,7 @@ export default function Navbar() {
 
     const timeRanges = [
         "Last 7 Days",
+        "Last 14 Days",
         "Last 30 Days",
         "Last 3 Months",
         "Last Year",

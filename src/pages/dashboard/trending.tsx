@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useAtomValue } from "jotai";
 import {
     AttendanceByDayChart,
     AttendanceTrendChart,
@@ -7,8 +8,10 @@ import {
 import { Header, KeyInsight } from "../../components/common";
 import { ChartLayout } from "../../components/layout";
 import useTrendingAndPrediction from "../../hooks/useTrendingAndPrediction";
+import { periodAtom } from "../../utils/atom/period";
 
 export default function Trending() {
+    const periodLabel = useAtomValue(periodAtom);
     const {
         useGetPeakEventTimesData,
         useGetAttendanceByDateData,
@@ -149,11 +152,18 @@ export default function Trending() {
                         barColor="#37137F"
                     />
                 </ChartLayout>
-                <ChartLayout title="Attendance by Day of Week">
+                <ChartLayout
+                    title={
+                        periodLabel === "Last 7 Days"
+                            ? "Attendance by Day of Week"
+                            : `Attendance Trend (${periodLabel})`
+                    }
+                >
                     <AttendanceByDayChart
                         data={attendanceByDateData}
                         isLoading={isAttendanceByDateLoading}
                         barColor="#2E0F74"
+                        showFilter={true}
                     />
                 </ChartLayout>
             </div>
@@ -172,6 +182,7 @@ export default function Trending() {
                         dataKey="forecast"
                         xAxisKey="period"
                         label="Forecast"
+                        showFilter={true}
                     />
                 </ChartLayout>
             </div>
