@@ -6,7 +6,7 @@ html, body {
   font-family: "Poppins", sans-serif !important;
 }
 
-/* Tiptap WYSIWYG Editor Styles */
+/* Tiptap WYSIWYG Editor & Live Email Preview Styles */
 .tiptap {
   outline: none;
 }
@@ -20,82 +20,119 @@ html, body {
 }
 
 .tiptap h1 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  line-height: 1.3;
-  margin-top: 0.6rem;
-  margin-bottom: 0.4rem;
-  color: #111827;
+  font-size: 1.75rem !important;
+  font-weight: 700 !important;
+  line-height: 1.3 !important;
+  margin-top: 1.25rem !important;
+  margin-bottom: 0.625rem !important;
+  color: #111827 !important;
 }
 
 .tiptap h2 {
-  font-size: 1.25rem;
-  font-weight: 700;
-  line-height: 1.35;
-  margin-top: 0.5rem;
-  margin-bottom: 0.35rem;
-  color: #1f2937;
+  font-size: 1.375rem !important;
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
+  margin-top: 1rem !important;
+  margin-bottom: 0.5rem !important;
+  color: #1f2937 !important;
 }
 
 .tiptap h3 {
-  font-size: 1.1rem;
-  font-weight: 600;
-  line-height: 1.4;
-  margin-top: 0.4rem;
-  margin-bottom: 0.3rem;
-  color: #374151;
+  font-size: 1.15rem !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  margin-top: 0.875rem !important;
+  margin-bottom: 0.4rem !important;
+  color: #374151 !important;
+}
+
+.tiptap > *:first-child {
+  margin-top: 0 !important;
 }
 
 .tiptap p {
-  margin-bottom: 0.5rem;
-  line-height: 1.6;
+  margin-top: 0 !important;
+  margin-bottom: 0.875rem !important;
+  line-height: 1.7 !important;
+  min-height: 1.5rem !important;
+}
+
+.tiptap p:empty::before,
+.tiptap p.is-empty::before {
+  content: "\00a0";
 }
 
 .tiptap ul {
   list-style-type: disc !important;
-  padding-left: 1.4rem !important;
-  margin: 0.5rem 0 !important;
+  padding-left: 1.5rem !important;
+  margin: 0.625rem 0 0.875rem 0 !important;
 }
 
 .tiptap ol {
   list-style-type: decimal !important;
-  padding-left: 1.4rem !important;
-  margin: 0.5rem 0 !important;
+  padding-left: 1.5rem !important;
+  margin: 0.625rem 0 0.875rem 0 !important;
 }
 
 .tiptap li {
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.35rem !important;
+  line-height: 1.6 !important;
 }
 
 .tiptap blockquote {
-  border-left: 3px solid #7047EB;
-  padding-left: 0.85rem;
-  margin: 0.6rem 0;
-  font-style: italic;
-  color: #4b5563;
-  background: rgba(112, 71, 235, 0.04);
-  border-radius: 0 0.375rem 0.375rem 0;
-  padding-top: 0.25rem;
-  padding-bottom: 0.25rem;
+  border-left: 4px solid #7047EB !important;
+  padding: 0.5rem 1rem !important;
+  margin: 1rem 0 !important;
+  font-style: italic !important;
+  color: #4b5563 !important;
+  background: rgba(112, 71, 235, 0.05) !important;
+  border-radius: 0 0.5rem 0.5rem 0 !important;
 }
 
 .tiptap hr {
-  border: none;
-  border-top: 1px solid #e5e7eb;
-  margin: 1rem 0;
+  border: none !important;
+  border-top: 1px solid #e5e7eb !important;
+  margin: 1.25rem 0 !important;
 }
 
 .tiptap code {
-  background-color: #f3f4f6;
-  border-radius: 0.25rem;
-  padding: 0.15rem 0.35rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.85em;
-  color: #2E0F74;
+  background-color: #f3f4f6 !important;
+  border-radius: 0.25rem !important;
+  padding: 0.15rem 0.35rem !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  font-size: 0.875em !important;
+  color: #2E0F74 !important;
 }
 
 .tiptap a {
-  color: #7047EB;
-  text-decoration: underline;
-  cursor: pointer;
+  color: #7047EB !important;
+  text-decoration: underline !important;
+  cursor: pointer !important;
+  font-weight: 500 !important;
+}
+
+.tiptap a:hover {
+  color: #2E0F74 !important;
+}
+
+.tiptap mark {
+  background-color: #fef08a !important;
+  padding: 0.15rem 0.35rem !important;
+  border-radius: 0.25rem !important;
+  color: #1f2937 !important;
+}
+
+.tiptap [style*="text-align: center"],
+.tiptap .has-text-align-center {
+  text-align: center !important;
+}
+
+.tiptap [style*="text-align: right"],
+.tiptap .has-text-align-right {
+  text-align: right !important;
+}
+
+.tiptap [style*="text-align: justify"],
+.tiptap .has-text-align-justify {
+  text-align: justify !important;
 }

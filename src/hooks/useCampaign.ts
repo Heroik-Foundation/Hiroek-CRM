@@ -21,6 +21,8 @@ export interface CreateCampaignRequest {
     recipients: CampaignRecipientPayload;
     title: string;
     body: string;
+    /** Set when the backend supports rendering `body` as HTML instead of escaping it. */
+    isHtml?: boolean;
 }
 
 export interface CreateCampaignResponse {

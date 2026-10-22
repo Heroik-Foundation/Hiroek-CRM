@@ -1,10 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
+import { TextStyle } from "@tiptap/extension-text-style";
+import Color from "@tiptap/extension-color";
+import Highlight from "@tiptap/extension-highlight";
 import {
     LuBold,
     LuItalic,
@@ -28,6 +31,9 @@ import {
     LuMinus,
     LuCheck,
     LuX,
+    LuBaseline,
+    LuHighlighter,
+    LuRemoveFormatting,
 } from "react-icons/lu";
 
 interface RichTextEditorProps {
@@ -39,16 +45,41 @@ interface RichTextEditorProps {
     onBlur?: () => void;
 }
 
+const TEXT_COLORS = [
+    { label: "Default", color: "#1F2937" },
+    { label: "Deep Purple", color: "#2E0F74" },
+    { label: "Brand Violet", color: "#7047EB" },
+    { label: "Crimson Red", color: "#DC2626" },
+    { label: "Emerald Green", color: "#16A34A" },
+    { label: "Royal Blue", color: "#2563EB" },
+    { label: "Amber Orange", color: "#D97706" },
+    { label: "Muted Gray", color: "#6B7280" },
+];
+
+const HIGHLIGHT_COLORS = [
+    { label: "Yellow", color: "#FEF08A" },
+    { label: "Soft Purple", color: "#EDE9FE" },
+    { label: "Soft Green", color: "#DCFCE7" },
+    { label: "Soft Pink", color: "#FCE7F3" },
+    { label: "Soft Blue", color: "#E0F2FE" },
+    { label: "Soft Orange", color: "#FFEDD5" },
+];
+
 export default function RichTextEditor({
     value,
     onChange,
     placeholder = "Type your message body here...",
     className = "",
-    minHeight = "160px",
+    minHeight = "180px",
     onBlur,
 }: RichTextEditorProps) {
     const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
     const [linkUrl, setLinkUrl] = useState("");
+    const [isColorMenuOpen, setIsColorMenuOpen] = useState(false);
+    const [isHighlightMenuOpen, setIsHighlightMenuOpen] = useState(false);
+
+    const colorMenuRef = useRef<HTMLDivElement>(null);
+    const highlightMenuRef = useRef<HTMLDivElement>(null);
 
     const editor = useEditor({
         immediatelyRender: false,
@@ -59,6 +90,9 @@ export default function RichTextEditor({
                 },
             }),
             Underline,
+            TextStyle,
+            Color,
+            Highlight.configure({ multicolor: true }),
             TextAlign.configure({
                 types: ["heading", "paragraph"],
             }),
@@ -78,7 +112,6 @@ export default function RichTextEditor({
         content: value || "",
         onUpdate: ({ editor: ed }) => {
             const html = ed.getHTML();
-            // If empty (e.g. only <p></p>), treat as empty string
             if (ed.isEmpty) {
                 onChange("");
             } else {
@@ -91,12 +124,32 @@ export default function RichTextEditor({
         editorProps: {
             attributes: {
                 class:
-                    "prose max-w-none focus:outline-none min-h-[140px] p-3 text-xs sm:text-sm text-gray-800 leading-relaxed",
+                    "tiptap focus:outline-none min-h-[160px] p-4 text-xs sm:text-sm text-gray-800 leading-relaxed font-sans",
             },
         },
     });
 
-    // Synchronize content if controlled value changes from outside (e.g. reset or template)
+    // Close popovers on click outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (
+                colorMenuRef.current &&
+                !colorMenuRef.current.contains(event.target as Node)
+            ) {
+                setIsColorMenuOpen(false);
+            }
+            if (
+                highlightMenuRef.current &&
+                !highlightMenuRef.current.contains(event.target as Node)
+            ) {
+                setIsHighlightMenuOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    // Synchronize content if controlled value changes from outside
     useEffect(() => {
         if (!editor) return;
         const currentHtml = editor.getHTML();
@@ -117,15 +170,18 @@ export default function RichTextEditor({
         const previousUrl = editor.getAttributes("link").href || "";
         setLinkUrl(previousUrl);
         setIsLinkModalOpen(true);
+        setIsColorMenuOpen(false);
+        setIsHighlightMenuOpen(false);
     };
 
     const applyLink = () => {
         if (!linkUrl.trim()) {
             editor.chain().focus().extendMarkRange("link").unsetLink().run();
         } else {
-            const formatted = linkUrl.startsWith("http://") || linkUrl.startsWith("https://")
-                ? linkUrl.trim()
-                : `https://${linkUrl.trim()}`;
+            const formatted =
+                linkUrl.startsWith("http://") || linkUrl.startsWith("https://")
+                    ? linkUrl.trim()
+                    : `https://${linkUrl.trim()}`;
             editor
                 .chain()
                 .focus()
@@ -154,10 +210,10 @@ export default function RichTextEditor({
 
     return (
         <div
-            className={`w-full border border-gray-200 rounded-xl overflow-hidden focus-within:border-[#2E0F74] focus-within:ring-1 focus-within:ring-[#2E0F74] transition-all bg-white flex flex-col ${className}`}
+            className={`w-full border border-gray-200 rounded-xl overflow-hidden focus-within:border-[#2E0F74] focus-within:ring-1 focus-within:ring-[#2E0F74] transition-all bg-white flex flex-col shadow-2xs ${className}`}
         >
             {/* WYSIWYG Toolbar */}
-            <div className="flex flex-wrap items-center gap-1 p-2 bg-[#F9FAFB] border-b border-gray-200 select-none">
+            <div className="flex flex-wrap items-center gap-1 p-2 bg-[#F9FAFB] border-b border-gray-200 select-none relative">
                 {/* Undo / Redo */}
                 <button
                     type="button"
@@ -256,6 +312,137 @@ export default function RichTextEditor({
                     className={toolBtnClass(editor.isActive("code"))}
                 >
                     <LuCode size={14} />
+                </button>
+
+                <div className="w-[1px] h-4 bg-gray-200 mx-1" />
+
+                {/* Text Color Picker */}
+                <div className="relative" ref={colorMenuRef}>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setIsColorMenuOpen(!isColorMenuOpen);
+                            setIsHighlightMenuOpen(false);
+                        }}
+                        title="Text Color"
+                        className={`flex items-center gap-0.5 p-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
+                            isColorMenuOpen ? "bg-[#2E0F74] text-white" : "text-gray-600 hover:text-[#2E0F74] hover:bg-purple-50"
+                        }`}
+                    >
+                        <LuBaseline size={14} />
+                        <span
+                            className="w-2 h-2 rounded-full border border-gray-300 ml-0.5"
+                            style={{
+                                backgroundColor:
+                                    editor.getAttributes("textStyle").color || "#1F2937",
+                            }}
+                        />
+                    </button>
+
+                    {isColorMenuOpen && (
+                        <div className="absolute top-full left-0 mt-1 z-30 bg-white border border-gray-200 rounded-xl shadow-lg p-2.5 flex flex-col gap-2 min-w-[160px] animate-fadeIn">
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-1">
+                                Text Color
+                            </span>
+                            <div className="grid grid-cols-4 gap-1.5">
+                                {TEXT_COLORS.map((c) => (
+                                    <button
+                                        key={c.color}
+                                        type="button"
+                                        onClick={() => {
+                                            editor.chain().focus().setColor(c.color).run();
+                                            setIsColorMenuOpen(false);
+                                        }}
+                                        title={c.label}
+                                        className="w-6 h-6 rounded-md border border-gray-200 hover:scale-110 transition-transform cursor-pointer flex items-center justify-center"
+                                        style={{ backgroundColor: c.color }}
+                                    >
+                                        {editor.getAttributes("textStyle").color === c.color && (
+                                            <LuCheck size={12} className="text-white drop-shadow-xs" />
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    editor.chain().focus().unsetColor().run();
+                                    setIsColorMenuOpen(false);
+                                }}
+                                className="text-[11px] font-medium text-gray-600 hover:text-[#2E0F74] hover:bg-purple-50 px-2 py-1 rounded-md text-left transition-colors cursor-pointer"
+                            >
+                                Reset to Default Color
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                {/* Highlight Color Picker */}
+                <div className="relative" ref={highlightMenuRef}>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setIsHighlightMenuOpen(!isHighlightMenuOpen);
+                            setIsColorMenuOpen(false);
+                        }}
+                        title="Highlight Color"
+                        className={`flex items-center gap-0.5 p-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
+                            editor.isActive("highlight") || isHighlightMenuOpen
+                                ? "bg-amber-100 text-amber-900 border border-amber-300"
+                                : "text-gray-600 hover:text-[#2E0F74] hover:bg-purple-50"
+                        }`}
+                    >
+                        <LuHighlighter size={14} />
+                    </button>
+
+                    {isHighlightMenuOpen && (
+                        <div className="absolute top-full left-0 mt-1 z-30 bg-white border border-gray-200 rounded-xl shadow-lg p-2.5 flex flex-col gap-2 min-w-[160px] animate-fadeIn">
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-1">
+                                Highlight
+                            </span>
+                            <div className="grid grid-cols-3 gap-1.5">
+                                {HIGHLIGHT_COLORS.map((c) => (
+                                    <button
+                                        key={c.color}
+                                        type="button"
+                                        onClick={() => {
+                                            editor
+                                                .chain()
+                                                .focus()
+                                                .toggleHighlight({ color: c.color })
+                                                .run();
+                                            setIsHighlightMenuOpen(false);
+                                        }}
+                                        title={c.label}
+                                        className="h-6 rounded-md border border-gray-200 hover:scale-105 transition-transform cursor-pointer flex items-center justify-center text-[10px] font-semibold text-gray-800"
+                                        style={{ backgroundColor: c.color }}
+                                    >
+                                        Aa
+                                    </button>
+                                ))}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    editor.chain().focus().unsetHighlight().run();
+                                    setIsHighlightMenuOpen(false);
+                                }}
+                                className="text-[11px] font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 px-2 py-1 rounded-md text-left transition-colors cursor-pointer"
+                            >
+                                Remove Highlight
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                {/* Clear Formatting */}
+                <button
+                    type="button"
+                    onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()}
+                    title="Clear Formatting"
+                    className={toolBtnClass(false)}
+                >
+                    <LuRemoveFormatting size={14} />
                 </button>
 
                 <div className="w-[1px] h-4 bg-gray-200 mx-1" />

@@ -11,6 +11,9 @@ import {
     LuLink,
     LuChevronDown,
     LuChevronUp,
+    LuImage,
+    LuMonitor,
+    LuSmartphone,
 } from "react-icons/lu";
 import CustomTable from "../../components/ui/customTable";
 import type { Column } from "../../type/table";
@@ -18,6 +21,11 @@ import useAudienceSegment from "../../hooks/useAudienceSegment";
 import useCampaign, { type CampaignChannel } from "../../hooks/useCampaign";
 import { toast, Spinner } from "@heroui/react";
 import RichTextEditor from "../../components/ui/richTextEditor";
+import { convertHtmlToStyledText } from "../../utils/styledText";
+import { buildFullEmailHtml } from "../../utils/emailTemplate";
+
+// Turn on (VITE_CAMPAIGN_SUPPORTS_HTML=true) once the backend renders `body` as HTML instead of escaping it.
+const CAMPAIGN_SUPPORTS_HTML = import.meta.env.VITE_CAMPAIGN_SUPPORTS_HTML === "true";
 
 interface RecipientItem {
     id: string;
@@ -38,7 +46,7 @@ export default function SendMessage() {
     const [currentView, setCurrentView] = useState<"compose" | "recipients">("compose");
 
     // Form fields
-    const [messageType, setMessageType] = useState<"notifications" | "in_app" | "email">("notifications");
+    const [messageType, setMessageType] = useState<"notifications" | "in_app" | "email">("email");
     const [fromSender, setFromSender] = useState(
         "Editor"
     );
@@ -61,6 +69,7 @@ export default function SendMessage() {
     const [uploadedImage, setUploadedImage] = useState<string | null>(null);
     const [isBodyImageDragging, setIsBodyImageDragging] = useState(false);
     const [bodyMode, setBodyMode] = useState<"edit" | "preview">("edit");
+    const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Campaign creation hook
@@ -353,28 +362,18 @@ export default function SendMessage() {
             return;
         }
 
-        // Build the HTML body incorporating optional banner image and call-to-action button
-        let finalBody = body.trim();
+        const ctaButton =
+            showActionButton && buttonLabel.trim()
+                ? { label: buttonLabel.trim(), link: buttonLink.trim(), align: buttonAlign }
+                : null;
 
-        if (uploadedImage) {
-            finalBody = `<div style="margin-bottom: 20px; text-align: center;"><img src="${uploadedImage}" alt="Banner" style="max-width: 100%; height: auto; border-radius: 12px; display: inline-block;" /></div>` + finalBody;
-        }
-
-        if (showActionButton && buttonLabel.trim()) {
-            const link = buttonLink.trim() || "#";
-            const formattedLink =
-                link.startsWith("http://") || link.startsWith("https://") || link === "#"
-                    ? link
-                    : `https://${link}`;
-            const alignStyle =
-                buttonAlign === "center"
-                    ? "text-align: center;"
-                    : buttonAlign === "right"
-                        ? "text-align: right;"
-                        : "text-align: left;";
-
-            finalBody += `<div style="margin-top: 24px; margin-bottom: 12px; ${alignStyle}"><a href="${formattedLink}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background-color: #2E0F74; color: #ffffff; padding: 12px 24px; font-weight: bold; font-size: 14px; text-decoration: none; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); font-family: sans-serif;">${buttonLabel.trim()}</a></div>`;
-        }
+        // HTML mode: exact editor styling. Otherwise plain text with Unicode styling (backend escapes HTML).
+        const useHtml = CAMPAIGN_SUPPORTS_HTML && channel === "email";
+        const finalBody = useHtml
+            ? buildFullEmailHtml(body.trim(), { bannerImage: uploadedImage, actionButton: ctaButton })
+            : convertHtmlToStyledText(body.trim(), {
+                  actionButton: ctaButton,
+              });
 
         const idempotencyKey = `campaign_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
@@ -385,6 +384,7 @@ export default function SendMessage() {
                 recipients: recipientsPayload,
                 title: title.trim(),
                 body: finalBody,
+                ...(useHtml ? { isHtml: true } : {}),
             });
 
             toast.success(
@@ -715,155 +715,264 @@ export default function SendMessage() {
                 </div>
 
                 {/* Message Body Field with WYSIWYG Editor & Live Preview */}
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2.5">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <label className="text-xs font-bold text-gray-900">
                                 Message Body
                             </label>
-                            {uploadedImage && (
-                                <span className="px-2 py-0.5 rounded-full bg-purple-50 text-[#2E0F74] text-[10px] font-bold border border-purple-100">
-                                    Banner Attached
+                            {uploadedImage ? (
+                                <span className="px-2 py-0.5 rounded-full bg-purple-50 text-[#2E0F74] text-[10px] font-bold border border-purple-100 flex items-center gap-1">
+                                    <LuImage size={11} />
+                                    <span>Banner Attached</span>
+                                </span>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="flex items-center gap-1 text-[11px] font-semibold text-[#7047EB] hover:text-[#2E0F74] transition-colors cursor-pointer"
+                                >
+                                    <LuImage size={12} />
+                                    <span>+ Add Banner Image</span>
+                                </button>
+                            )}
+                            {showActionButton && buttonLabel.trim() && (
+                                <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-semibold border border-blue-100">
+                                    CTA: {buttonLabel}
                                 </span>
                             )}
                         </div>
 
-                        <div className="flex items-center gap-3">
-                            {/* {!uploadedImage && (
-                                <button
-                                    type="button"
-                                    onClick={() => fileInputRef.current?.click()}
-                                    className="flex items-center gap-1.5 text-[11px] font-semibold text-[#7047EB] hover:text-[#2E0F74] transition-colors cursor-pointer"
-                                >
-                                    <LuImage size={13} />
-                                    <span>+ Add Banner Image</span>
-                                </button>
-                            )} */}
-
-                            {/* Edit / Preview Segmented Control */}
-                            <div className="flex items-center p-0.5 bg-gray-100 rounded-lg text-[11px] font-semibold">
-                                <button
-                                    type="button"
-                                    onClick={() => setBodyMode("edit")}
-                                    className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${bodyMode === "edit"
+                        {/* Edit / Preview Segmented Control */}
+                        <div className="flex items-center p-0.5 bg-gray-100 rounded-lg text-[11px] font-semibold">
+                            <button
+                                type="button"
+                                onClick={() => setBodyMode("edit")}
+                                className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
+                                    bodyMode === "edit"
                                         ? "bg-white text-gray-900 shadow-2xs font-bold"
                                         : "text-gray-500 hover:text-gray-900"
-                                        }`}
-                                >
-                                    Edit
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setBodyMode("preview")}
-                                    className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${bodyMode === "preview"
+                                }`}
+                            >
+                                Edit
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setBodyMode("preview")}
+                                className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
+                                    bodyMode === "preview"
                                         ? "bg-white text-gray-900 shadow-2xs font-bold"
                                         : "text-gray-500 hover:text-gray-900"
-                                        }`}
-                                >
-                                    Preview
-                                </button>
-                            </div>
+                                }`}
+                            >
+                                Live Preview
+                            </button>
                         </div>
                     </div>
 
-                    {/* Banner Image Preview (if attached) */}
-                    {uploadedImage && (
-                        <div className="relative w-full rounded-xl overflow-hidden border border-gray-100 bg-gray-50 group mb-1">
-                            <img
-                                src={uploadedImage}
-                                alt="Message banner"
-                                className="w-full max-h-56 object-cover object-center"
-                            />
-                            <div className="absolute top-2.5 right-2.5 flex items-center gap-2 opacity-90 group-hover:opacity-100 transition-opacity">
-                                <button
-                                    type="button"
-                                    onClick={() => fileInputRef.current?.click()}
-                                    className="px-2.5 py-1 bg-black/65 hover:bg-black/85 text-white rounded-lg text-[11px] font-medium backdrop-blur-xs transition-colors cursor-pointer"
-                                >
-                                    Change Image
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setUploadedImage(null);
-                                        toast.info("Image removed");
-                                    }}
-                                    className="p-1.5 bg-red-600/80 hover:bg-red-700 text-white rounded-lg transition-colors cursor-pointer"
-                                    title="Remove image"
-                                >
-                                    <IoClose size={15} />
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
                     {/* Editor / Preview Area */}
                     {bodyMode === "edit" ? (
-                        <div
-                            onDragOver={(e) => {
-                                e.preventDefault();
-                                setIsBodyImageDragging(true);
-                            }}
-                            onDragLeave={(e) => {
-                                e.preventDefault();
-                                setIsBodyImageDragging(false);
-                            }}
-                            onDrop={handleBodyDrop}
-                            className={`w-full transition-all ${isBodyImageDragging ? "ring-2 ring-[#2E0F74] rounded-xl" : ""
-                                }`}
-                        >
-                            <RichTextEditor
-                                value={body}
-                                onChange={setBody}
-                                placeholder="Write your message content here... Use the toolbar above to style headings, lists, bold text, and links."
-                                minHeight="200px"
-                            />
-                        </div>
-                    ) : (
-                        /* Preview Canvas */
-                        <div className="w-full bg-[#FAF9FD] border border-gray-200 rounded-xl p-5 sm:p-6 flex flex-col gap-4 min-h-[220px]">
-                            {/* Rendered HTML Content */}
-                            {body.trim() && body !== "<p></p>" ? (
-                                <div
-                                    className="tiptap w-full text-gray-800 text-xs sm:text-sm select-text"
-                                    dangerouslySetInnerHTML={{ __html: body }}
-                                />
-                            ) : (
-                                <div className="text-gray-400 italic text-xs py-6 text-center">
-                                    Empty message body — switch to Edit mode to compose your message.
-                                </div>
-                            )}
-
-                            {/* Action Button Preview (if enabled) */}
-                            {showActionButton && buttonLabel.trim() && (
-                                <div
-                                    className={`w-full flex pt-3 border-t border-purple-100 ${buttonAlign === "center"
-                                        ? "justify-center"
-                                        : buttonAlign === "right"
-                                            ? "justify-end"
-                                            : "justify-start"
-                                        }`}
-                                >
-                                    <div className="inline-flex flex-col items-center gap-1">
+                        <div className="flex flex-col gap-3">
+                            {/* Banner Image Card if attached */}
+                            {uploadedImage && (
+                                <div className="relative w-full rounded-xl overflow-hidden border border-purple-200 bg-purple-50/30 group">
+                                    <div className="w-full h-40 sm:h-48 overflow-hidden bg-gray-100 flex items-center justify-center">
+                                        <img
+                                            src={uploadedImage}
+                                            alt="Message banner"
+                                            className="w-full h-full object-cover object-center"
+                                        />
+                                    </div>
+                                    <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md bg-black/60 text-white text-[10px] font-semibold backdrop-blur-xs">
+                                        Email Banner (Displayed at top)
+                                    </div>
+                                    <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 opacity-90 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                            type="button"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="px-2.5 py-1 bg-black/65 hover:bg-black/85 text-white rounded-lg text-[11px] font-medium backdrop-blur-xs transition-colors cursor-pointer"
+                                        >
+                                            Change
+                                        </button>
                                         <button
                                             type="button"
                                             onClick={() => {
-                                                if (buttonLink && buttonLink.startsWith("http")) {
-                                                    window.open(buttonLink, "_blank");
-                                                }
+                                                setUploadedImage(null);
+                                                toast.info("Banner removed");
                                             }}
-                                            className="px-6 py-2.5 bg-[#2E0F74] hover:bg-[#37137F] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer flex items-center gap-2"
+                                            className="p-1.5 bg-red-600/80 hover:bg-red-700 text-white rounded-lg transition-colors cursor-pointer"
+                                            title="Remove image"
                                         >
-                                            <span>{buttonLabel}</span>
+                                            <IoClose size={14} />
                                         </button>
-                                        {buttonLink && (
-                                            <span className="text-[10px] text-gray-400 max-w-xs truncate">
-                                                {buttonLink}
-                                            </span>
-                                        )}
                                     </div>
                                 </div>
                             )}
+
+                            {/* TipTap Rich Text Editor */}
+                            <div
+                                onDragOver={(e) => {
+                                    e.preventDefault();
+                                    setIsBodyImageDragging(true);
+                                }}
+                                onDragLeave={(e) => {
+                                    e.preventDefault();
+                                    setIsBodyImageDragging(false);
+                                }}
+                                onDrop={handleBodyDrop}
+                                className={`w-full transition-all ${
+                                    isBodyImageDragging ? "ring-2 ring-[#2E0F74] rounded-xl" : ""
+                                }`}
+                            >
+                                <RichTextEditor
+                                    value={body}
+                                    onChange={setBody}
+                                    placeholder="Write your email content here... Use the toolbar above to style headings, text colors, highlights, lists, quotes, and links."
+                                    minHeight="220px"
+                                />
+                            </div>
+                        </div>
+                    ) : (
+                        /* Authentic Email Client Live Preview */
+                        <div className="w-full flex flex-col gap-3">
+                            {/* Device & Mode Toolbar */}
+                            <div className="flex items-center justify-between px-1">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                                        Exact Outgoing Email Preview
+                                    </span>
+                                </div>
+                                <div className="flex items-center p-0.5 bg-gray-100 rounded-lg text-xs">
+                                    <button
+                                        type="button"
+                                        onClick={() => setPreviewDevice("desktop")}
+                                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${
+                                            previewDevice === "desktop"
+                                                ? "bg-white text-gray-900 shadow-2xs font-bold"
+                                                : "text-gray-500 hover:text-gray-900"
+                                        }`}
+                                        title="Desktop View (600px)"
+                                    >
+                                        <LuMonitor size={13} />
+                                        <span>Desktop</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setPreviewDevice("mobile")}
+                                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${
+                                            previewDevice === "mobile"
+                                                ? "bg-white text-gray-900 shadow-2xs font-bold"
+                                                : "text-gray-500 hover:text-gray-900"
+                                        }`}
+                                        title="Mobile View (375px)"
+                                    >
+                                        <LuSmartphone size={13} />
+                                        <span>Mobile</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Email Client Wrapper */}
+                            <div className="w-full bg-[#F3F4F6] border border-gray-200 rounded-2xl p-3 sm:p-6 flex justify-center items-start overflow-x-auto min-h-[360px]">
+                                <div
+                                    className={`w-full bg-white rounded-2xl border border-gray-200/90 shadow-sm overflow-hidden transition-all duration-200 flex flex-col ${
+                                        previewDevice === "mobile" ? "max-w-[375px]" : "max-w-[620px]"
+                                    }`}
+                                >
+                                    {/* Email Header Simulation */}
+                                    <div className="bg-[#FAF9FD] border-b border-gray-100 p-4 sm:p-5 flex flex-col gap-2.5">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2.5">
+                                                <div className="w-8 h-8 rounded-full bg-[#2E0F74] text-white flex items-center justify-center font-bold text-xs shadow-2xs">
+                                                    {fromSender.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                                        <span className="text-xs font-bold text-gray-900">
+                                                            {fromSender}
+                                                        </span>
+                                                        <span className="text-[10px] text-gray-400 font-normal">
+                                                            &lt;noreply@hiroek.com&gt;
+                                                        </span>
+                                                    </div>
+                                                    <span className="text-[10px] text-gray-500">
+                                                        To: {selectedCount > 0 ? `${selectedCount} Recipient(s)` : "Selected Attendees"}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <span className="text-[10px] text-gray-400 font-medium">
+                                                Just now
+                                            </span>
+                                        </div>
+
+                                        {/* Subject Line */}
+                                        <div className="pt-2 border-t border-gray-100 flex items-baseline gap-2">
+                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider shrink-0">
+                                                Subject:
+                                            </span>
+                                            <span className="text-xs sm:text-sm font-bold text-gray-900 break-words">
+                                                {title.trim() ? (
+                                                    title
+                                                ) : (
+                                                    <span className="text-gray-300 italic font-normal">
+                                                        (No subject specified)
+                                                    </span>
+                                                )}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Email Body Area */}
+                                    <div className="p-5 sm:p-8 flex flex-col">
+                                        {/* Banner Image Preview */}
+                                        {uploadedImage && (
+                                            <div className="w-full mb-6 rounded-xl overflow-hidden border border-gray-100">
+                                                <img
+                                                    src={uploadedImage}
+                                                    alt="Message banner"
+                                                    className="w-full max-h-72 object-cover object-center"
+                                                />
+                                            </div>
+                                        )}
+
+                                        {/* Exact text that will be sent (no HTML) */}
+                                        {body.trim() && body !== "<p></p>" && body !== "<p><br></p>" ? (
+                                            CAMPAIGN_SUPPORTS_HTML && messageType === "email" ? (
+                                                <div
+                                                    className="w-full select-text break-words"
+                                                    dangerouslySetInnerHTML={{
+                                                        __html: buildFullEmailHtml(body, {
+                                                            actionButton: showActionButton && buttonLabel.trim()
+                                                                ? { label: buttonLabel.trim(), link: buttonLink.trim(), align: buttonAlign }
+                                                                : null,
+                                                        }),
+                                                    }}
+                                                />
+                                            ) : (
+                                            <div className="w-full text-xs sm:text-sm text-gray-800 leading-relaxed select-text break-words whitespace-pre-wrap font-sans">
+                                                {convertHtmlToStyledText(body, {
+                                                    actionButton:
+                                                        showActionButton && buttonLabel.trim()
+                                                            ? { label: buttonLabel.trim(), link: buttonLink.trim() }
+                                                            : null,
+                                                })}
+                                            </div>
+                                            )
+                                        ) : (
+                                            <div className="text-gray-400 italic text-xs py-8 text-center">
+                                                Empty message body — switch to Edit mode to compose your message.
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Email Footer */}
+                                    <div className="bg-[#FAF9FD] border-t border-gray-100 px-5 py-3 text-center">
+                                        <span className="text-[10px] text-gray-400">
+                                            Sent via Hiroek CRM Campaign Manager
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>
