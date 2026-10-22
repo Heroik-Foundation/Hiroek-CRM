@@ -527,7 +527,7 @@ export default function SendMessage() {
                         </h2>
                     </div>
 
-                    <div className="w-full sm:w-auto flex ml-auto items-center gap-2.5 sm:gap-3">
+                    <div className="w-full sm:w-auto flex lg:flex-row flex-col ml-auto items-center gap-2.5 sm:gap-3">
                         {/* Search Users input */}
                         <div className="relative w-full sm:w-64 md:w-72">
                             <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 text-sm">
@@ -545,7 +545,7 @@ export default function SendMessage() {
                         {/* Send To All Button */}
                         <button
                             onClick={handleSendToAllToggle}
-                            className="bg-[#2E0F74] hover:bg-[#37137F] text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-xs flex items-center gap-2 cursor-pointer transition-colors"
+                            className="bg-[#2E0F74] hover:bg-[#37137F] lg:w-auto w-full text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-xs flex items-center gap-2 cursor-pointer transition-colors"
                         >
                             <LuSquareCheck size={16} />
                             <span>{isSendToAll ? "Deselect All" : "Send To All"}</span>
@@ -554,7 +554,7 @@ export default function SendMessage() {
                         {/* Done Button */}
                         <button
                             onClick={() => setCurrentView("compose")}
-                            className="bg-[#16A34A] hover:bg-[#15803D] text-white font-semibold text-xs px-5 py-2.5 rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer transition-colors"
+                            className="bg-[#16A34A] hover:bg-[#15803D] lg:w-auto w-full text-white font-semibold text-xs px-5 py-2.5 rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer transition-colors"
                         >
                             <span>Done ({selectedCount} Recipients Selected)</span>
                         </button>
