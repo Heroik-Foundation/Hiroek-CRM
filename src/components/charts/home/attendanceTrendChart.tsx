@@ -34,6 +34,38 @@ export interface AttendanceTrendChartProps {
   onPeriodChange?: (period: string) => void;
 }
 
+const MONTH_NAMES = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+];
+
+const MONTH_NAME_MAP: Record<string, string> = {
+  january: "Jan",
+  jan: "Jan",
+  february: "Feb",
+  feb: "Feb",
+  march: "Mar",
+  mar: "Mar",
+  april: "Apr",
+  apr: "Apr",
+  may: "May",
+  june: "Jun",
+  jun: "Jun",
+  july: "Jul",
+  jul: "Jul",
+  august: "Aug",
+  aug: "Aug",
+  september: "Sep",
+  sep: "Sep",
+  sept: "Sep",
+  october: "Oct",
+  oct: "Oct",
+  november: "Nov",
+  nov: "Nov",
+  december: "Dec",
+  dec: "Dec",
+};
+
 export default function AttendanceTrendChart({
   data: propData,
   isLoading = false,
@@ -120,26 +152,79 @@ export default function AttendanceTrendChart({
       }));
   }
 
-  const chartData: AttendanceTrendItem[] = rawItems.map((item, index) => ({
-    ...item,
-    [xAxisKey]: String(
+  const formatTrendLabel = (rawVal: unknown): string => {
+    if (rawVal === undefined || rawVal === null) return "";
+    const raw = String(rawVal).trim();
+    const lower = raw.toLowerCase();
+
+    if (MONTH_NAME_MAP[lower]) return MONTH_NAME_MAP[lower];
+
+    const numVal = Number(raw);
+    if (
+      !isNaN(numVal) &&
+      numVal >= 1 &&
+      numVal <= 12 &&
+      (activeLegend === "Last Year" || activeLegend === "All Time")
+    ) {
+      return MONTH_NAMES[numVal - 1];
+    }
+
+    const ymdMatch = raw.match(/^(\d{4})[-/](\d{1,2})(?:[-/](\d{1,2}))?/);
+    if (ymdMatch) {
+      const y = parseInt(ymdMatch[1], 10);
+      const m = parseInt(ymdMatch[2], 10) - 1;
+      const d = ymdMatch[3] ? parseInt(ymdMatch[3], 10) : null;
+      const monthName = MONTH_NAMES[m] ?? "";
+      const year2 = String(y).slice(-2);
+
+      if (activeLegend === "Last Year" || activeLegend === "All Time") {
+        return monthName ? `${monthName} '${year2}` : raw;
+      }
+      return d ? `${monthName} ${d}` : `${monthName} '${year2}`;
+    }
+
+    if (
+      !isNaN(Date.parse(raw)) &&
+      (raw.includes("-") || raw.includes("/") || raw.length > 6)
+    ) {
+      const d = new Date(raw);
+      if (!isNaN(d.getTime())) {
+        if (activeLegend === "Last Year" || activeLegend === "All Time") {
+          return d
+            .toLocaleDateString("en-US", { month: "short", year: "2-digit" })
+            .replace(" ", " '");
+        }
+        return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      }
+    }
+
+    return raw;
+  };
+
+  const chartData: AttendanceTrendItem[] = rawItems.map((item, index) => {
+    let rawLabel =
       item[xAxisKey] ??
-        item.label ??
-        item.date ??
-        item.period ??
-        item.month ??
-        `Period ${index + 1}`
-    ),
-    [dataKey]: Number(
-      item[dataKey] ??
-        item.revenue ??
-        item.forecast ??
-        item.projected ??
-        item.attendance ??
-        item.value ??
-        0
-    ),
-  }));
+      (item.year && item.month ? `${item.year}-${String(item.month).padStart(2, "0")}` : undefined) ??
+      item.label ??
+      item.date ??
+      item.period ??
+      item.month ??
+      `Period ${index + 1}`;
+
+    return {
+      ...item,
+      [xAxisKey]: formatTrendLabel(rawLabel),
+      [dataKey]: Number(
+        item[dataKey] ??
+          item.revenue ??
+          item.forecast ??
+          item.projected ??
+          item.attendance ??
+          item.value ??
+          0
+      ),
+    };
+  });
 
   const maxValue = chartData.reduce(
     (max, d) => Math.max(max, Number(d[dataKey] ?? 0)),
@@ -160,7 +245,10 @@ export default function AttendanceTrendChart({
   };
 
   const itemCount = chartData.length;
-  const rotateXLabels = itemCount > 12;
+  const shouldRotate =
+    activeLegend === "Last Year" ||
+    activeLegend === "All Time" ||
+    itemCount > 7;
 
   const option: EChartsOption = {
     tooltip: {
@@ -200,21 +288,13 @@ export default function AttendanceTrendChart({
       left: "3%",
       right: "3%",
       top: "12%",
-      bottom: rotateXLabels ? "16%" : "12%",
+      bottom: shouldRotate ? (itemCount > 12 ? "20%" : "16%") : "10%",
       containLabel: true,
     },
     xAxis: {
       type: "category",
       boundaryGap: false,
       data: chartData.map((d) => String(d[xAxisKey] ?? "")),
-      name: `Filter: ${activeLegend}`,
-      nameLocation: "middle",
-      nameGap: rotateXLabels ? 38 : 28,
-      nameTextStyle: {
-        color: "#6B7280",
-        fontSize: 11,
-        fontWeight: 600,
-      },
       axisTick: { show: false },
       axisLine: {
         show: true,
@@ -222,10 +302,11 @@ export default function AttendanceTrendChart({
       },
       axisLabel: {
         color: "#6B7280",
-        fontSize: itemCount > 14 ? 10 : 12,
+        fontSize: itemCount > 14 ? 10 : 11,
         fontWeight: 600,
-        rotate: rotateXLabels ? 35 : 0,
-        interval: itemCount > 25 ? 1 : 0,
+        rotate: shouldRotate ? (itemCount > 14 ? 45 : 35) : 0,
+        interval: itemCount > 24 ? "auto" : 0,
+        hideOverlap: true,
         margin: 10,
       },
     },

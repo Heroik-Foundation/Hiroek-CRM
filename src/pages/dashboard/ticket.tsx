@@ -1,9 +1,9 @@
 import { useState, useMemo } from "react";
 import { TicketCard } from "../../components/cards";
-import { Header } from "../../components/common";
+import { Header, EventSelect } from "../../components/common";
 import type { Column } from "../../type/table";
 import CustomTable from "../../components/ui/customTable";
-import { IoSearch, IoChevronDown, IoCloseCircle } from "react-icons/io5";
+import { IoSearch, IoCloseCircle } from "react-icons/io5";
 import { LuScanLine, LuClock3, LuDownload } from "react-icons/lu";
 import { IoCheckmarkCircle } from "react-icons/io5";
 import { MdFilterList } from "react-icons/md";
@@ -14,64 +14,23 @@ export default function Ticket() {
     const [page, setPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedEvent, setSelectedEvent] = useState("All Events");
-    const [isEventDropdownOpen, setIsEventDropdownOpen] = useState(false);
+    const [selectedEventId, setSelectedEventId] = useState<string | undefined>(undefined);
     const [activeTab, setActiveTab] = useState<"frequent" | "recent">("recent");
 
     const rowsPerPage = 10;
 
     // API Integrations
-    const { useGetTicketScanLogs, useGetAllEvents } = useTicketScans();
+    const { useGetTicketScanLogs } = useTicketScans();
     const { useGetDashboardData } = useDashboard();
 
     const { data: dashboardData, isLoading: isDashboardLoading } = useGetDashboardData();
 
     const { data: scanLogsResponse, isLoading: isScanLogsLoading } = useGetTicketScanLogs({
         searchQuery: searchQuery || undefined,
-        eventId: selectedEvent === "All Events" ? undefined : selectedEvent,
+        eventId: selectedEventId || (selectedEvent === "All Events" ? undefined : selectedEvent),
         page,
         pageSize: rowsPerPage,
     });
-
-    const { data: eventsResponse } = useGetAllEvents();
-
-    // Extract available events for dropdown directly from API
-    const availableEvents = useMemo(() => {
-        const eventsList: string[] = [];
-        const rawEvents =
-            (eventsResponse as any)?.events ??
-            (eventsResponse as any)?.result ??
-            (eventsResponse as any)?.data ??
-            [];
-
-        if (Array.isArray(rawEvents)) {
-            rawEvents.forEach((ev: any) => {
-                const title = ev.title || ev.name;
-                if (title && !eventsList.includes(title)) {
-                    eventsList.push(title);
-                }
-            });
-        }
-
-        // Also extract events present in scan logs response
-        const rawLogs =
-            (scanLogsResponse as any)?.result ??
-            (scanLogsResponse as any)?.data ??
-            (Array.isArray(scanLogsResponse) ? scanLogsResponse : []);
-
-        if (Array.isArray(rawLogs)) {
-            rawLogs.forEach((item: any) => {
-                const title =
-                    typeof item.event === "object"
-                        ? item.event?.title || item.event?.name
-                        : item.eventName || item.event;
-                if (title && !eventsList.includes(title)) {
-                    eventsList.push(title);
-                }
-            });
-        }
-
-        return ["All Events", ...eventsList];
-    }, [eventsResponse, scanLogsResponse]);
 
     // Format records directly from the API response
     const allRecords: TicketScanLogItem[] = useMemo(() => {
@@ -432,50 +391,17 @@ export default function Ticket() {
                                 Recent Scans
                             </button>
 
-                            {/* Event Filter Pill Button with Dropdown */}
-                            <div className="relative">
-                                <button
-                                    onClick={() => setIsEventDropdownOpen((prev) => !prev)}
-                                    className="bg-[#37137F] hover:bg-[#2e0e6c] transition-colors text-white text-xs font-semibold px-4 py-2 rounded-xl flex items-center gap-2 cursor-pointer shadow-xs"
-                                >
-                                    <span>{selectedEvent}</span>
-                                    <IoChevronDown
-                                        size={14}
-                                        className={`transition-transform duration-200 ${isEventDropdownOpen ? "rotate-180" : ""
-                                            }`}
-                                    />
-                                </button>
-
-                                {isEventDropdownOpen && (
-                                    <>
-                                        <div
-                                            className="fixed inset-0 z-20"
-                                            onClick={() => setIsEventDropdownOpen(false)}
-                                        />
-                                        <div className="absolute left-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 z-30 max-h-60 overflow-y-auto">
-                                            {availableEvents.map((evt) => (
-                                                <button
-                                                    key={evt}
-                                                    onClick={() => {
-                                                        setSelectedEvent(evt);
-                                                        setIsEventDropdownOpen(false);
-                                                        setPage(1);
-                                                    }}
-                                                    className={`w-full text-left px-4 py-2 text-xs font-medium hover:bg-gray-50 transition-colors flex items-center justify-between ${selectedEvent === evt
-                                                        ? "text-[#37137F] font-semibold bg-gray-50/70"
-                                                        : "text-gray-700"
-                                                        }`}
-                                                >
-                                                    <span className="truncate pr-2">{evt}</span>
-                                                    {selectedEvent === evt && (
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-[#37137F] shrink-0" />
-                                                    )}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </>
-                                )}
-                            </div>
+                            {/* Reusable Event Filter with Search from GET /api/events */}
+                            <EventSelect
+                                value={selectedEvent}
+                                selectedId={selectedEventId}
+                                onChange={(_evt, eventId, eventName) => {
+                                    setSelectedEvent(eventName ?? "All Events");
+                                    setSelectedEventId(eventId);
+                                    setPage(1);
+                                }}
+                                variant="pill"
+                            />
                         </div>
 
                         {/* Right Side: Search and Export Button */}

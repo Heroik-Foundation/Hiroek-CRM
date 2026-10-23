@@ -48,6 +48,38 @@ const DAY_NAME_MAP: Record<string, string> = {
   sun: "Sun",
 };
 
+const MONTH_NAMES = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+];
+
+const MONTH_NAME_MAP: Record<string, string> = {
+  january: "Jan",
+  jan: "Jan",
+  february: "Feb",
+  feb: "Feb",
+  march: "Mar",
+  mar: "Mar",
+  april: "Apr",
+  apr: "Apr",
+  may: "May",
+  june: "Jun",
+  jun: "Jun",
+  july: "Jul",
+  jul: "Jul",
+  august: "Aug",
+  aug: "Aug",
+  september: "Sep",
+  sep: "Sep",
+  sept: "Sep",
+  october: "Oct",
+  oct: "Oct",
+  november: "Nov",
+  nov: "Nov",
+  december: "Dec",
+  dec: "Dec",
+};
+
 export default function AttendanceByDayChart({
   data: propData,
   isLoading = false,
@@ -109,18 +141,23 @@ export default function AttendanceByDayChart({
   const rawEntries: { day: string; count: number }[] = [];
 
   const extractItem = (itemObj: Record<string, unknown>, fallbackKey?: string) => {
-    const rawDay =
-      itemObj.period ??
-      itemObj.day ??
-      itemObj.date ??
-      itemObj.dayOfWeek ??
-      itemObj.month ??
-      itemObj.week ??
-      itemObj.label ??
-      itemObj.name ??
-      itemObj.time ??
-      itemObj._id ??
-      fallbackKey;
+    let rawDay: unknown = undefined;
+    if (itemObj.year && itemObj.month) {
+      rawDay = `${itemObj.year}-${String(itemObj.month).padStart(2, "0")}`;
+    } else {
+      rawDay =
+        itemObj.period ??
+        itemObj.day ??
+        itemObj.date ??
+        itemObj.dayOfWeek ??
+        itemObj.month ??
+        itemObj.week ??
+        itemObj.label ??
+        itemObj.name ??
+        itemObj.time ??
+        itemObj._id ??
+        fallbackKey;
+    }
 
     const rawVal =
       itemObj.count ??
@@ -178,19 +215,82 @@ export default function AttendanceByDayChart({
     isPureWeekdayData;
 
   const formatDateLabel = (raw: string): string => {
-    const lower = raw.toLowerCase();
+    const trimmed = raw.trim();
+    const lower = trimmed.toLowerCase();
+
+    // 1. Weekday map
     if (DAY_NAME_MAP[lower]) return DAY_NAME_MAP[lower];
 
-    // Check if ISO/parseable date
-    if (!isNaN(Date.parse(raw)) && (raw.includes("-") || raw.includes("/") || raw.length > 6)) {
-      const d = new Date(raw);
-      if (selectedRange === "Last Year" || selectedRange === "All Time") {
-        return d.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
-      }
-      return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    // 2. Month name alone
+    if (MONTH_NAME_MAP[lower]) return MONTH_NAME_MAP[lower];
+
+    // 3. Month index number (1-12) when filtering by Last Year or All Time
+    const numVal = Number(trimmed);
+    if (
+      !isNaN(numVal) &&
+      numVal >= 1 &&
+      numVal <= 12 &&
+      (selectedRange === "Last Year" || selectedRange === "All Time")
+    ) {
+      return MONTH_NAMES[numVal - 1];
     }
 
-    return raw;
+    // 4. Month name + Year (e.g. "Nov 2024", "November 2024", "Nov '24", "November, 2024")
+    const monthYearMatch = trimmed.match(/^([a-zA-Z]+)[\s,]+'?(\d{2,4})$/);
+    if (monthYearMatch) {
+      const mLower = monthYearMatch[1].toLowerCase();
+      const mShort = MONTH_NAME_MAP[mLower];
+      if (mShort) {
+        const yStr = monthYearMatch[2].slice(-2);
+        return `${mShort} '${yStr}`;
+      }
+    }
+
+    // 5. Year-Month or Year-Month-Day: "YYYY-MM" or "YYYY-MM-DD" or "YYYY/MM/DD"
+    const ymdMatch = trimmed.match(/^(\d{4})[-/](\d{1,2})(?:[-/](\d{1,2}))?/);
+    if (ymdMatch) {
+      const y = parseInt(ymdMatch[1], 10);
+      const m = parseInt(ymdMatch[2], 10) - 1; // 0-indexed month
+      const d = ymdMatch[3] ? parseInt(ymdMatch[3], 10) : null;
+      const monthName = MONTH_NAMES[m] ?? "";
+      const year2 = String(y).slice(-2);
+
+      if (selectedRange === "Last Year" || selectedRange === "All Time") {
+        return monthName ? `${monthName} '${year2}` : trimmed;
+      }
+      return d ? `${monthName} ${d}` : `${monthName} '${year2}`;
+    }
+
+    // 6. Month-Year: "MM-YYYY" or "MM/YYYY"
+    const myMatch = trimmed.match(/^(\d{1,2})[-/](\d{4})$/);
+    if (myMatch) {
+      const m = parseInt(myMatch[1], 10) - 1;
+      const y = parseInt(myMatch[2], 10);
+      const monthName = MONTH_NAMES[m] ?? "";
+      const year2 = String(y).slice(-2);
+      if (selectedRange === "Last Year" || selectedRange === "All Time") {
+        return monthName ? `${monthName} '${year2}` : trimmed;
+      }
+      return `${monthName} '${year2}`;
+    }
+
+    // 7. General parseable date fallback
+    if (
+      !isNaN(Date.parse(trimmed)) &&
+      (trimmed.includes("-") || trimmed.includes("/") || trimmed.length > 6)
+    ) {
+      const d = new Date(trimmed);
+      if (!isNaN(d.getTime())) {
+        if (selectedRange === "Last Year" || selectedRange === "All Time") {
+          return d
+            .toLocaleDateString("en-US", { month: "short", year: "2-digit" })
+            .replace(" ", " '");
+        }
+        return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      }
+    }
+
+    return trimmed;
   };
 
   let finalItems: { day: string; count: number }[] = [];
@@ -217,10 +317,23 @@ export default function AttendanceByDayChart({
       count: dayCounts[day] ?? 0,
     }));
   } else if (rawEntries.length > 0) {
-    finalItems = rawEntries.map((item) => ({
-      day: formatDateLabel(item.day),
-      count: item.count,
-    }));
+    if (selectedRange === "Last Year" || selectedRange === "All Time") {
+      // Group by formatted month label to keep distinct clean month bars and prevent duplicate/overlapping daily bars
+      const monthMap = new Map<string, number>();
+      for (const entry of rawEntries) {
+        const label = formatDateLabel(entry.day);
+        monthMap.set(label, (monthMap.get(label) ?? 0) + entry.count);
+      }
+      finalItems = Array.from(monthMap.entries()).map(([day, count]) => ({
+        day,
+        count,
+      }));
+    } else {
+      finalItems = rawEntries.map((item) => ({
+        day: formatDateLabel(item.day),
+        count: item.count,
+      }));
+    }
   } else if (selectedRange === "Last 7 Days") {
     // Graceful default for weekly when no data yet
     finalItems = STANDARD_DAYS.map((day) => ({ day, count: 0 }));
@@ -236,10 +349,15 @@ export default function AttendanceByDayChart({
 
   const yMax = yAxisMax ?? (maxVal > 0 ? Math.ceil(maxVal * 1.25) : 10);
   const itemCount = chartData.length;
+
+  const shouldRotate =
+    selectedRange === "Last Year" ||
+    selectedRange === "All Time" ||
+    itemCount > 7;
+
   const dynamicBarWidth =
-    itemCount <= 7 ? 32 : itemCount <= 14 ? 20 : itemCount <= 31 ? 10 : 6;
-  const showTopLabels = itemCount <= 10;
-  const rotateXLabels = itemCount > 12;
+    itemCount <= 7 ? 32 : itemCount <= 12 ? 18 : itemCount <= 20 ? 12 : itemCount <= 31 ? 8 : 5;
+  const showTopLabels = itemCount <= 8;
 
   const option: EChartsOption = {
     tooltip: {
@@ -277,20 +395,12 @@ export default function AttendanceByDayChart({
       left: "3%",
       right: "3%",
       top: "14%",
-      bottom: rotateXLabels ? "16%" : "12%",
+      bottom: shouldRotate ? (itemCount > 12 ? "20%" : "16%") : "10%",
       containLabel: true,
     },
     xAxis: {
       type: "category",
       data: chartData.map((d) => d.day),
-      name: `Filter: ${selectedRange}`,
-      nameLocation: "middle",
-      nameGap: rotateXLabels ? 38 : 28,
-      nameTextStyle: {
-        color: "#6B7280",
-        fontSize: 11,
-        fontWeight: 600,
-      },
       axisTick: { show: false },
       axisLine: {
         show: true,
@@ -298,10 +408,11 @@ export default function AttendanceByDayChart({
       },
       axisLabel: {
         color: "#6B7280",
-        fontSize: itemCount > 14 ? 10 : 12,
+        fontSize: itemCount > 14 ? 10 : 11,
         fontWeight: 600,
-        rotate: rotateXLabels ? 35 : 0,
-        interval: itemCount > 25 ? 1 : 0,
+        rotate: shouldRotate ? (itemCount > 14 ? 45 : 35) : 0,
+        interval: itemCount > 24 ? "auto" : 0,
+        hideOverlap: true,
         margin: 10,
       },
     },

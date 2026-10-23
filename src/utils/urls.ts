@@ -57,6 +57,7 @@ export const URLS = {
         `/email-bundles/purchase-bundle/${bundleId}`,
     GET_TICKET_SCAN_LOGS: "/events/ticket-scan-logs",
     GET_ALL_EVENTS: "/events/all-events",
+    GET_EVENTS: "/events",
     SCAN_TICKET: (eventTicketCode: string) =>
         `/event-partners/ticket-scanner/${encodeURIComponent(eventTicketCode)}`,
     CREATE_CAMPAIGN: "/event-partners/campaign/create-campaign",
