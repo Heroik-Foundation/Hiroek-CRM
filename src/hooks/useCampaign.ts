@@ -40,6 +40,23 @@ export interface CreateCampaignResponse {
     message?: string;
 }
 
+export interface ImageUploadResponse {
+    url?: string;
+    contentType?: string;
+    size?: number;
+    message?: string;
+    data?: {
+        url?: string;
+        contentType?: string;
+        size?: number;
+    };
+    result?: {
+        url?: string;
+        contentType?: string;
+        size?: number;
+    };
+}
+
 const useCampaign = () => {
     const queryClient = useQueryClient();
 
@@ -68,8 +85,38 @@ const useCampaign = () => {
         });
     };
 
+    const useUploadCampaignImage = () => {
+        return useMutation({
+            mutationFn: async (file: File) => {
+                const formData = new FormData();
+                formData.append("image", file);
+                const response = await httpService.post<ImageUploadResponse>(
+                    URLS.IMAGE_UPLOAD,
+                    formData,
+                    {
+                        headers: {
+                            "Content-Type": "multipart/form-data",
+                        },
+                    }
+                );
+                return response.data;
+            },
+            onError: (err: any) => {
+                const msg =
+                    err?.response?.data?.error?.details?.message ||
+                    err?.response?.data?.details?.message ||
+                    err?.response?.data?.error?.message ||
+                    err?.response?.data?.message ||
+                    err?.message ||
+                    "Failed to upload image";
+                toast.danger(msg);
+            },
+        });
+    };
+
     return {
         useCreateCampaign,
+        useUploadCampaignImage,
     };
 };
 

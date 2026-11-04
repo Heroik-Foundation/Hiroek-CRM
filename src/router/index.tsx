@@ -17,6 +17,7 @@ const TicketScanner = lazy(() => import("../pages/dashboard/ticketScanner"));
 const Donation = lazy(() => import("../pages/dashboard/donation"));
 const Management = lazy(() => import("../pages/dashboard/management"));
 const Review = lazy(() => import("../pages/dashboard/review"));
+const AllReviews = lazy(() => import("../pages/dashboard/allReviews"));
 const Settings = lazy(() => import("../pages/dashboard/settings"));
 const Payment = lazy(() => import("../pages/payment"));
 const NotFound = lazy(() => import("../pages/notfound"));
@@ -51,6 +52,8 @@ export const router = createBrowserRouter([
             { path: "impact", element: withSuspense(<Donation />) },
             { path: "client", element: withSuspense(<Management />) },
             { path: "reviews", element: withSuspense(<Review />) },
+            { path: "reviews/all", element: withSuspense(<AllReviews />) },
+            { path: "reviews/view-all", element: withSuspense(<AllReviews />) },
             { path: "settings", element: withSuspense(<Settings />) },
         ],
     },

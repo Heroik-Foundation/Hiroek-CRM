@@ -49,7 +49,7 @@ export default function Sidebar() {
                         Hiroek
                     </p>
                     <p className="text-sm text-gray-400 font-medium">
-                        Creator Platform
+                        CRM Platform
                     </p>
                 </div>
 

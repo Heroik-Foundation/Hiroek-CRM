@@ -51,7 +51,7 @@ export default function Navbar() {
                         {user?.name || "Joba Labs"}
                     </h3>
                     <p className="text-xs text-gray-400 font-medium leading-tight mt-0.5">
-                        Creator Account
+                        Welcome {user?.name}
                     </p>
                 </div>
             </div>
@@ -67,9 +67,8 @@ export default function Navbar() {
                         <span>{selectedRange}</span>
                         <IoChevronDownCircle
                             size={16}
-                            className={`text-white transition-transform ${
-                                isOpen ? "rotate-180" : ""
-                            }`}
+                            className={`text-white transition-transform ${isOpen ? "rotate-180" : ""
+                                }`}
                         />
                     </button>
 
@@ -82,11 +81,10 @@ export default function Navbar() {
                                         setSelectedRange(range);
                                         setIsOpen(false);
                                     }}
-                                    className={`w-full text-left px-4 py-2 text-xs font-medium transition-colors ${
-                                        selectedRange === range
+                                    className={`w-full text-left px-4 py-2 text-xs font-medium transition-colors ${selectedRange === range
                                             ? "bg-[#37137F15] text-[#37137F] font-bold"
                                             : "text-gray-700 hover:bg-gray-50"
-                                    }`}
+                                        }`}
                                 >
                                     {range}
                                 </button>

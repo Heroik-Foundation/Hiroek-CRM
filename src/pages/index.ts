@@ -10,6 +10,7 @@ export { default as Donation } from "./dashboard/donation"
 export { default as Management } from "./dashboard/management"
 export { default as Revenue } from "./dashboard/revenue"
 export { default as Review } from "./dashboard/review"
+export { default as AllReviews } from "./dashboard/allReviews"
 export { default as Ticket } from "./dashboard/ticket"
 export { default as Trending } from "./dashboard/trending" 
 

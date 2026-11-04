@@ -1,54 +1,281 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-    IoChevronBack,
-    IoSearch,
-    IoPlay,
-    IoClose,
-} from "react-icons/io5";
-import {
-    LuSquareCheck,
-    // LuLink,
-    // LuChevronDown,
-    // LuChevronUp,
-    LuMonitor,
-    LuSmartphone,
-} from "react-icons/lu";
-import CustomTable from "../../components/ui/customTable";
 import type { Column } from "../../type/table";
 import useAudienceSegment from "../../hooks/useAudienceSegment";
 import useCampaign, { type CampaignChannel } from "../../hooks/useCampaign";
-import { toast, Spinner } from "@heroui/react";
-import RichTextEditor from "../../components/ui/richTextEditor";
-import { convertHtmlToStyledText } from "../../utils/styledText";
-import { buildFullEmailHtml } from "../../utils/emailTemplate";
+import { Spinner, toast } from "@heroui/react";
+import { useAtomValue } from "jotai";
+import { userAtom } from "../../utils/atom/user";
+import useEmailBundles from "../../hooks/settings/useEmailBundles";
+import useSendingDomain from "../../hooks/useSendingDomain";
+import {
+    type MessageView,
+    type RecipientItem,
+    type VerifiedSender,
+    type DnsRecordItem,
+    ChooseOptionView,
+    VerifyEmailView,
+    ReadyToSendView,
+    AuthenticateDomainView,
+    RecipientsPickerView,
+    CampaignComposerView,
+    EditSenderModal,
+    DeleteSenderModal,
+} from "../../components/features/messaging";
 
-// Turn on (VITE_CAMPAIGN_SUPPORTS_HTML=true) once the backend renders `body` as HTML instead of escaping it.
-const CAMPAIGN_SUPPORTS_HTML = import.meta.env.VITE_CAMPAIGN_SUPPORTS_HTML === "true";
-
-interface RecipientItem {
-    id: string;
-    sNo: number;
-    name: string;
-    username: string;
-    email: string;
-    phone: string;
-    location: string;
-    rawCustomer: Record<string, unknown>;
-}
+// HTML email is enabled by default unless explicitly disabled with VITE_CAMPAIGN_SUPPORTS_HTML=false
+const CAMPAIGN_SUPPORTS_HTML = import.meta.env.VITE_CAMPAIGN_SUPPORTS_HTML !== "false";
 
 export default function SendMessage() {
     const navigate = useNavigate();
-    // const currentUser = useAtomValue(userAtom);
+    const currentUser = useAtomValue(userAtom);
 
-    // View state: compose form or recipient picker
-    const [currentView, setCurrentView] = useState<"compose" | "recipients">("compose");
+    // Verified sender state from localStorage or initial setup
+    const [verifiedSender, setVerifiedSender] = useState<VerifiedSender | null>(() => {
+        try {
+            const saved = localStorage.getItem("hiroek_verified_sender");
+            if (saved) return JSON.parse(saved);
+        } catch {
+            // ignore
+        }
+        return null;
+    });
+
+    // View state
+    const [currentView, setCurrentView] = useState<MessageView>(() => {
+        try {
+            const saved = localStorage.getItem("hiroek_verified_sender");
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed?.verified && parsed?.email) return "compose";
+            }
+        } catch {
+            // ignore
+        }
+        return "choose_option";
+    });
+
+    // Option 1 (Individual Email Verification) state
+    const [fromNameInput, setFromNameInput] = useState(() => {
+        try {
+            const saved = localStorage.getItem("hiroek_verified_sender");
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed?.senderName) return parsed.senderName;
+            }
+        } catch { }
+        return "John Doe";
+    });
+
+    const [emailPrefix, setEmailPrefix] = useState(() => {
+        try {
+            const saved = localStorage.getItem("hiroek_verified_sender");
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed?.emailPrefix) return parsed.emailPrefix;
+            }
+        } catch { }
+        return "";
+    });
+
+    const [confirmEmailPrefix, setConfirmEmailPrefix] = useState("");
+    const [emailReplyTo, setEmailReplyTo] = useState(() => {
+        try {
+            const saved = localStorage.getItem("hiroek_verified_sender");
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed?.replyTo) return parsed.replyTo;
+            }
+        } catch { }
+        return "";
+    });
+
+    // Sender settings modals state
+    const [isEditSenderModalOpen, setIsEditSenderModalOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+    // Option 2 (Authenticate Business Domain) state
+    const [domainStep, setDomainStep] = useState<1 | 2 | 3 | 4 | 5>(1);
+    const [businessDomain, setBusinessDomain] = useState(() => {
+        try {
+            const saved = localStorage.getItem("hiroek_verified_sender");
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed?.domain) return parsed.domain;
+            }
+        } catch { }
+        return "yourbusiness.com";
+    });
+
+    const [senderProfileName, setSenderProfileName] = useState(() => {
+        try {
+            const saved = localStorage.getItem("hiroek_verified_sender");
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed?.senderName) return parsed.senderName;
+            }
+        } catch { }
+        return "Hiroek Events";
+    });
+
+    const [senderProfileEmail, setSenderProfileEmail] = useState(() => {
+        try {
+            const saved = localStorage.getItem("hiroek_verified_sender");
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed?.email) return parsed.email;
+            }
+        } catch { }
+        return "hello@yourbusiness.com";
+    });
+
+    const [senderProfileReplyTo, setSenderProfileReplyTo] = useState(() => {
+        try {
+            const saved = localStorage.getItem("hiroek_verified_sender");
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed?.replyTo) return parsed.replyTo;
+            }
+        } catch { }
+        return "";
+    });
+
+    // Sync currentUser name and email if not set
+    useEffect(() => {
+        if (currentUser) {
+            if (currentUser.name && !verifiedSender) {
+                setFromNameInput(currentUser.name);
+            }
+            if (currentUser.email) {
+                if (!emailReplyTo) {
+                    setEmailReplyTo(currentUser.email);
+                }
+                if (!senderProfileReplyTo || senderProfileReplyTo === "hello@yourbusiness.com") {
+                    setSenderProfileReplyTo(currentUser.email);
+                }
+            }
+        }
+    }, [currentUser, verifiedSender]);
+
+    // Email balance hook
+    const { useGetEmailBalance } = useEmailBundles();
+    const { data: balanceData } = useGetEmailBalance();
+    const balanceCount =
+        (typeof balanceData?.balance === "number" ? balanceData.balance : null) ??
+        (typeof balanceData?.data?.balance === "number" ? balanceData.data.balance : null) ??
+        (typeof balanceData?.result?.balance === "number" ? balanceData.result.balance : null) ??
+        1000;
+    const balanceFormatted = Number(balanceCount).toLocaleString();
+
+    // Sending domain hooks & endpoints
+    const {
+        useGetSendingDomain,
+        useSetupPlatformDomain,
+        useConnectCustomDomain,
+        useVerifyCustomDomain,
+        useUpdateSenderProfile,
+        useDeleteSendingDomain,
+    } = useSendingDomain();
+
+    const { data: sendingDomainData, isLoading: isSendingDomainLoading } = useGetSendingDomain();
+    const setupPlatformDomainMutation = useSetupPlatformDomain();
+    const connectCustomDomainMutation = useConnectCustomDomain();
+    const verifyCustomDomainMutation = useVerifyCustomDomain();
+    const updateSenderProfileMutation = useUpdateSenderProfile();
+    const deleteSendingDomainMutation = useDeleteSendingDomain();
+
+    const serverSendingDomain = useMemo(() => {
+        if (!sendingDomainData) return null;
+        const resp = sendingDomainData as Record<string, any>;
+        return resp?.sendingDomain || resp?.data?.sendingDomain || resp?.result?.sendingDomain || null;
+    }, [sendingDomainData]);
+
+    // Active sending domain ID for deletion
+    const activeSendingDomainId = useMemo(() => {
+        if (!sendingDomainData) return verifiedSender?.id || null;
+        const resp = sendingDomainData as Record<string, any>;
+        const sd = resp?.sendingDomain || resp?.data?.sendingDomain || resp?.result?.sendingDomain;
+        if (sd?.id) return String(sd.id);
+        if (sd?._id) return String(sd._id);
+        if (Array.isArray(resp?.sendingDomains) && resp.sendingDomains.length > 0) {
+            const active = resp.sendingDomains.find((d: any) => d.isActive) || resp.sendingDomains[0];
+            if (active?.id) return String(active.id);
+            if (active?._id) return String(active._id);
+        }
+        if (verifiedSender?.id) return verifiedSender.id;
+        return null;
+    }, [sendingDomainData, verifiedSender]);
+
+    // Synchronize server domain status to local state
+    useEffect(() => {
+        if (!serverSendingDomain) return;
+
+        if (serverSendingDomain.fromName) {
+            setFromNameInput(serverSendingDomain.fromName);
+            setSenderProfileName(serverSendingDomain.fromName);
+        }
+        if (serverSendingDomain.domain) {
+            setBusinessDomain(serverSendingDomain.domain);
+        }
+        if (serverSendingDomain.address) {
+            const addr = serverSendingDomain.address;
+            setSenderProfileEmail(addr);
+            if (addr.includes("@")) {
+                const [local, dom] = addr.split("@");
+                setEmailPrefix(local);
+                setConfirmEmailPrefix(local);
+                if (dom && !serverSendingDomain.domain) {
+                    setBusinessDomain(dom);
+                }
+            }
+        }
+        if (serverSendingDomain.replyTo) {
+            setEmailReplyTo(serverSendingDomain.replyTo);
+            setSenderProfileReplyTo(serverSendingDomain.replyTo);
+        }
+
+        const isVerified =
+            serverSendingDomain.canSend === true ||
+            serverSendingDomain.status === "verified";
+
+        if (isVerified) {
+            const syncedSender: VerifiedSender = {
+                id: serverSendingDomain.id || serverSendingDomain._id || activeSendingDomainId || undefined,
+                senderName: serverSendingDomain.fromName || currentUser?.name || "Hiroek Events",
+                email: serverSendingDomain.address || (serverSendingDomain.domain ? `hello@${serverSendingDomain.domain}` : "hello@hiroek.io"),
+                domain: serverSendingDomain.domain,
+                replyTo: serverSendingDomain.replyTo || currentUser?.email || serverSendingDomain.address,
+                isBusinessDomain: serverSendingDomain.type === "custom",
+                verified: true,
+                verifiedAt: serverSendingDomain.verifiedAt || new Date().toISOString(),
+            };
+
+            setVerifiedSender(syncedSender);
+            setFromSender(`${syncedSender.senderName} <${syncedSender.email}>`);
+            try {
+                localStorage.setItem("hiroek_verified_sender", JSON.stringify(syncedSender));
+            } catch {
+                // ignore
+            }
+
+            setCurrentView((prev) => (prev === "choose_option" ? "compose" : prev));
+        }
+    }, [serverSendingDomain, currentUser?.name, currentUser?.email, activeSendingDomainId]);
 
     // Form fields
     const [messageType, setMessageType] = useState<"notifications" | "in_app" | "email">("email");
-    const [fromSender, setFromSender] = useState(
-        "Editor"
-    );
+    const [fromSender, setFromSender] = useState(() => {
+        try {
+            const saved = localStorage.getItem("hiroek_verified_sender");
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed?.senderName && parsed?.email) {
+                    return `${parsed.senderName} <${parsed.email}>`;
+                }
+            }
+        } catch { }
+        return "Editor";
+    });
     const [title, setTitle] = useState("");
     const [body, setBody] = useState("");
     const [selectedRecipientsMap, setSelectedRecipientsMap] = useState<Map<string, RecipientItem>>(new Map());
@@ -58,12 +285,6 @@ export default function SendMessage() {
     const [page, setPage] = useState(1);
     const rowsPerPage = 10;
 
-    // Optional Call-to-Action Button state
-    // const [showActionButton, setShowActionButton] = useState(false);
-    // const [buttonLabel, setButtonLabel] = useState("RSVP Now");
-    // const [buttonLink, setButtonLink] = useState("https://hiroek.com/events/rsvp");
-    // const [buttonAlign, setButtonAlign] = useState<"left" | "center" | "right">("left");
-
     // Image & Preview state
     const [uploadedImage, setUploadedImage] = useState<string | null>(null);
     const [isBodyImageDragging, setIsBodyImageDragging] = useState(false);
@@ -71,32 +292,61 @@ export default function SendMessage() {
     const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Campaign creation hook
-    const { useCreateCampaign } = useCampaign();
+    // Campaign creation and image upload hooks
+    const { useCreateCampaign, useUploadCampaignImage } = useCampaign();
     const createCampaignMutation = useCreateCampaign();
+    const uploadImageMutation = useUploadCampaignImage();
 
-    // Process image file
-    const processImageFile = (file: File) => {
-        if (!file.type.startsWith("image/")) {
-            toast.danger("Please select an image file (PNG, JPG, SVG, WebP)");
+    // Allowed image formats per API doc (PNG, JPG, GIF, WebP up to 5MB)
+    const ALLOWED_IMAGE_TYPES = [
+        "image/png",
+        "image/jpeg",
+        "image/jpg",
+        "image/webp",
+        "image/gif",
+    ];
+
+    // Process & upload single image file to S3 via /api/event-partners/image-upload
+    const processImageFile = async (file: File) => {
+        if (!ALLOWED_IMAGE_TYPES.includes(file.type.toLowerCase())) {
+            toast.danger("Please select a valid image file (PNG, JPG, GIF, WebP)");
             return;
         }
         if (file.size > 5 * 1024 * 1024) {
             toast.danger("File size exceeds 5MB limit");
             return;
         }
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            setUploadedImage(event.target?.result as string);
-            toast.success("Image attached to message!");
-        };
-        reader.readAsDataURL(file);
+
+        if (uploadedImage) {
+            toast.info("Replacing existing image with new upload...");
+        }
+
+        try {
+            const res = await uploadImageMutation.mutateAsync(file);
+            const publicUrl =
+                res?.url ||
+                res?.data?.url ||
+                res?.result?.url ||
+                "";
+
+            if (publicUrl) {
+                setUploadedImage(publicUrl);
+                toast.success("Image uploaded successfully!");
+            } else {
+                toast.danger("No image URL returned from upload");
+            }
+        } catch (err) {
+            console.error("Image upload failed:", err);
+        }
     };
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            processImageFile(file);
+        const files = e.target.files;
+        if (files && files.length > 0) {
+            if (files.length > 1) {
+                toast.warning("Only one image is allowed per message. Using the first image.");
+            }
+            processImageFile(files[0]);
         }
         e.target.value = "";
     };
@@ -105,13 +355,23 @@ export default function SendMessage() {
         e.preventDefault();
         e.stopPropagation();
         setIsBodyImageDragging(false);
-        const file = e.dataTransfer.files?.[0];
-        if (file) {
-            processImageFile(file);
+        const files = e.dataTransfer.files;
+        if (files && files.length > 0) {
+            const imageFiles = Array.from(files).filter((f) =>
+                f.type.startsWith("image/")
+            );
+            if (imageFiles.length === 0) {
+                toast.danger("Please drop a valid image file (PNG, JPG, GIF, WebP)");
+                return;
+            }
+            if (imageFiles.length > 1) {
+                toast.warning("Only one image is allowed per message. Using the first image.");
+            }
+            processImageFile(imageFiles[0]);
         }
     };
 
-    // Debounce search query to avoid refetching on every keystroke
+    // Debounce search query
     useEffect(() => {
         const timer = setTimeout(() => {
             setDebouncedSearch(searchQuery);
@@ -119,12 +379,12 @@ export default function SendMessage() {
         return () => clearTimeout(timer);
     }, [searchQuery]);
 
-    // Reset to page 1 whenever debounced search query changes
+    // Reset to page 1 whenever search query changes
     useEffect(() => {
         setPage(1);
     }, [debouncedSearch]);
 
-    // Load recipients from audience endpoint using API pagination and search
+    // Load recipients from audience endpoint
     const { useGetAudienceSegmentCustomer } = useAudienceSegment();
     const { data: audienceData, isLoading: isAudienceLoading } = useGetAudienceSegmentCustomer({
         segment: "all",
@@ -133,7 +393,6 @@ export default function SendMessage() {
         search: debouncedSearch.trim() || undefined,
     });
 
-    // Also fetch full audience customers list to reliably target all recipients when "Send To All" is active
     const { data: allAudienceData } = useGetAudienceSegmentCustomer({
         segment: "all",
         limit: 1000,
@@ -276,7 +535,297 @@ export default function SendMessage() {
         }
     };
 
+    // Option 1 handler: Approve individual email
+    const handleApproveEmail = async () => {
+        const trimmedName = fromNameInput.trim();
+        if (!trimmedName) {
+            toast.danger("Please enter your sender name");
+            return;
+        }
+
+        const cleanPrefix = emailPrefix.trim().toLowerCase();
+        if (!cleanPrefix) {
+            toast.danger("Please enter your email username");
+            return;
+        }
+
+        if (!/^[a-z0-9._-]+$/.test(cleanPrefix)) {
+            toast.danger("Username can only contain letters, numbers, dots, dashes and underscores");
+            return;
+        }
+
+        const cleanConfirm = confirmEmailPrefix.trim().toLowerCase();
+        if (!cleanConfirm) {
+            toast.danger("Please confirm your email address");
+            return;
+        }
+
+        if (cleanPrefix !== cleanConfirm) {
+            toast.danger("Email addresses do not match");
+            return;
+        }
+
+        const cleanReplyTo =
+            emailReplyTo.trim().toLowerCase() ||
+            currentUser?.email ||
+            `${cleanPrefix}@hiroek.io`;
+
+        try {
+            const resp = await setupPlatformDomainMutation.mutateAsync({
+                name: cleanPrefix,
+                fromName: trimmedName,
+                replyTo: cleanReplyTo,
+            });
+
+            const createdDomainId =
+                resp?.sendingDomain?.id ||
+                resp?.sendingDomain?._id ||
+                undefined;
+
+            const newSender: VerifiedSender = {
+                id: createdDomainId,
+                senderName: trimmedName,
+                emailPrefix: cleanPrefix,
+                email: `${cleanPrefix}@hiroek.io`,
+                replyTo: cleanReplyTo,
+                verified: true,
+                verifiedAt: new Date().toISOString(),
+            };
+
+            try {
+                localStorage.setItem("hiroek_verified_sender", JSON.stringify(newSender));
+            } catch {
+                // ignore
+            }
+
+            setVerifiedSender(newSender);
+            setFromSender(`${newSender.senderName} <${newSender.email}>`);
+            toast.success("Email address verified successfully!");
+            setCurrentView("ready_to_send");
+        } catch (err) {
+            console.error("Failed to setup platform sending domain:", err);
+        }
+    };
+
+    // Option 2 handlers: Domain DNS records
+    const cleanBusinessDomain =
+        businessDomain
+            .trim()
+            .toLowerCase()
+            .replace(/^https?:\/\//, "")
+            .replace(/\/.*$/, "") || "yourbusiness.com";
+
+    const activeDnsRecords: DnsRecordItem[] = useMemo(() => {
+        if (
+            serverSendingDomain?.dnsRecords &&
+            Array.isArray(serverSendingDomain.dnsRecords) &&
+            serverSendingDomain.dnsRecords.length > 0
+        ) {
+            return serverSendingDomain.dnsRecords.map((r: any) => ({
+                type: r.type || "CNAME",
+                host: r.host || r.name || `em.${cleanBusinessDomain}`,
+                desc: r.desc || "DNS Verification Record",
+                value: r.value || "send.hiroekevents.net",
+                status: r.status || "Ready to link",
+                ttl: r.ttl || "300 (Auto)",
+            }));
+        }
+
+        return [
+            {
+                type: "CNAME",
+                host: `em.${cleanBusinessDomain}`,
+                desc: "Custom Mail Delivery Subdomain",
+                value: "send.hiroekevents.net",
+                status: "Ready to link",
+                ttl: "300 (Auto)",
+            },
+            {
+                type: "CNAME",
+                host: `s1._domainkey.${cleanBusinessDomain}`,
+                desc: "DKIM Key 1 (2048-bit Rotating Key)",
+                value: "dkim1.hiroekevents.net",
+                status: "Ready to link",
+                ttl: "300 (Auto)",
+            },
+            {
+                type: "CNAME",
+                host: `s2._domainkey.${cleanBusinessDomain}`,
+                desc: "DKIM Key 2 (Automatic Fallback Redundancy)",
+                value: "dkim2.hiroekevents.net",
+                status: "Ready to link",
+                ttl: "300 (Auto)",
+            },
+        ];
+    }, [serverSendingDomain, cleanBusinessDomain]);
+
+    const handleCopyDns = (text: string, label: string) => {
+        navigator.clipboard.writeText(text);
+        toast.success(`${label} copied to clipboard!`);
+    };
+
+    const handleContinueDomainStep1 = async () => {
+        if (!cleanBusinessDomain || !cleanBusinessDomain.includes(".")) {
+            toast.danger("Please enter a valid domain (e.g. yourbusiness.com)");
+            return;
+        }
+        setBusinessDomain(cleanBusinessDomain);
+        if (!senderProfileEmail || senderProfileEmail === "hello@yourbusiness.com") {
+            setSenderProfileEmail(`hello@${cleanBusinessDomain}`);
+        }
+        if (!senderProfileReplyTo || senderProfileReplyTo === "hello@yourbusiness.com") {
+            setSenderProfileReplyTo(currentUser?.email || `hello@${cleanBusinessDomain}`);
+        }
+
+        try {
+            await connectCustomDomainMutation.mutateAsync({
+                domain: cleanBusinessDomain,
+            });
+            setDomainStep(2);
+        } catch (err: any) {
+            const status = err?.response?.status;
+            if (status === 409 || status === 400) {
+                setDomainStep(2);
+            }
+        }
+    };
+
+    const handleAddedRecordsStep2 = async () => {
+        try {
+            await verifyCustomDomainMutation.mutateAsync();
+            toast.success("DNS verification check initiated");
+        } catch (err) {
+            console.error("DNS verification check error:", err);
+        }
+        setDomainStep(3);
+    };
+
+    const handleSaveSenderProfile = async () => {
+        if (!senderProfileName.trim()) {
+            toast.danger("Please enter your sender name");
+            return;
+        }
+        if (!senderProfileEmail.trim()) {
+            toast.danger("Please enter your sender email");
+            return;
+        }
+        const cleanFromEmail = senderProfileEmail.trim().toLowerCase();
+        const cleanReplyTo =
+            senderProfileReplyTo.trim().toLowerCase() ||
+            currentUser?.email ||
+            cleanFromEmail;
+        const localPart = cleanFromEmail.split("@")[0] || "hello";
+
+        try {
+            const resp = await updateSenderProfileMutation.mutateAsync({
+                fromName: senderProfileName.trim(),
+                replyTo: cleanReplyTo,
+                localPart,
+            });
+
+            const domainData: VerifiedSender = {
+                id: resp?.sendingDomain?.id || resp?.sendingDomain?._id || activeSendingDomainId || undefined,
+                senderName: senderProfileName.trim(),
+                email: cleanFromEmail,
+                domain: cleanBusinessDomain,
+                replyTo: cleanReplyTo,
+                verified: true,
+                isBusinessDomain: true,
+                verifiedAt: new Date().toISOString(),
+            };
+
+            try {
+                localStorage.setItem("hiroek_verified_sender", JSON.stringify(domainData));
+            } catch {
+                // ignore
+            }
+
+            setVerifiedSender(domainData);
+            setFromSender(`${domainData.senderName} <${domainData.email}>`);
+            toast.success("Sender profile saved!");
+            setDomainStep(5);
+        } catch (err) {
+            console.error("Failed to update sender profile:", err);
+        }
+    };
+
+    // Update Sender Profile from modal (PATCH /api/event-partners/sending-domain)
+    const handleUpdateSenderProfileModal = async (payload: {
+        fromName?: string;
+        replyTo?: string;
+        localPart?: string;
+    }) => {
+        try {
+            await updateSenderProfileMutation.mutateAsync(payload);
+            toast.success("Sender profile updated successfully!");
+
+            setVerifiedSender((prev) => {
+                if (!prev) return null;
+                const next: VerifiedSender = {
+                    ...prev,
+                    senderName: payload.fromName || prev.senderName,
+                    replyTo: payload.replyTo || prev.replyTo,
+                };
+                if (payload.localPart && prev.domain) {
+                    next.email = `${payload.localPart}@${prev.domain}`;
+                }
+                try {
+                    localStorage.setItem("hiroek_verified_sender", JSON.stringify(next));
+                } catch {
+                    // ignore
+                }
+                setFromSender(`${next.senderName} <${next.email}>`);
+                return next;
+            });
+
+            if (payload.fromName) setFromNameInput(payload.fromName);
+            if (payload.replyTo) setEmailReplyTo(payload.replyTo);
+
+            setIsEditSenderModalOpen(false);
+        } catch (err) {
+            console.error("Failed to update sender profile:", err);
+        }
+    };
+
+    // Delete Sending Domain (DELETE /api/event-partners/sending-domain/{sendingDomainId})
+    const handleDeleteSendingDomain = async () => {
+        const idToDelete = activeSendingDomainId;
+        if (!idToDelete) {
+            toast.danger("No sending domain found to delete");
+            return;
+        }
+
+        try {
+            await deleteSendingDomainMutation.mutateAsync(idToDelete);
+            toast.success("Sending domain deleted successfully!");
+
+            try {
+                localStorage.removeItem("hiroek_verified_sender");
+            } catch {
+                // ignore
+            }
+
+            setVerifiedSender(null);
+            setFromSender("Editor");
+            setEmailPrefix("");
+            setConfirmEmailPrefix("");
+            setEmailReplyTo(currentUser?.email || "");
+            setBusinessDomain("yourbusiness.com");
+            setDomainStep(1);
+            setIsDeleteModalOpen(false);
+            setIsEditSenderModalOpen(false);
+            setCurrentView("choose_option");
+        } catch (err) {
+            console.error("Failed to delete sending domain:", err);
+        }
+    };
+
+    // Dispatch campaign message
     const handleSendMessage = async () => {
+        if (uploadImageMutation.isPending) {
+            toast.warning("Please wait for your image upload to complete before sending.");
+            return;
+        }
         if (!title.trim()) {
             toast.danger("Please enter a message title");
             return;
@@ -298,7 +847,6 @@ export default function SendMessage() {
                     ? "in_app"
                     : "email";
 
-        // Collect targeted recipients list
         const targetList = isSendToAll
             ? (allCustomers.length > 0 ? allCustomers : rawCustomers)
             : Array.from(selectedRecipientsMap.values()).map((r) => r.rawCustomer || r);
@@ -332,7 +880,6 @@ export default function SendMessage() {
                 ""
             ).trim();
 
-            // Check if ID is a valid 24-character hexadecimal Mongo ObjectId
             if (/^[0-9a-fA-F]{24}$/.test(strId)) {
                 if (!customerIds.includes(strId)) {
                     customerIds.push(strId);
@@ -347,7 +894,6 @@ export default function SendMessage() {
             }
         });
 
-        // Recipients payload strictly adheres to CampaignRecipientPayload schema
         const recipientsPayload: { customerIds?: string[]; importedEmails?: { email: string; name?: string }[] } = {};
         if (customerIds.length > 0) {
             recipientsPayload.customerIds = customerIds;
@@ -361,23 +907,12 @@ export default function SendMessage() {
             return;
         }
 
-        // const ctaButton =
-        //     showActionButton && buttonLabel.trim()
-        //         ? { label: buttonLabel.trim(), link: buttonLink.trim(), align: buttonAlign }
-        //         : null;
-
-        // HTML mode: exact editor styling. Otherwise plain text with Unicode styling (backend escapes HTML).
-        const useHtml = CAMPAIGN_SUPPORTS_HTML && channel === "email";
+        const useHtml = CAMPAIGN_SUPPORTS_HTML && (channel === "email" || channel === "in_app");
         const finalBody = useHtml
-            ? buildFullEmailHtml(body.trim(), {
-                bannerImage: uploadedImage
-                // , actionButton: ctaButton 
+            ? (await import("../../utils/emailTemplate")).buildFullEmailHtml(body.trim(), {
+                bannerImage: uploadedImage,
             })
-            : convertHtmlToStyledText(body.trim(),
-                //  {
-                //     actionButton: ctaButton,
-                // }
-            );
+            : (await import("../../utils/styledText")).convertHtmlToStyledText(body.trim());
 
         const idempotencyKey = `campaign_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
@@ -388,7 +923,7 @@ export default function SendMessage() {
                 recipients: recipientsPayload,
                 title: title.trim(),
                 body: finalBody,
-                ...(useHtml ? { isHtml: true } : {}),
+                // ...(useHtml ? { isHtml: true } : {}),
             });
 
             toast.success(
@@ -402,7 +937,7 @@ export default function SendMessage() {
         }
     };
 
-    // Columns for Recipient Table matching design
+    // Columns for Recipient Table
     const recipientColumns: Column<RecipientItem>[] = [
         {
             id: "select",
@@ -425,7 +960,7 @@ export default function SendMessage() {
             id: "sNo",
             name: "S/No",
             render: (_value, item) => (
-                <span className="w-8 h-8 rounded-full bg-[#F3F0FA] text-[#2E0F74] flex items-center justify-center text-xs font-bold shrink-0">
+                <span className="w-7 h-7 rounded-full bg-[#F3F0FA] text-[#2E0F74] flex items-center justify-center text-xs font-bold shrink-0">
                     {item.sNo}
                 </span>
             ),
@@ -450,10 +985,10 @@ export default function SendMessage() {
         },
         {
             id: "phone",
-            name: "Contact Number",
+            name: "Phone Number",
             render: (_value, item) => (
-                <span className="text-xs sm:text-sm font-semibold text-gray-800 whitespace-nowrap">
-                    {item.phone || "+44 701 2539 399 1122"}
+                <span className="text-xs sm:text-sm text-gray-600">
+                    {item.phone}
                 </span>
             ),
         },
@@ -461,646 +996,217 @@ export default function SendMessage() {
             id: "location",
             name: "Location",
             render: (_value, item) => (
-                <span className="text-xs sm:text-sm font-semibold text-gray-800 whitespace-nowrap">
+                <span className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">
                     {item.location}
                 </span>
             ),
         },
     ];
 
-    // Pagination numbers builder
-    const renderPaginationItems = () => {
-        const pages: (number | string)[] = [];
-        if (totalPages <= 5) {
-            for (let i = 1; i <= totalPages; i++) pages.push(i);
-        } else {
-            pages.push(1);
-            if (page > 3) pages.push("...");
-            const start = Math.max(2, page - 1);
-            const end = Math.min(totalPages - 1, page + 1);
-            for (let i = start; i <= end; i++) {
-                if (!pages.includes(i)) pages.push(i);
-            }
-            if (page < totalPages - 2) pages.push("...");
-            if (!pages.includes(totalPages)) pages.push(totalPages);
-        }
+    // ─── MODALS ─────────────────────────────────────────────────────────────
+    const renderModals = () => (
+        <>
+            <EditSenderModal
+                isOpen={isEditSenderModalOpen}
+                onClose={() => setIsEditSenderModalOpen(false)}
+                verifiedSender={verifiedSender}
+                currentAccountEmail={currentUser?.email || ""}
+                onUpdateProfile={handleUpdateSenderProfileModal}
+                onOpenDeleteModal={() => {
+                    setIsEditSenderModalOpen(false);
+                    setIsDeleteModalOpen(true);
+                }}
+                isUpdating={updateSenderProfileMutation.isPending}
+            />
+            <DeleteSenderModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                domainNameOrAddress={
+                    verifiedSender?.email ||
+                    verifiedSender?.domain ||
+                    serverSendingDomain?.domain ||
+                    serverSendingDomain?.address ||
+                    "current sending domain"
+                }
+                onConfirmDelete={handleDeleteSendingDomain}
+                isDeleting={deleteSendingDomainMutation.isPending}
+            />
+        </>
+    );
 
-        return pages.map((p, idx) => {
-            if (typeof p === "string") {
-                return (
-                    <span key={`ellipsis-${idx}`} className="px-1 text-gray-400 text-xs">
-                        ...
-                    </span>
-                );
-            }
-            const isActive = p === page;
-            return (
-                <button
-                    key={p}
-                    onClick={() => setPage(p)}
-                    className={`w-9 h-9 rounded-xl text-xs font-bold transition-colors cursor-pointer ${isActive
-                        ? "bg-[#2E0F74] text-white shadow-xs"
-                        : "border border-gray-200 text-gray-700 hover:bg-gray-50 bg-white"
-                        }`}
-                >
-                    {p}
-                </button>
-            );
-        });
-    };
-
-    // ─── RECIPIENTS VIEW ────────────────────────────────────────────────────
-    if (currentView === "recipients") {
+    // ─── VIEW ROUTING ────────────────────────────────────────────────────────
+    if (isSendingDomainLoading && !verifiedSender) {
         return (
-            <div className="w-full bg-white rounded-2xl md:rounded-3xl p-6 sm:p-8 flex flex-col gap-6 border border-gray-100 shadow-[0_4px_24px_rgba(0,0,0,0.03)]">
-                {/* Header */}
-                <div className="w-full flex flex-col gap-4">
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => setCurrentView("compose")}
-                            className="w-9 h-9 rounded-xl bg-[#2E0F74] text-white flex items-center justify-center cursor-pointer hover:bg-[#37137F] shadow-xs"
-                        >
-                            <IoChevronBack size={18} />
-                        </button>
-                        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
-                            Select Recipients
-                        </h2>
-                    </div>
-
-                    <div className="w-full sm:w-auto flex lg:flex-row flex-col ml-auto items-center gap-2.5 sm:gap-3">
-                        {/* Search Users input */}
-                        <div className="relative w-full sm:w-64 md:w-72">
-                            <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 text-sm">
-                                <IoSearch />
-                            </span>
-                            <input
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Search Users..."
-                                className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-xs sm:text-sm text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#2E0F74]"
-                            />
-                        </div>
-
-                        {/* Send To All Button */}
-                        <button
-                            onClick={handleSendToAllToggle}
-                            className="bg-[#2E0F74] hover:bg-[#37137F] lg:w-auto w-full text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-xs flex items-center gap-2 cursor-pointer transition-colors"
-                        >
-                            <LuSquareCheck size={16} />
-                            <span>{isSendToAll ? "Deselect All" : "Send To All"}</span>
-                        </button>
-
-                        {/* Done Button */}
-                        <button
-                            onClick={() => setCurrentView("compose")}
-                            className="bg-[#16A34A] hover:bg-[#15803D] lg:w-auto w-full text-white font-semibold text-xs px-5 py-2.5 rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer transition-colors"
-                        >
-                            <span>Done ({selectedCount} Recipients Selected)</span>
-                        </button>
-                    </div>
-                </div>
-
-                {/* Table */}
-                <div className="w-full overflow-hidden">
-                    <CustomTable<RecipientItem>
-                        columns={recipientColumns}
-                        rows={displayedRecipients}
-                        rowKey="id"
-                        total={totalCount}
-                        page={page}
-                        onPageChange={setPage}
-                        rowsPerPage={rowsPerPage}
-                        isLoading={isAudienceLoading}
-                        emptyText="No recipients found"
-                        headerClassName="border-b border-gray-100 bg-transparent"
-                        thClassName="py-3 px-4 text-xs sm:text-sm font-bold text-gray-900 text-left whitespace-nowrap"
-                        customPagination={
-                            <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-100">
-                                <span className="text-xs sm:text-sm text-gray-500 font-medium order-2 sm:order-1">
-                                    Showing {displayedRecipients.length} Of {totalCount} Users
-                                </span>
-
-                                <div className="flex items-center gap-1.5 sm:gap-2 order-1 sm:order-2">
-                                    <button
-                                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                                        disabled={page === 1}
-                                        className="px-4 py-2 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                                    >
-                                        Previous
-                                    </button>
-
-                                    {renderPaginationItems()}
-
-                                    <button
-                                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                                        disabled={page === totalPages}
-                                        className="px-4 py-2 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                                    >
-                                        Next
-                                    </button>
-                                </div>
-                            </div>
-                        }
-                    />
-                </div>
+            <div className="w-full flex items-center justify-center min-h-[400px]">
+                <Spinner size="lg" color="current" className="text-[#2E0F74]" />
             </div>
         );
     }
 
-    // ─── COMPOSE VIEW (WYSIWYG Editor Layout) ──────────────────────────────
+    if (currentView === "recipients") {
+        return (
+            <RecipientsPickerView
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                isSendToAll={isSendToAll}
+                onToggleSendToAll={handleSendToAllToggle}
+                selectedCount={selectedCount}
+                columns={recipientColumns}
+                rows={displayedRecipients}
+                totalCount={totalCount}
+                page={page}
+                onPageChange={setPage}
+                rowsPerPage={rowsPerPage}
+                totalPages={totalPages}
+                isLoading={isAudienceLoading}
+                onDone={() => setCurrentView("compose")}
+            />
+        );
+    }
+
+    if (currentView === "choose_option") {
+        return (
+            <>
+                <ChooseOptionView
+                    onSelectVerifyEmail={() => setCurrentView("verify_email")}
+                    onSelectAuthenticateDomain={() => {
+                        setCurrentView("authenticate_domain");
+                        setDomainStep(1);
+                    }}
+                    hasVerifiedSender={Boolean(verifiedSender?.verified)}
+                    verifiedSender={verifiedSender}
+                    onSkipToComposer={() => setCurrentView("compose")}
+                    onEditSender={() => setIsEditSenderModalOpen(true)}
+                    onDeleteSender={() => setIsDeleteModalOpen(true)}
+                />
+                {renderModals()}
+            </>
+        );
+    }
+
+    if (currentView === "verify_email") {
+        return (
+            <>
+                <VerifyEmailView
+                    fromName={fromNameInput}
+                    onFromNameChange={setFromNameInput}
+                    emailPrefix={emailPrefix}
+                    onEmailPrefixChange={setEmailPrefix}
+                    confirmEmailPrefix={confirmEmailPrefix}
+                    onConfirmEmailPrefixChange={setConfirmEmailPrefix}
+                    replyTo={emailReplyTo}
+                    onReplyToChange={setEmailReplyTo}
+                    onApprove={handleApproveEmail}
+                    onBack={() => setCurrentView("choose_option")}
+                    isLoading={setupPlatformDomainMutation.isPending}
+                />
+                {renderModals()}
+            </>
+        );
+    }
+
+    if (currentView === "ready_to_send") {
+        return (
+            <>
+                <ReadyToSendView
+                    senderName={verifiedSender?.senderName || "Hiroek Events"}
+                    senderEmail={verifiedSender?.email || "hello@hiroek.io"}
+                    replyTo={verifiedSender?.replyTo}
+                    emailBalanceFormatted={balanceFormatted}
+                    onCreateCampaign={() => setCurrentView("compose")}
+                    onEditSender={() => setIsEditSenderModalOpen(true)}
+                    onDeleteSender={() => setIsDeleteModalOpen(true)}
+                />
+                {renderModals()}
+            </>
+        );
+    }
+
+    if (currentView === "authenticate_domain") {
+        return (
+            <>
+                <AuthenticateDomainView
+                    domainStep={domainStep}
+                    businessDomain={businessDomain}
+                    onDomainChange={setBusinessDomain}
+                    senderProfileName={senderProfileName}
+                    onSenderProfileNameChange={setSenderProfileName}
+                    senderProfileEmail={senderProfileEmail}
+                    onSenderProfileEmailChange={setSenderProfileEmail}
+                    senderProfileReplyTo={senderProfileReplyTo}
+                    onSenderProfileReplyToChange={setSenderProfileReplyTo}
+                    dnsRecords={activeDnsRecords}
+                    emailBalanceFormatted={balanceFormatted}
+                    onContinueStep1={handleContinueDomainStep1}
+                    onAddedRecordsStep2={handleAddedRecordsStep2}
+                    onContinueStep3={() => setDomainStep(4)}
+                    onSaveSenderProfileStep4={handleSaveSenderProfile}
+                    onCreateCampaignStep5={() => setCurrentView("compose")}
+                    onBackToOptions={() => setCurrentView("choose_option")}
+                    onGoToStep={setDomainStep}
+                    onCopyDnsRecord={handleCopyDns}
+                    isConnectingDomain={connectCustomDomainMutation.isPending}
+                    isCheckingDns={verifyCustomDomainMutation.isPending}
+                    isUpdatingProfile={updateSenderProfileMutation.isPending}
+                />
+                {renderModals()}
+            </>
+        );
+    }
+
+    // ─── COMPOSE VIEW ────────────────────────────────────────────────────────
     return (
-        <div className="w-full max-w-4xl mx-auto flex flex-col gap-6 items-start pb-8">
-            {/* Hidden File Input for Banner Image */}
+        <>
             <input
                 type="file"
                 ref={fileInputRef}
                 onChange={handleImageUpload}
-                accept="image/png, image/jpeg, image/jpg, image/webp, image/svg+xml"
+                accept="image/png, image/jpeg, image/jpg, image/webp, image/gif"
+                multiple={false}
                 className="hidden"
             />
-
-            {/* Main Form Card */}
-            <div className="w-full bg-white rounded-2xl md:rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-[0_4px_24px_rgba(0,0,0,0.03)] flex flex-col gap-6">
-                {/* Header Row */}
-                <div className="w-full flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-3.5">
-                        {/* Back Arrow button */}
-                        {/* <button
-                            type="button"
-                            onClick={() => navigate("/dashboard/audience")}
-                            className="w-9 h-9 rounded-xl bg-[#2E0F74] text-white flex items-center justify-center shrink-0 cursor-pointer hover:bg-[#37137F] transition-colors shadow-xs mt-0.5"
-                        >
-                            <IoChevronBack size={18} />
-                        </button> */}
-                        <div className="flex flex-col">
-                            <h2 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight">
-                                Send New Message
-                            </h2>
-                            <p className="text-[11px] sm:text-xs font-medium text-gray-500 mt-0.5 leading-relaxed">
-                                Send Mass In-App Message & Email To Attendees About Future And
-                                Upcoming Events.
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Automate Email / SMS Button */}
-                    {/* <button
-                        type="button"
-                        onClick={() => toast.info("Automated campaigns scheduler enabled!")}
-                        className="bg-[#2E0F74] hover:bg-[#37137F] transition-colors text-white font-semibold text-xs px-4 py-2.5 rounded-xl cursor-pointer shadow-xs whitespace-nowrap shrink-0 hidden sm:block"
-                    >
-                        Automate Email / SMS
-                    </button> */}
-                </div>
-
-                {/* Select Message Type Radio Group */}
-                <div className="flex flex-col gap-2.5">
-                    <label className="text-xs font-bold text-gray-900">
-                        Select Message Type
-                    </label>
-                    <div className="flex flex-wrap items-center gap-6 sm:gap-8">
-                        {[
-                            { id: "notifications", label: "Notifications" },
-                            { id: "in_app", label: "In-App Message" },
-                            { id: "email", label: "Email" },
-                        ].map((item) => {
-                            const isChecked = messageType === item.id;
-                            return (
-                                <label
-                                    key={item.id}
-                                    onClick={() => setMessageType(item.id as typeof messageType)}
-                                    className="flex items-center gap-2 cursor-pointer select-none"
-                                >
-                                    <div
-                                        className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${isChecked
-                                            ? "border-[#7047EB]"
-                                            : "border-purple-300 hover:border-purple-400"
-                                            }`}
-                                    >
-                                        {isChecked && (
-                                            <div className="w-2 h-2 rounded-full bg-[#37137F]" />
-                                        )}
-                                    </div>
-                                    <span className="text-xs font-semibold text-gray-800">
-                                        {item.label}
-                                    </span>
-                                </label>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {/* From Field */}
-                <div className="flex flex-col gap-2">
-                    <label className="text-xs font-bold text-gray-900">From</label>
-                    <input
-                        type="text"
-                        value={fromSender}
-                        onChange={(e) => setFromSender(e.target.value)}
-                        placeholder="Sender name or email..."
-                        disabled
-                        className="w-full max-w-sm px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#2E0F74] focus:ring-1 focus:ring-[#2E0F74] transition-all"
-                    />
-                </div>
-
-                {/* Message Title Field */}
-                <div className="flex flex-col gap-2">
-                    <label className="text-xs font-bold text-gray-900">
-                        Message Title
-                    </label>
-                    <input
-                        type="text"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        placeholder="Enter message title..."
-                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#2E0F74] focus:ring-1 focus:ring-[#2E0F74] transition-all"
-                    />
-                </div>
-
-                {/* Message Body Field with WYSIWYG Editor & Live Preview */}
-                <div className="flex flex-col gap-2.5">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <label className="text-xs font-bold text-gray-900">
-                                Message Body
-                            </label>
-                            {/* {uploadedImage ? (
-                                <span className="px-2 py-0.5 rounded-full bg-purple-50 text-[#2E0F74] text-[10px] font-bold border border-purple-100 flex items-center gap-1">
-                                    <LuImage size={11} />
-                                    <span>Banner Attached</span>
-                                </span>
-                            ) : (
-                                <button
-                                    type="button"
-                                    onClick={() => fileInputRef.current?.click()}
-                                    className="flex items-center gap-1 text-[11px] font-semibold text-[#7047EB] hover:text-[#2E0F74] transition-colors cursor-pointer"
-                                >
-                                    <LuImage size={12} />
-                                    <span>+ Add Banner Image</span>
-                                </button>
-                            )} */}
-                            {/* {showActionButton && buttonLabel.trim() && (
-                                <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-semibold border border-blue-100">
-                                    CTA: {buttonLabel}
-                                </span>
-                            )} */}
-                        </div>
-
-                        {/* Edit / Preview Segmented Control */}
-                        <div className="flex items-center p-0.5 bg-gray-100 rounded-lg text-[11px] font-semibold">
-                            <button
-                                type="button"
-                                onClick={() => setBodyMode("edit")}
-                                className={`px-3 py-1 rounded-md transition-all cursor-pointer ${bodyMode === "edit"
-                                    ? "bg-white text-gray-900 shadow-2xs font-bold"
-                                    : "text-gray-500 hover:text-gray-900"
-                                    }`}
-                            >
-                                Edit
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setBodyMode("preview")}
-                                className={`px-3 py-1 rounded-md transition-all cursor-pointer ${bodyMode === "preview"
-                                    ? "bg-white text-gray-900 shadow-2xs font-bold"
-                                    : "text-gray-500 hover:text-gray-900"
-                                    }`}
-                            >
-                                Live Preview
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Editor / Preview Area */}
-                    {bodyMode === "edit" ? (
-                        <div className="flex flex-col gap-3">
-                            {/* Banner Image Card if attached */}
-                            {uploadedImage && (
-                                <div className="relative w-full rounded-xl overflow-hidden border border-purple-200 bg-purple-50/30 group">
-                                    <div className="w-full h-40 sm:h-48 overflow-hidden bg-gray-100 flex items-center justify-center">
-                                        <img
-                                            src={uploadedImage}
-                                            alt="Message banner"
-                                            className="w-full h-full object-cover object-center"
-                                        />
-                                    </div>
-                                    <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md bg-black/60 text-white text-[10px] font-semibold backdrop-blur-xs">
-                                        Email Banner (Displayed at top)
-                                    </div>
-                                    <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 opacity-90 group-hover:opacity-100 transition-opacity">
-                                        <button
-                                            type="button"
-                                            onClick={() => fileInputRef.current?.click()}
-                                            className="px-2.5 py-1 bg-black/65 hover:bg-black/85 text-white rounded-lg text-[11px] font-medium backdrop-blur-xs transition-colors cursor-pointer"
-                                        >
-                                            Change
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setUploadedImage(null);
-                                                toast.info("Banner removed");
-                                            }}
-                                            className="p-1.5 bg-red-600/80 hover:bg-red-700 text-white rounded-lg transition-colors cursor-pointer"
-                                            title="Remove image"
-                                        >
-                                            <IoClose size={14} />
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* TipTap Rich Text Editor */}
-                            <div
-                                onDragOver={(e) => {
-                                    e.preventDefault();
-                                    setIsBodyImageDragging(true);
-                                }}
-                                onDragLeave={(e) => {
-                                    e.preventDefault();
-                                    setIsBodyImageDragging(false);
-                                }}
-                                onDrop={handleBodyDrop}
-                                className={`w-full transition-all ${isBodyImageDragging ? "ring-2 ring-[#2E0F74] rounded-xl" : ""
-                                    }`}
-                            >
-                                <RichTextEditor
-                                    value={body}
-                                    onChange={setBody}
-                                    placeholder="Write your email content here... Use the toolbar above to style headings, text colors, highlights, lists, quotes, and links."
-                                    minHeight="220px"
-                                />
-                            </div>
-                        </div>
-                    ) : (
-                        /* Authentic Email Client Live Preview */
-                        <div className="w-full flex flex-col gap-3">
-                            {/* Device & Mode Toolbar */}
-                            <div className="flex items-center justify-between px-1">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-                                        Exact Outgoing Email Preview
-                                    </span>
-                                </div>
-                                <div className="flex items-center p-0.5 bg-gray-100 rounded-lg text-xs">
-                                    <button
-                                        type="button"
-                                        onClick={() => setPreviewDevice("desktop")}
-                                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${previewDevice === "desktop"
-                                            ? "bg-white text-gray-900 shadow-2xs font-bold"
-                                            : "text-gray-500 hover:text-gray-900"
-                                            }`}
-                                        title="Desktop View (600px)"
-                                    >
-                                        <LuMonitor size={13} />
-                                        <span>Desktop</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setPreviewDevice("mobile")}
-                                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${previewDevice === "mobile"
-                                            ? "bg-white text-gray-900 shadow-2xs font-bold"
-                                            : "text-gray-500 hover:text-gray-900"
-                                            }`}
-                                        title="Mobile View (375px)"
-                                    >
-                                        <LuSmartphone size={13} />
-                                        <span>Mobile</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Email Client Wrapper */}
-                            <div className="w-full bg-[#F3F4F6] border border-gray-200 rounded-2xl p-3 sm:p-6 flex justify-center items-start overflow-x-auto min-h-[360px]">
-                                <div
-                                    className={`w-full bg-white rounded-2xl border border-gray-200/90 shadow-sm overflow-hidden transition-all duration-200 flex flex-col ${previewDevice === "mobile" ? "max-w-[375px]" : "max-w-[620px]"
-                                        }`}
-                                >
-                                    {/* Email Header Simulation */}
-                                    <div className="bg-[#FAF9FD] border-b border-gray-100 p-4 sm:p-5 flex flex-col gap-2.5">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2.5">
-                                                <div className="w-8 h-8 rounded-full bg-[#2E0F74] text-white flex items-center justify-center font-bold text-xs shadow-2xs">
-                                                    {fromSender.charAt(0).toUpperCase()}
-                                                </div>
-                                                <div className="flex flex-col">
-                                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                                        <span className="text-xs font-bold text-gray-900">
-                                                            {fromSender}
-                                                        </span>
-                                                        <span className="text-[10px] text-gray-400 font-normal">
-                                                            &lt;noreply@hiroek.com&gt;
-                                                        </span>
-                                                    </div>
-                                                    <span className="text-[10px] text-gray-500">
-                                                        To: {selectedCount > 0 ? `${selectedCount} Recipient(s)` : "Selected Attendees"}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <span className="text-[10px] text-gray-400 font-medium">
-                                                Just now
-                                            </span>
-                                        </div>
-
-                                        {/* Subject Line */}
-                                        <div className="pt-2 border-t border-gray-100 flex items-baseline gap-2">
-                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider shrink-0">
-                                                Subject:
-                                            </span>
-                                            <span className="text-xs sm:text-sm font-bold text-gray-900 break-words">
-                                                {title.trim() ? (
-                                                    title
-                                                ) : (
-                                                    <span className="text-gray-300 italic font-normal">
-                                                        (No subject specified)
-                                                    </span>
-                                                )}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    {/* Email Body Area */}
-                                    <div className="p-5 sm:p-8 flex flex-col">
-                                        {/* Banner Image Preview */}
-                                        {uploadedImage && (
-                                            <div className="w-full mb-6 rounded-xl overflow-hidden border border-gray-100">
-                                                <img
-                                                    src={uploadedImage}
-                                                    alt="Message banner"
-                                                    className="w-full max-h-72 object-cover object-center"
-                                                />
-                                            </div>
-                                        )}
-
-                                        {/* Exact text that will be sent (no HTML) */}
-                                        {body.trim() && body !== "<p></p>" && body !== "<p><br></p>" ? (
-                                            CAMPAIGN_SUPPORTS_HTML && messageType === "email" ? (
-                                                <div
-                                                    className="w-full select-text break-words"
-                                                    dangerouslySetInnerHTML={{
-                                                        __html: buildFullEmailHtml(body
-                                                            //     , {
-                                                            //     actionButton: showActionButton && buttonLabel.trim()
-                                                            //         ? { label: buttonLabel.trim(), link: buttonLink.trim(), align: buttonAlign }
-                                                            //         : null,
-                                                            // }
-                                                        ),
-                                                    }}
-                                                />
-                                            ) : (
-                                                <div className="w-full text-xs sm:text-sm text-gray-800 leading-relaxed select-text break-words whitespace-pre-wrap font-sans">
-                                                    {convertHtmlToStyledText(body
-                                                        // , {
-                                                        //     actionButton:
-                                                        //         showActionButton && buttonLabel.trim()
-                                                        //             ? { label: buttonLabel.trim(), link: buttonLink.trim() }
-                                                        //             : null,
-                                                        // }
-                                                    )}
-                                                </div>
-                                            )
-                                        ) : (
-                                            <div className="text-gray-400 italic text-xs py-8 text-center">
-                                                Empty message body — switch to Edit mode to compose your message.
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Email Footer */}
-                                    <div className="bg-[#FAF9FD] border-t border-gray-100 px-5 py-3 text-center">
-                                        <span className="text-[10px] text-gray-400">
-                                            Sent via Hiroek CRM Campaign Manager
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* Optional Call to Action Button Toggle / Configuration */}
-                {/* <div className="w-full border border-gray-200 rounded-xl overflow-hidden bg-gray-50/50">
-                    <button
-                        type="button"
-                        onClick={() => setShowActionButton(!showActionButton)}
-                        className="w-full px-4 py-3 flex items-center justify-between text-left cursor-pointer hover:bg-gray-100/60 transition-colors"
-                    >
-                        <div className="flex items-center gap-2.5">
-                            <input
-                                type="checkbox"
-                                checked={showActionButton}
-                                onChange={(e) => {
-                                    e.stopPropagation();
-                                    setShowActionButton(e.target.checked);
-                                }}
-                                className="w-4 h-4 rounded text-[#2E0F74] accent-[#2E0F74] border-gray-300 cursor-pointer"
-                            />
-                            <div className="flex flex-col">
-                                <span className="text-xs font-bold text-gray-900">
-                                    Include Call-to-Action Button
-                                </span>
-                                <span className="text-[10px] text-gray-500">
-                                    Add an RSVP or external event link button at the bottom of the message
-                                </span>
-                            </div>
-                        </div>
-                        <div className="text-gray-400">
-                            {showActionButton ? <LuChevronUp size={16} /> : <LuChevronDown size={16} />}
-                        </div>
-                    </button>
-
-                    {showActionButton && (
-                        <div className="p-4 bg-white border-t border-gray-200 flex flex-col gap-3">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div className="flex flex-col gap-1">
-                                    <label className="text-[11px] font-semibold text-gray-700">
-                                        Button Label
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={buttonLabel}
-                                        onChange={(e) => setButtonLabel(e.target.value)}
-                                        placeholder="e.g. RSVP Now"
-                                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-800 focus:outline-none focus:border-[#2E0F74]"
-                                    />
-                                </div>
-                                <div className="flex flex-col gap-1">
-                                    <label className="text-[11px] font-semibold text-gray-700">
-                                        Button Link URL
-                                    </label>
-                                    <div className="relative">
-                                        <LuLink size={13} className="absolute left-3 top-3 text-gray-400" />
-                                        <input
-                                            type="text"
-                                            value={buttonLink}
-                                            onChange={(e) => setButtonLink(e.target.value)}
-                                            placeholder="https://hiroek.com/events/rsvp"
-                                            className="w-full pl-8 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-800 focus:outline-none focus:border-[#2E0F74]"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-2 pt-1">
-                                <label className="text-[11px] font-semibold text-gray-700">
-                                    Alignment:
-                                </label>
-                                <div className="flex items-center gap-1.5">
-                                    {(["left", "center", "right"] as const).map((align) => (
-                                        <button
-                                            key={align}
-                                            type="button"
-                                            onClick={() => setButtonAlign(align)}
-                                            className={`px-3 py-1 rounded-lg text-xs font-medium capitalize cursor-pointer transition-colors ${buttonAlign === align
-                                                ? "bg-[#2E0F74] text-white shadow-2xs"
-                                                : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
-                                                }`}
-                                        >
-                                            {align}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div> */}
-
-                {/* Select Recipients Field */}
-                <div className="flex flex-col gap-2">
-                    <label className="text-xs font-bold text-gray-900">
-                        Select Recipients
-                    </label>
-                    <div
-                        onClick={() => setCurrentView("recipients")}
-                        className="w-full px-5 py-3.5 bg-white border border-gray-200 hover:border-[#2E0F74] transition-colors rounded-xl flex items-center justify-between cursor-pointer group shadow-2xs"
-                    >
-                        <span className="text-xs font-bold text-gray-800">
-                            {selectedCount} Recipients Selected
-                        </span>
-                        <div className="w-7 h-7 rounded-full bg-[#2E0F74] group-hover:bg-[#37137F] text-white flex items-center justify-center transition-colors shadow-2xs">
-                            <IoPlay size={12} className="ml-0.5" />
-                        </div>
-                    </div>
-                </div>
-
-                {/* Send Message Button */}
-                <button
-                    type="button"
-                    onClick={handleSendMessage}
-                    disabled={createCampaignMutation.isPending}
-                    className="w-full py-3.5 bg-[#2E0F74] hover:bg-[#37137F] transition-colors rounded-xl text-white font-bold text-xs sm:text-sm shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
-                >
-                    {createCampaignMutation.isPending ? (
-                        <>
-                            <Spinner size="sm" color="current" />
-                            <span>Sending Message...</span>
-                        </>
-                    ) : (
-                        "Send Message"
-                    )}
-                </button>
-            </div>
-        </div>
+            <CampaignComposerView
+                verifiedSender={verifiedSender}
+                onConfigureSender={() => setCurrentView("choose_option")}
+                onEditSender={() => setIsEditSenderModalOpen(true)}
+                onDeleteSender={() => setIsDeleteModalOpen(true)}
+                messageType={messageType}
+                onMessageTypeChange={setMessageType}
+                fromSender={fromSender}
+                title={title}
+                onTitleChange={setTitle}
+                body={body}
+                onBodyChange={setBody}
+                bodyMode={bodyMode}
+                onBodyModeChange={setBodyMode}
+                previewDevice={previewDevice}
+                onPreviewDeviceChange={setPreviewDevice}
+                uploadedImage={uploadedImage}
+                isUploadingImage={uploadImageMutation.isPending}
+                onRemoveImage={() => {
+                    setUploadedImage(null);
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                }}
+                isBodyImageDragging={isBodyImageDragging}
+                onDragOver={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsBodyImageDragging(true);
+                }}
+                onDragLeave={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsBodyImageDragging(false);
+                }}
+                onDrop={handleBodyDrop}
+                onFileInputClick={() => fileInputRef.current?.click()}
+                selectedCount={selectedCount}
+                onOpenRecipients={() => setCurrentView("recipients")}
+                onSendMessage={handleSendMessage}
+                isSending={createCampaignMutation.isPending}
+                campaignSupportsHtml={CAMPAIGN_SUPPORTS_HTML}
+            />
+            {renderModals()}
+        </>
     );
 }

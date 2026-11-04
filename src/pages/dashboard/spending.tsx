@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AgeDistributionChart, TicketSpendDistributionChart } from "../../components/charts";
-import { Header, KeyInsight } from "../../components/common";
+import { Header } from "../../components/common";
 import { ChartLayout } from "../../components/layout";
 import CustomTable from "../../components/ui/customTable";
 import type { Column } from "../../type/table";
@@ -137,7 +137,7 @@ export default function Spending() {
                         isLoading={isTopSpendersLoading}
                     />
                 </div>
-                <div className=" w-full lg:w-96.75 shrink-0 ">
+                {/* <div className=" w-full lg:w-96.75 shrink-0 ">
                     <KeyInsight
                         bg="#08AF0F0D"
                         border="#08AF0F26"
@@ -147,7 +147,7 @@ export default function Spending() {
                         body="Your top 10% of attendees account for 55% of total revenue."
                         other
                     />
-                </div>
+                </div> */}
             </div>
         </div>
     );

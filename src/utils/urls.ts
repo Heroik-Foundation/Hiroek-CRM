@@ -61,4 +61,16 @@ export const URLS = {
     SCAN_TICKET: (eventTicketCode: string) =>
         `/event-partners/ticket-scanner/${encodeURIComponent(eventTicketCode)}`,
     CREATE_CAMPAIGN: "/event-partners/campaign/create-campaign",
+    IMAGE_UPLOAD: "/event-partners/image-upload",
+
+    // Sending Domain Endpoints
+    GET_SENDING_DOMAIN: "/event-partners/sending-domain",
+    SETUP_SENDING_DOMAIN: "/event-partners/sending-domain",
+    UPDATE_SENDING_DOMAIN: "/event-partners/sending-domain",
+    CHECK_SENDING_DOMAIN_AVAILABILITY: "/event-partners/sending-domain/availability",
+    CONNECT_CUSTOM_SENDING_DOMAIN: "/event-partners/sending-domain/custom",
+    VERIFY_CUSTOM_SENDING_DOMAIN: "/event-partners/sending-domain/custom/verify",
+    RETRY_SENDING_DOMAIN: "/event-partners/sending-domain/retry",
+    DELETE_SENDING_DOMAIN: (sendingDomainId: string) =>
+        `/event-partners/sending-domain/${sendingDomainId}`,
 };   

@@ -45,7 +45,7 @@ export default function LoadingLayout({
                     {length === 0 && (
                         <div className=" flex-1 flex flex-col justify-center items-center ">
                             <p className=" text-lg font-semibold text-black ">
-                                No Record found
+                                Nothing here yet
                             </p>
                             {/* <p className=" text-sm text-center text-gray-600 max-w-61 ">
                                 Schedule one to connect with a provider.

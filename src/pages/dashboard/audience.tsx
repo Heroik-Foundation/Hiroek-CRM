@@ -39,14 +39,14 @@ export default function Audience() {
     const segments = [
         {
             key: "all",
-            title: "All Attendees",
+            title: "All Ticket sold",
             value: metricsData?.all ?? 0,
             subtitle: "",
             iconColor: "#37137F",
         },
         {
             key: "frequent_buyers",
-            title: "Frequent Attendees",
+            title: "Frequent buyers",
             value: metricsData?.frequentBuyers ?? 0,
             subtitle: "3+ Events",
             iconColor: "#1D4ED8",

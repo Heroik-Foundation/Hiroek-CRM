@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Header } from "../../components/common";
 import { IoChevronDown, IoSearchOutline, IoClose } from "react-icons/io5";
 import { FaArrowTrendUp, FaArrowTrendDown, FaStar, FaRegStar } from "react-icons/fa6";
@@ -13,6 +14,7 @@ interface SelectedEventItem {
 }
 
 export default function Review() {
+    const navigate = useNavigate();
     const [selectedEvent, setSelectedEvent] = useState<SelectedEventItem>({
         id: undefined,
         name: "All Events",
@@ -227,9 +229,7 @@ export default function Review() {
     };
 
     const handleViewAll = () => {
-        setSelectedEvent({ id: undefined, name: "All Events" });
-        setRatingFloor("All");
-        setPage(1);
+        navigate("/dashboard/reviews/all");
     };
 
     return (

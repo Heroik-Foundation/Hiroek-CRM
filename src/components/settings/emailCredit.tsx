@@ -154,6 +154,18 @@ const SENDER_ID_OPTIONS: SenderIdOption[] = [
     },
 ];
 
+const STRIPE_FEES: Record<string, { percentage: number; fixed: number }> = {
+    gbp: { percentage: 0.015, fixed: 0.2 },
+    usd: { percentage: 0.029, fixed: 0.3 },
+    eur: { percentage: 0.015, fixed: 0.25 },
+    aud: { percentage: 0.0175, fixed: 0.3 },
+    cad: { percentage: 0.029, fixed: 0.3 },
+    nzd: { percentage: 0.0265, fixed: 0.3 },
+    default: { percentage: 0.0325, fixed: 0.3 },
+};
+
+const BASE_HIROEK_FEE = 1;
+
 const formatEmailRate = (rate: number): string => {
     if (rate <= 0) return "0.00";
     if (rate < 0.01) {
@@ -235,6 +247,8 @@ export default function SmsEmailCredits() {
         isOpen: boolean;
         clientSecret: string;
         amount: number;
+        subtotal?: number;
+        serviceFee?: number;
         bundleId: string;
         bundleName: string;
     } | null>(null);
@@ -261,12 +275,39 @@ export default function SmsEmailCredits() {
         c.name.toLowerCase().includes(countrySearch.toLowerCase()),
     );
 
+    // Service fee calculation state
+    const [serviceFees, setServiceFees] = useState(0);
+
     // Calculations
-    const processingFee = 2.0;
     const emailCost = selectedEmail?.amount || 0;
     const smsCost = addSmsCredit ? selectedSms.price : 0;
     const senderIdCost = addSmsCredit ? selectedSenderId.price : 0;
-    const totalCredits = emailCost + smsCost + senderIdCost + processingFee;
+    const subtotal = emailCost + smsCost + senderIdCost;
+
+    // Recalculate service fee whenever subtotal or currency changes
+    useEffect(() => {
+        if (subtotal <= 0) {
+            setServiceFees(0);
+            return;
+        }
+
+        const currency = "gbp";
+        const stripeFee = STRIPE_FEES[currency] ?? STRIPE_FEES.default;
+        const rate = 1;
+        const hiroekFee = Math.round(BASE_HIROEK_FEE * rate * 100) / 100;
+
+        const fee =
+            Math.round(
+                (hiroekFee +
+                    subtotal * stripeFee.percentage +
+                    stripeFee.fixed) *
+                    100,
+            ) / 100;
+
+        setServiceFees(fee);
+    }, [subtotal]);
+
+    const totalCredits = Math.round((subtotal + (subtotal > 0 ? serviceFees : 0)) * 100) / 100;
 
     /** 🛒 Handle Buy Now Click: Calls POST /api/email-bundles/purchase-bundle/{bundleId} */
     const handleBuyNow = async () => {
@@ -288,6 +329,8 @@ export default function SmsEmailCredits() {
                     isOpen: true,
                     clientSecret,
                     amount: totalCredits,
+                    subtotal,
+                    serviceFee: serviceFees,
                     bundleId: selectedEmail.id,
                     bundleName: selectedEmail.label,
                 });
@@ -353,13 +396,13 @@ export default function SmsEmailCredits() {
                         </div>
                     )}
 
-                    {/* Processing Fee */}
+                    {/* Service Fee */}
                     <div className="flex justify-between items-center text-sm pt-2">
                         <span className="font-bold text-emerald-600">
-                            Processing fee:
+                            Service fee:
                         </span>
                         <span className="font-bold text-emerald-600">
-                            {formatNumber(processingFee, "£")}
+                            {formatNumber(serviceFees, "£")}
                         </span>
                     </div>
                 </div>
@@ -759,11 +802,21 @@ export default function SmsEmailCredits() {
                         </div>
 
                         {/* Total Highlight */}
-                        <div className="bg-purple-50 border border-purple-100 rounded-xl p-3.5 flex justify-between items-center text-sm">
-                            <span className="text-gray-600">Total Amount:</span>
-                            <span className="font-bold text-[#37137F] text-base">
-                                {formatNumber(stripeModal.amount, "£")}
-                            </span>
+                        <div className="bg-purple-50 border border-purple-100 rounded-xl p-3.5 flex flex-col gap-1.5 text-sm">
+                            <div className="flex justify-between items-center">
+                                <span className="text-gray-600">Total Amount:</span>
+                                <span className="font-bold text-[#37137F] text-base">
+                                    {formatNumber(stripeModal.amount, "£")}
+                                </span>
+                            </div>
+                            {stripeModal.serviceFee != null && stripeModal.serviceFee > 0 && (
+                                <div className="flex justify-between items-center text-xs text-gray-500 pt-1.5 border-t border-purple-100">
+                                    <span>Includes service fee:</span>
+                                    <span className="font-semibold text-gray-700">
+                                        {formatNumber(stripeModal.serviceFee, "£")}
+                                    </span>
+                                </div>
+                            )}
                         </div>
 
                         {/* Stripe Elements Form */}
