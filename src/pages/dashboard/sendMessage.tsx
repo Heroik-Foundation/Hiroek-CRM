@@ -340,6 +340,31 @@ export default function SendMessage() {
         }
     };
 
+    // Upload handler passed to RichTextEditor for inline images
+    const handleUploadImageForEditor = async (file: File): Promise<string | null> => {
+        if (!ALLOWED_IMAGE_TYPES.includes(file.type.toLowerCase())) {
+            toast.danger("Please select a valid image file (PNG, JPG, GIF, WebP)");
+            return null;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            toast.danger("Image size must be 5MB or less");
+            return null;
+        }
+
+        try {
+            const res = await uploadImageMutation.mutateAsync(file);
+            const publicUrl =
+                res?.url ||
+                res?.data?.url ||
+                res?.result?.url ||
+                null;
+            return publicUrl;
+        } catch (err) {
+            console.error("Editor image upload failed:", err);
+            return null;
+        }
+    };
+
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (files && files.length > 0) {
@@ -1205,6 +1230,7 @@ export default function SendMessage() {
                 onSendMessage={handleSendMessage}
                 isSending={createCampaignMutation.isPending}
                 campaignSupportsHtml={CAMPAIGN_SUPPORTS_HTML}
+                onUploadImage={handleUploadImageForEditor}
             />
             {renderModals()}
         </>

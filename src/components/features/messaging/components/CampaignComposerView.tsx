@@ -35,6 +35,7 @@ interface CampaignComposerViewProps {
     onSendMessage: () => void;
     isSending: boolean;
     campaignSupportsHtml: boolean;
+    onUploadImage?: (file: File) => Promise<string | null>;
 }
 
 export default function CampaignComposerView({
@@ -58,7 +59,7 @@ export default function CampaignComposerView({
     onDragOver,
     onDragLeave,
     onDrop,
-    onFileInputClick,
+    // onFileInputClick,
     selectedCount,
     onOpenRecipients,
     onSendMessage,
@@ -66,6 +67,7 @@ export default function CampaignComposerView({
     campaignSupportsHtml,
     onEditSender,
     onDeleteSender,
+    onUploadImage,
 }: CampaignComposerViewProps) {
     return (
         <div className="w-full max-w-4xl mx-auto flex flex-col gap-5 items-start pb-8">
@@ -141,8 +143,8 @@ export default function CampaignComposerView({
                                 >
                                     <div
                                         className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center transition-colors ${isChecked
-                                                ? "border-[#7047EB]"
-                                                : "border-purple-300 hover:border-purple-400"
+                                            ? "border-[#7047EB]"
+                                            : "border-purple-300 hover:border-purple-400"
                                             }`}
                                     >
                                         {isChecked && (
@@ -208,7 +210,7 @@ export default function CampaignComposerView({
                             <label className="text-xs font-bold text-gray-900">
                                 Message Body
                             </label>
-                            {!uploadedImage && !isUploadingImage && (
+                            {/* {!uploadedImage && !isUploadingImage && (
                                 <button
                                     type="button"
                                     onClick={onFileInputClick}
@@ -222,7 +224,7 @@ export default function CampaignComposerView({
                                     <Spinner size="sm" color="current" />
                                     <span>Uploading image...</span>
                                 </span>
-                            )}
+                            )} */}
                         </div>
 
                         {/* Mode Switcher Tabs */}
@@ -231,8 +233,8 @@ export default function CampaignComposerView({
                                 type="button"
                                 onClick={() => onBodyModeChange("edit")}
                                 className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${bodyMode === "edit"
-                                        ? "bg-[#2E0F74] text-white shadow-2xs"
-                                        : "text-gray-600 hover:text-gray-900"
+                                    ? "bg-[#2E0F74] text-white shadow-2xs"
+                                    : "text-gray-600 hover:text-gray-900"
                                     }`}
                             >
                                 Edit
@@ -241,8 +243,8 @@ export default function CampaignComposerView({
                                 type="button"
                                 onClick={() => onBodyModeChange("preview")}
                                 className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${bodyMode === "preview"
-                                        ? "bg-[#2E0F74] text-white shadow-2xs"
-                                        : "text-gray-600 hover:text-gray-900"
+                                    ? "bg-[#2E0F74] text-white shadow-2xs"
+                                    : "text-gray-600 hover:text-gray-900"
                                     }`}
                             >
                                 Live Preview
@@ -257,8 +259,8 @@ export default function CampaignComposerView({
                             onDragLeave={onDragLeave}
                             onDrop={onDrop}
                             className={`w-full rounded-2xl transition-all relative ${isBodyImageDragging
-                                    ? "ring-2 ring-[#7047EB] bg-purple-50/30"
-                                    : ""
+                                ? "ring-2 ring-[#7047EB] bg-purple-50/30"
+                                : ""
                                 }`}
                         >
                             {/* Attached Banner Chip or Uploading State */}
@@ -310,6 +312,7 @@ export default function CampaignComposerView({
                                 onChange={onBodyChange}
                                 placeholder="Write your message here... Use bold, colors, headings, bullet lists, or alignment to format."
                                 minHeight="200px"
+                                onUploadImage={onUploadImage}
                             />
 
                             {/* Drop overlay */}
@@ -333,8 +336,8 @@ export default function CampaignComposerView({
                                         type="button"
                                         onClick={() => onPreviewDeviceChange("desktop")}
                                         className={`px-2.5 py-1 rounded text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${previewDevice === "desktop"
-                                                ? "bg-[#2E0F74] text-white"
-                                                : "text-gray-600 hover:text-gray-900"
+                                            ? "bg-[#2E0F74] text-white"
+                                            : "text-gray-600 hover:text-gray-900"
                                             }`}
                                     >
                                         <LuMonitor size={12} />
@@ -344,8 +347,8 @@ export default function CampaignComposerView({
                                         type="button"
                                         onClick={() => onPreviewDeviceChange("mobile")}
                                         className={`px-2.5 py-1 rounded text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${previewDevice === "mobile"
-                                                ? "bg-[#2E0F74] text-white"
-                                                : "text-gray-600 hover:text-gray-900"
+                                            ? "bg-[#2E0F74] text-white"
+                                            : "text-gray-600 hover:text-gray-900"
                                             }`}
                                     >
                                         <LuSmartphone size={12} />

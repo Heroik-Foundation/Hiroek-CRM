@@ -176,8 +176,58 @@ export function inlineEmailStyles(rawHtml: string): string {
             });
         });
 
-        // Style Links
-        container.querySelectorAll("a").forEach((el) => {
+        // Style Custom Image Blocks
+        container.querySelectorAll("div[data-type='image-block']").forEach((el) => {
+            const align = el.getAttribute("data-align") || "center";
+            mergeInlineStyle(el as HTMLElement, {
+                "margin": "16px 0",
+                "text-align": align === "left" ? "left" : align === "right" ? "right" : "center",
+            });
+        });
+
+        // Style all Images with high deliverability and responsiveness
+        container.querySelectorAll("img").forEach((el) => {
+            const widthAttr = el.getAttribute("data-width") || el.parentElement?.getAttribute("data-width") || "100%";
+            mergeInlineStyle(el as HTMLElement, {
+                "max-width": widthAttr === "100%" ? "100%" : widthAttr,
+                "width": "auto",
+                "height": "auto",
+                "border-radius": "10px",
+                "display": "inline-block",
+                "vertical-align": "middle",
+                "border": "0",
+                "box-shadow": "0 1px 3px rgba(0, 0, 0, 0.08)",
+            });
+        });
+
+        // Style Custom CTA Buttons
+        container.querySelectorAll("div[data-type='email-button']").forEach((el) => {
+            const align = el.getAttribute("data-align") || "center";
+            mergeInlineStyle(el as HTMLElement, {
+                "margin": "20px 0",
+                "text-align": align === "left" ? "left" : align === "right" ? "right" : "center",
+            });
+        });
+
+        container.querySelectorAll("a[data-type='email-button-link']").forEach((el) => {
+            const bg = el.getAttribute("data-bg") || el.parentElement?.getAttribute("data-bg") || "#2E0F74";
+            const textColor = el.getAttribute("data-text-color") || el.parentElement?.getAttribute("data-text-color") || "#ffffff";
+            mergeInlineStyle(el as HTMLElement, {
+                "display": "inline-block",
+                "background-color": bg,
+                "color": textColor,
+                "padding": "12px 28px",
+                "font-weight": "700",
+                "font-size": "14px",
+                "text-decoration": "none",
+                "border-radius": "10px",
+                "font-family": defaultFont,
+                "box-shadow": "0 2px 6px rgba(46, 15, 116, 0.2)",
+            });
+        });
+
+        // Style standard Links (exclude CTA button links)
+        container.querySelectorAll("a:not([data-type='email-button-link'])").forEach((el) => {
             mergeInlineStyle(el as HTMLElement, {
                 "color": "#7047EB",
                 "text-decoration": "underline",

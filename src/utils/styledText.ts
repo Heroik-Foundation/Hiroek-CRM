@@ -94,6 +94,20 @@ export function convertHtmlToStyledText(rawHtml: string, options: StyledTextOpti
     };
 
     const block = (el: Element) => {
+        if (el.getAttribute("data-type") === "image-block") {
+            const img = el.querySelector("img");
+            const src = img?.getAttribute("src") || "";
+            if (src) lines.push(`[Image: ${src}]`, "");
+            return;
+        }
+        if (el.getAttribute("data-type") === "email-button") {
+            const a = el.querySelector("a");
+            const href = a?.getAttribute("href") || "#";
+            const label = a?.textContent?.trim() || "Button";
+            lines.push(`▶ [${label}] (${href})`, "");
+            return;
+        }
+
         const tag = el.tagName.toLowerCase();
         switch (tag) {
             case "h1": return heading(el, 1);
