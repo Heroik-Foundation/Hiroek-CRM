@@ -35,7 +35,7 @@ export default function ChooseOptionView({
                 </div>
 
                 {/* Title */}
-                <h1 className="text-xl sm:text-2xl font-bold text-[#2E0F74] text-center mb-6 tracking-tight">
+                <h1 className="text-xl font-bold text-[#2E0F74] text-center mb-6 tracking-tight">
                     Choose the option suitable for you
                 </h1>
 

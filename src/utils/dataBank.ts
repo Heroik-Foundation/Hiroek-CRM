@@ -94,7 +94,7 @@ export const settingLink = [
     // },
     {
         icon: Card,
-        name: "SMS & Email Credits",
+        name: "Email Credits",
         link: "/dashboard/settings?tab=credit"
     },
     {

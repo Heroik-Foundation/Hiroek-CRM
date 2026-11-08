@@ -12,7 +12,6 @@ import { useAtomValue } from "jotai";
 import { userAtom } from "../../../utils/atom/user";
 
 const ROLE_OPTIONS = [
-    { label: "Creator", value: "owner" },
     { label: "Admin", value: "admin" },
     { label: "Viewer", value: "viewer" },
 ];

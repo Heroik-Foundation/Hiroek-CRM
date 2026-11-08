@@ -1062,7 +1062,7 @@ export default function SendMessage() {
     // ─── VIEW ROUTING ────────────────────────────────────────────────────────
     if (isSendingDomainLoading && !verifiedSender) {
         return (
-            <div className="w-full flex items-center justify-center min-h-[400px]">
+            <div className="w-full flex items-center justify-center min-h-100">
                 <Spinner size="lg" color="current" className="text-[#2E0F74]" />
             </div>
         );

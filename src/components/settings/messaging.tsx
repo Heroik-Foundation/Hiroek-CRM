@@ -387,7 +387,7 @@ export default function Messaging() {
                                     setPage(1);
                                 }}
                                 placeholder="Search Recipients..."
-                                className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#37137F] focus:ring-1 focus:ring-[#37137F] transition-all"
+                                className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#37137F] transition-all"
                             />
                         </div>
 
@@ -526,7 +526,7 @@ export default function Messaging() {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="Enter email subject or message title..."
-                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-xs sm:text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#37137F] focus:ring-1 focus:ring-[#37137F] transition-all"
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-xs sm:text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#37137F] transition-all"
                 />
             </div>
 
@@ -540,7 +540,7 @@ export default function Messaging() {
                     value={body}
                     onChange={(e) => setBody(e.target.value)}
                     placeholder="Type your message here..."
-                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-xs sm:text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#37137F] focus:ring-1 focus:ring-[#37137F] transition-all resize-y min-h-36 sm:min-h-44"
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-xs sm:text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#37137F] transition-all resize-y min-h-36 sm:min-h-44"
                 />
             </div>
 
@@ -573,7 +573,7 @@ export default function Messaging() {
             <button
                 onClick={handleSendMessage}
                 disabled={createCampaignMutation.isPending}
-                className="w-full py-3.5 sm:py-4 bg-[#37137F] hover:bg-[#2c0e66] transition-colors rounded-xl text-white font-semibold text-xs sm:text-sm shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full py-3.5 sm:py-4 bg-[#37137F] hover:bg-[#2c0e66] transition-colors rounded-xl text-white font-semibold text-xs sm:text-sm shadow-xs cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
             >
                 {createCampaignMutation.isPending ? (
                     <>
