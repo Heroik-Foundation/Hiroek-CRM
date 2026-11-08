@@ -128,6 +128,13 @@ function ImageNodeView({ node, updateAttributes, deleteNode, selected }: NodeVie
             ? "justify-end text-right"
             : "justify-center text-center";
 
+    const barPositionClass =
+        alignment === "left"
+            ? "left-2"
+            : alignment === "right"
+            ? "right-2"
+            : "left-1/2 -translate-x-1/2";
+
     return (
         <NodeViewWrapper
             className="my-3 relative group"
@@ -136,30 +143,32 @@ function ImageNodeView({ node, updateAttributes, deleteNode, selected }: NodeVie
         >
             <div className={`w-full flex ${alignClass}`}>
                 <div
-                    className={`relative inline-block rounded-xl overflow-hidden border transition-all ${
+                    className={`relative inline-block rounded-xl border transition-all ${
                         selected || isHovered
                             ? "ring-2 ring-[#7047EB] border-purple-300 shadow-md"
                             : "border-gray-200"
                     }`}
                     style={{ maxWidth: width, width: width === "100%" ? "100%" : "auto" }}
                 >
-                    <img
-                        src={src}
-                        alt={alt || "Message content"}
-                        className="w-full h-auto block rounded-xl object-contain max-h-[500px]"
-                    />
+                    <div className="rounded-xl overflow-hidden">
+                        <img
+                            src={src}
+                            alt={alt || "Message content"}
+                            className="w-full h-auto block rounded-xl object-contain max-h-[500px]"
+                        />
+                    </div>
 
                     {/* Floating Controls Bar */}
                     {(selected || isHovered) && (
                         <div
-                            className="absolute top-2 right-2 bg-gray-900/90 text-white backdrop-blur-xs rounded-xl p-1.5 flex items-center gap-1 shadow-lg z-20 animate-fadeIn"
+                            className={`absolute top-2 ${barPositionClass} bg-gray-900/90 text-white backdrop-blur-xs rounded-xl p-1.5 flex items-center gap-1 shadow-lg z-20 whitespace-nowrap flex-nowrap shrink-0 animate-fadeIn`}
                             onClick={(e) => e.stopPropagation()}
                         >
                             {/* Alignment buttons */}
                             <button
                                 type="button"
                                 onClick={() => updateAttributes({ alignment: "left" })}
-                                className={`p-1 rounded-md text-xs hover:bg-white/20 transition cursor-pointer ${
+                                className={`p-1 rounded-md text-xs hover:bg-white/20 transition cursor-pointer shrink-0 ${
                                     alignment === "left" ? "bg-white/30 text-white" : "text-gray-300"
                                 }`}
                                 title="Align Left"
@@ -169,7 +178,7 @@ function ImageNodeView({ node, updateAttributes, deleteNode, selected }: NodeVie
                             <button
                                 type="button"
                                 onClick={() => updateAttributes({ alignment: "center" })}
-                                className={`p-1 rounded-md text-xs hover:bg-white/20 transition cursor-pointer ${
+                                className={`p-1 rounded-md text-xs hover:bg-white/20 transition cursor-pointer shrink-0 ${
                                     alignment === "center" ? "bg-white/30 text-white" : "text-gray-300"
                                 }`}
                                 title="Align Center"
@@ -179,7 +188,7 @@ function ImageNodeView({ node, updateAttributes, deleteNode, selected }: NodeVie
                             <button
                                 type="button"
                                 onClick={() => updateAttributes({ alignment: "right" })}
-                                className={`p-1 rounded-md text-xs hover:bg-white/20 transition cursor-pointer ${
+                                className={`p-1 rounded-md text-xs hover:bg-white/20 transition cursor-pointer shrink-0 ${
                                     alignment === "right" ? "bg-white/30 text-white" : "text-gray-300"
                                 }`}
                                 title="Align Right"
@@ -187,13 +196,13 @@ function ImageNodeView({ node, updateAttributes, deleteNode, selected }: NodeVie
                                 <LuAlignRight size={13} />
                             </button>
 
-                            <div className="w-[1px] h-3 bg-white/20 mx-0.5" />
+                            <div className="w-[1px] h-3 bg-white/20 mx-0.5 shrink-0" />
 
                             {/* Width selector */}
                             <button
                                 type="button"
                                 onClick={() => updateAttributes({ width: "50%" })}
-                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold hover:bg-white/20 transition cursor-pointer ${
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold hover:bg-white/20 transition cursor-pointer shrink-0 ${
                                     width === "50%" ? "bg-white/30 text-white" : "text-gray-300"
                                 }`}
                                 title="Medium (50%)"
@@ -203,7 +212,7 @@ function ImageNodeView({ node, updateAttributes, deleteNode, selected }: NodeVie
                             <button
                                 type="button"
                                 onClick={() => updateAttributes({ width: "75%" })}
-                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold hover:bg-white/20 transition cursor-pointer ${
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold hover:bg-white/20 transition cursor-pointer shrink-0 ${
                                     width === "75%" ? "bg-white/30 text-white" : "text-gray-300"
                                 }`}
                                 title="Large (75%)"
@@ -213,7 +222,7 @@ function ImageNodeView({ node, updateAttributes, deleteNode, selected }: NodeVie
                             <button
                                 type="button"
                                 onClick={() => updateAttributes({ width: "100%" })}
-                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold hover:bg-white/20 transition cursor-pointer ${
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold hover:bg-white/20 transition cursor-pointer shrink-0 ${
                                     width === "100%" ? "bg-white/30 text-white" : "text-gray-300"
                                 }`}
                                 title="Full Width (100%)"
@@ -221,13 +230,13 @@ function ImageNodeView({ node, updateAttributes, deleteNode, selected }: NodeVie
                                 100%
                             </button>
 
-                            <div className="w-[1px] h-3 bg-white/20 mx-0.5" />
+                            <div className="w-[1px] h-3 bg-white/20 mx-0.5 shrink-0" />
 
                             {/* Delete Button */}
                             <button
                                 type="button"
                                 onClick={deleteNode}
-                                className="p-1 rounded-md text-red-400 hover:bg-red-500/30 hover:text-red-200 transition cursor-pointer"
+                                className="p-1 rounded-md text-red-400 hover:bg-red-500/30 hover:text-red-200 transition cursor-pointer shrink-0"
                                 title="Remove Image"
                             >
                                 <LuTrash2 size={13} />

@@ -1,5 +1,5 @@
 import { IoPlay, IoClose } from "react-icons/io5";
-import { LuCheck, LuMail, LuCircleCheck, LuMonitor, LuSmartphone, LuPencil, LuTrash2 } from "react-icons/lu";
+import { LuCheck, LuMail, LuCircleCheck, LuPencil, LuTrash2 } from "react-icons/lu";
 import { Spinner } from "@heroui/react";
 import RichTextEditor from "../../../ui/richTextEditor";
 import { buildFullEmailHtml } from "../../../../utils/emailTemplate";
@@ -51,7 +51,7 @@ export default function CampaignComposerView({
     bodyMode,
     onBodyModeChange,
     previewDevice,
-    onPreviewDeviceChange,
+    // onPreviewDeviceChange,
     uploadedImage,
     isUploadingImage = false,
     onRemoveImage,
@@ -74,7 +74,7 @@ export default function CampaignComposerView({
             {/* Main Form Card */}
             <div className="w-full bg-white rounded-2xl md:rounded-3xl p-5 sm:p-7 border border-gray-100 shadow-[0_4px_24px_rgba(0,0,0,0.03)] flex flex-col gap-5">
                 {/* Header Row */}
-                <div className="w-full flex items-start justify-between gap-3">
+                <div className="w-full flex lg:flex-row flex-col items-start justify-between gap-3">
                     <div className="flex flex-col">
                         <h2 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">
                             Send New Message
@@ -178,7 +178,7 @@ export default function CampaignComposerView({
                             value={fromSender}
                             readOnly
                             placeholder="Sender name or email..."
-                            className="w-full px-3.5 py-2 bg-gray-50/70 border border-gray-200 rounded-xl text-xs font-medium text-gray-800 placeholder-gray-400 focus:outline-none"
+                            className="w-full px-3.5 py-2 bg-gray-50/70 border border-gray-200 rounded-xl text-xs font-medium text-gray-800 focus:outline-none"
                         />
                         {verifiedSender?.verified && (
                             <span className="absolute right-2.5 top-1/2 -translate-y-1/2 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[9.5px] font-bold border border-emerald-100 flex items-center gap-1 shadow-2xs select-none">
@@ -199,7 +199,7 @@ export default function CampaignComposerView({
                         value={title}
                         onChange={(e) => onTitleChange(e.target.value)}
                         placeholder="Enter message title..."
-                        className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#2E0F74] focus:ring-1 focus:ring-[#2E0F74] transition-all"
+                        className="w-full px-3.5 py-2.5 bg-white border rounded-xl text-xs font-medium placeholder-gray-400 focus:outline-none focus:border-[#2E0F74] focus:ring-1 focus:ring-[#2E0F74] transition-all"
                     />
                 </div>
 
@@ -327,7 +327,7 @@ export default function CampaignComposerView({
                     ) : (
                         /* Mode 2: PREVIEW MODE */
                         <div className="w-full flex flex-col gap-3">
-                            <div className="w-full flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2">
+                            {/* <div className="w-full flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2">
                                 <span className="text-[11px] font-semibold text-gray-600">
                                     Device Preview
                                 </span>
@@ -349,13 +349,11 @@ export default function CampaignComposerView({
                                         className={`px-2.5 py-1 rounded text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${previewDevice === "mobile"
                                             ? "bg-[#2E0F74] text-white"
                                             : "text-gray-600 hover:text-gray-900"
-                                            }`}
-                                    >
-                                        <LuSmartphone size={12} />
+                                            }`}                                                                                  
                                         <span>Mobile</span>
                                     </button>
                                 </div>
-                            </div>
+                            </div> */}
 
                             {/* Client Window Mockup */}
                             <div
@@ -395,13 +393,13 @@ export default function CampaignComposerView({
                                         {body.trim() && body !== "<p></p>" && body !== "<p><br></p>" ? (
                                             campaignSupportsHtml && (messageType === "email" || messageType === "in_app") ? (
                                                 <div
-                                                    className="w-full select-text break-words text-xs sm:text-sm"
+                                                    className="w-full select-text wrap-break-word text-xs sm:text-sm"
                                                     dangerouslySetInnerHTML={{
                                                         __html: buildFullEmailHtml(body),
                                                     }}
                                                 />
                                             ) : (
-                                                <div className="w-full text-xs sm:text-sm text-gray-800 leading-relaxed select-text break-words whitespace-pre-wrap font-sans">
+                                                <div className="w-full text-xs sm:text-sm text-gray-800 leading-relaxed select-text wrap-break-word whitespace-pre-wrap font-sans">
                                                     {convertHtmlToStyledText(body)}
                                                 </div>
                                             )
@@ -440,7 +438,7 @@ export default function CampaignComposerView({
                     type="button"
                     onClick={onSendMessage}
                     disabled={isSending || isUploadingImage}
-                    className="w-full py-3 bg-[#2E0F74] hover:bg-[#37137F] transition-colors rounded-xl text-white font-bold text-xs sm:text-sm shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-1"
+                    className="w-full py-3 bg-[#2E0F74] hover:bg-[#37137F] transition-colors rounded-xl text-white font-bold text-xs sm:text-sm shadow-md cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 mt-1"
                 >
                     {isSending ? (
                         <>
