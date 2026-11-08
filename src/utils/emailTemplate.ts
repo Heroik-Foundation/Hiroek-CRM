@@ -215,7 +215,7 @@ export function inlineEmailStyles(rawHtml: string): string {
             mergeInlineStyle(el as HTMLElement, {
                 "display": "inline-block",
                 "background-color": bg,
-                "color": textColor,
+                "color": textColor || "#ffffff",
                 "padding": "12px 28px",
                 "font-weight": "700",
                 "font-size": "14px",
@@ -223,6 +223,13 @@ export function inlineEmailStyles(rawHtml: string): string {
                 "border-radius": "10px",
                 "font-family": defaultFont,
                 "box-shadow": "0 2px 6px rgba(46, 15, 116, 0.2)",
+            });
+        });
+
+        container.querySelectorAll("a[data-type='email-button-link'] span").forEach((el) => {
+            mergeInlineStyle(el as HTMLElement, {
+                "color": "#ffffff",
+                "text-decoration": "none",
             });
         });
 

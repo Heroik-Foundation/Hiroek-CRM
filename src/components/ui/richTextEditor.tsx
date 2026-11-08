@@ -168,8 +168,10 @@ function ImageNodeView({ node, updateAttributes, deleteNode, selected }: NodeVie
                             <button
                                 type="button"
                                 onClick={() => updateAttributes({ alignment: "left" })}
-                                className={`p-1 rounded-md text-xs hover:bg-white/20 transition cursor-pointer shrink-0 ${
-                                    alignment === "left" ? "bg-white/30 text-white" : "text-gray-300"
+                                className={`p-1 rounded-md text-xs transition cursor-pointer shrink-0 ${
+                                    alignment === "left"
+                                        ? "bg-[#7047EB] text-white shadow-xs font-bold"
+                                        : "text-gray-300 hover:bg-white/20 hover:text-white"
                                 }`}
                                 title="Align Left"
                             >
@@ -178,8 +180,10 @@ function ImageNodeView({ node, updateAttributes, deleteNode, selected }: NodeVie
                             <button
                                 type="button"
                                 onClick={() => updateAttributes({ alignment: "center" })}
-                                className={`p-1 rounded-md text-xs hover:bg-white/20 transition cursor-pointer shrink-0 ${
-                                    alignment === "center" ? "bg-white/30 text-white" : "text-gray-300"
+                                className={`p-1 rounded-md text-xs transition cursor-pointer shrink-0 ${
+                                    alignment === "center"
+                                        ? "bg-[#7047EB] text-white shadow-xs font-bold"
+                                        : "text-gray-300 hover:bg-white/20 hover:text-white"
                                 }`}
                                 title="Align Center"
                             >
@@ -188,8 +192,10 @@ function ImageNodeView({ node, updateAttributes, deleteNode, selected }: NodeVie
                             <button
                                 type="button"
                                 onClick={() => updateAttributes({ alignment: "right" })}
-                                className={`p-1 rounded-md text-xs hover:bg-white/20 transition cursor-pointer shrink-0 ${
-                                    alignment === "right" ? "bg-white/30 text-white" : "text-gray-300"
+                                className={`p-1 rounded-md text-xs transition cursor-pointer shrink-0 ${
+                                    alignment === "right"
+                                        ? "bg-[#7047EB] text-white shadow-xs font-bold"
+                                        : "text-gray-300 hover:bg-white/20 hover:text-white"
                                 }`}
                                 title="Align Right"
                             >
@@ -202,8 +208,10 @@ function ImageNodeView({ node, updateAttributes, deleteNode, selected }: NodeVie
                             <button
                                 type="button"
                                 onClick={() => updateAttributes({ width: "50%" })}
-                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold hover:bg-white/20 transition cursor-pointer shrink-0 ${
-                                    width === "50%" ? "bg-white/30 text-white" : "text-gray-300"
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition cursor-pointer shrink-0 ${
+                                    width === "50%"
+                                        ? "bg-[#7047EB] text-white shadow-xs"
+                                        : "text-gray-300 hover:bg-white/20 hover:text-white"
                                 }`}
                                 title="Medium (50%)"
                             >
@@ -212,8 +220,10 @@ function ImageNodeView({ node, updateAttributes, deleteNode, selected }: NodeVie
                             <button
                                 type="button"
                                 onClick={() => updateAttributes({ width: "75%" })}
-                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold hover:bg-white/20 transition cursor-pointer shrink-0 ${
-                                    width === "75%" ? "bg-white/30 text-white" : "text-gray-300"
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition cursor-pointer shrink-0 ${
+                                    width === "75%"
+                                        ? "bg-[#7047EB] text-white shadow-xs"
+                                        : "text-gray-300 hover:bg-white/20 hover:text-white"
                                 }`}
                                 title="Large (75%)"
                             >
@@ -222,8 +232,10 @@ function ImageNodeView({ node, updateAttributes, deleteNode, selected }: NodeVie
                             <button
                                 type="button"
                                 onClick={() => updateAttributes({ width: "100%" })}
-                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold hover:bg-white/20 transition cursor-pointer shrink-0 ${
-                                    width === "100%" ? "bg-white/30 text-white" : "text-gray-300"
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition cursor-pointer shrink-0 ${
+                                    width === "100%"
+                                        ? "bg-[#7047EB] text-white shadow-xs"
+                                        : "text-gray-300 hover:bg-white/20 hover:text-white"
                                 }`}
                                 title="Full Width (100%)"
                             >
@@ -404,16 +416,21 @@ function ButtonNodeView({ node, updateAttributes, deleteNode, selected }: NodeVi
                         href={url}
                         target="_blank"
                         rel="noopener noreferrer"
+                        data-type="email-button-link"
+                        data-bg={backgroundColor || "#2E0F74"}
+                        data-text-color={textColor || "#ffffff"}
                         onClick={(e) => e.preventDefault()}
                         style={{
-                            backgroundColor,
-                            color: textColor,
+                            backgroundColor: backgroundColor || "#2E0F74",
+                            color: textColor || "#ffffff",
                         }}
-                        className={`inline-flex items-center justify-center px-6 py-3 rounded-xl font-bold text-xs sm:text-sm shadow-md transition-all select-none cursor-pointer ${
+                        className={`inline-flex items-center justify-center px-6 py-3 rounded-xl font-bold text-xs sm:text-sm shadow-md transition-all select-none cursor-pointer text-white no-underline !text-white ${
                             selected || isHovered ? "ring-2 ring-[#7047EB] ring-offset-2 scale-102" : ""
                         }`}
                     >
-                        <span>{text}</span>
+                        <span style={{ color: textColor || "#ffffff" }} className="text-white !text-white no-underline">
+                            {text}
+                        </span>
                     </a>
 
                     {/* Floating Controls Bar */}
@@ -425,8 +442,10 @@ function ButtonNodeView({ node, updateAttributes, deleteNode, selected }: NodeVi
                             <button
                                 type="button"
                                 onClick={() => updateAttributes({ alignment: "left" })}
-                                className={`p-1 rounded-md text-xs hover:bg-white/20 transition cursor-pointer ${
-                                    alignment === "left" ? "bg-white/30 text-white" : "text-gray-300"
+                                className={`p-1 rounded-md text-xs transition cursor-pointer ${
+                                    alignment === "left"
+                                        ? "bg-[#7047EB] text-white shadow-xs font-bold"
+                                        : "text-gray-300 hover:bg-white/20 hover:text-white"
                                 }`}
                                 title="Align Left"
                             >
@@ -435,8 +454,10 @@ function ButtonNodeView({ node, updateAttributes, deleteNode, selected }: NodeVi
                             <button
                                 type="button"
                                 onClick={() => updateAttributes({ alignment: "center" })}
-                                className={`p-1 rounded-md text-xs hover:bg-white/20 transition cursor-pointer ${
-                                    alignment === "center" ? "bg-white/30 text-white" : "text-gray-300"
+                                className={`p-1 rounded-md text-xs transition cursor-pointer ${
+                                    alignment === "center"
+                                        ? "bg-[#7047EB] text-white shadow-xs font-bold"
+                                        : "text-gray-300 hover:bg-white/20 hover:text-white"
                                 }`}
                                 title="Align Center"
                             >
@@ -445,8 +466,10 @@ function ButtonNodeView({ node, updateAttributes, deleteNode, selected }: NodeVi
                             <button
                                 type="button"
                                 onClick={() => updateAttributes({ alignment: "right" })}
-                                className={`p-1 rounded-md text-xs hover:bg-white/20 transition cursor-pointer ${
-                                    alignment === "right" ? "bg-white/30 text-white" : "text-gray-300"
+                                className={`p-1 rounded-md text-xs transition cursor-pointer ${
+                                    alignment === "right"
+                                        ? "bg-[#7047EB] text-white shadow-xs font-bold"
+                                        : "text-gray-300 hover:bg-white/20 hover:text-white"
                                 }`}
                                 title="Align Right"
                             >
@@ -592,13 +615,13 @@ export const EmailButton = Node.create({
             },
             backgroundColor: {
                 default: "#2E0F74",
-                parseHTML: (element) => element.getAttribute("data-bg") || "#2E0F74",
-                renderHTML: (attributes) => ({ "data-bg": attributes.backgroundColor }),
+                parseHTML: (element) => element.getAttribute("data-bg") || element.style.backgroundColor || "#2E0F74",
+                renderHTML: (attributes) => ({ "data-bg": attributes.backgroundColor || "#2E0F74" }),
             },
             textColor: {
                 default: "#ffffff",
                 parseHTML: (element) => element.getAttribute("data-text-color") || "#ffffff",
-                renderHTML: (attributes) => ({ "data-text-color": attributes.textColor }),
+                renderHTML: (attributes) => ({ "data-text-color": attributes.textColor || "#ffffff" }),
             },
         };
     },
@@ -614,8 +637,21 @@ export const EmailButton = Node.create({
                         text: el.getAttribute("data-text") || a?.textContent?.trim() || "Click Here",
                         url: el.getAttribute("data-url") || a?.getAttribute("href") || "#",
                         alignment: el.getAttribute("data-align") || "center",
-                        backgroundColor: el.getAttribute("data-bg") || "#2E0F74",
-                        textColor: el.getAttribute("data-text-color") || "#ffffff",
+                        backgroundColor: el.getAttribute("data-bg") || a?.getAttribute("data-bg") || a?.style.backgroundColor || "#2E0F74",
+                        textColor: el.getAttribute("data-text-color") || a?.getAttribute("data-text-color") || a?.style.color || "#ffffff",
+                    };
+                },
+            },
+            {
+                tag: "a[data-type='email-button-link']",
+                getAttrs: (element) => {
+                    const a = element as HTMLElement;
+                    return {
+                        text: a.textContent?.trim() || "Click Here",
+                        url: a.getAttribute("href") || "#",
+                        alignment: (a.parentElement?.getAttribute("data-align") as any) || "center",
+                        backgroundColor: a.getAttribute("data-bg") || a.style.backgroundColor || a.parentElement?.getAttribute("data-bg") || "#2E0F74",
+                        textColor: a.getAttribute("data-text-color") || a.style.color || "#ffffff",
                     };
                 },
             },
@@ -653,7 +689,9 @@ export const EmailButton = Node.create({
                     target: "_blank",
                     rel: "noopener noreferrer",
                     "data-type": "email-button-link",
-                    style: `display: inline-block; background-color: ${bg}; color: ${color}; padding: 12px 28px; font-weight: 700; font-size: 14px; text-decoration: none; border-radius: 10px; font-family: Poppins, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif; box-shadow: 0 2px 6px rgba(46, 15, 116, 0.2);`,
+                    "data-bg": bg,
+                    "data-text-color": color,
+                    style: `display: inline-block; background-color: ${bg} !important; color: ${color} !important; padding: 12px 28px; font-weight: 700; font-size: 14px; text-decoration: none !important; border-radius: 10px; font-family: Poppins, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif; box-shadow: 0 2px 6px rgba(46, 15, 116, 0.2);`,
                 },
                 text,
             ],
@@ -728,6 +766,27 @@ const FONT_SIZES = [
     { label: "Default Size", value: "default" },
 ];
 
+function normalizeColor(color?: string | null): string {
+    if (!color) return "";
+    const trimmed = color.trim().toLowerCase();
+    if (trimmed.startsWith("#")) {
+        if (trimmed.length === 4) {
+            return `#${trimmed[1]}${trimmed[1]}${trimmed[2]}${trimmed[2]}${trimmed[3]}${trimmed[3]}`;
+        }
+        return trimmed;
+    }
+    if (trimmed.startsWith("rgb")) {
+        const matches = trimmed.match(/\d+/g);
+        if (matches && matches.length >= 3) {
+            const r = parseInt(matches[0], 10).toString(16).padStart(2, "0");
+            const g = parseInt(matches[1], 10).toString(16).padStart(2, "0");
+            const b = parseInt(matches[2], 10).toString(16).padStart(2, "0");
+            return `#${r}${g}${b}`;
+        }
+    }
+    return trimmed;
+}
+
 // ─── Main RichTextEditor Component ───────────────────────────────────────────
 export default function RichTextEditor({
     value,
@@ -770,6 +829,7 @@ export default function RichTextEditor({
 
     const editor = useEditor({
         immediatelyRender: false,
+        shouldRerenderOnTransaction: true,
         extensions: [
             StarterKit.configure({
                 heading: {
@@ -1037,12 +1097,12 @@ export default function RichTextEditor({
     };
 
     const toolBtnClass = (isActive: boolean, disabled: boolean = false) =>
-        `p-1.5 rounded-lg text-xs transition-colors flex items-center justify-center cursor-pointer ${
+        `p-1.5 rounded-lg text-xs transition-all flex items-center justify-center cursor-pointer select-none ${
             disabled
                 ? "text-gray-300 cursor-not-allowed"
                 : isActive
-                ? "bg-[#2E0F74] text-white shadow-2xs"
-                : "text-gray-600 hover:text-[#2E0F74] hover:bg-purple-50"
+                ? "bg-[#2E0F74] text-white shadow-2xs font-semibold ring-1 ring-[#2E0F74]"
+                : "text-gray-600 hover:text-[#2E0F74] hover:bg-purple-50 active:bg-purple-100"
         }`;
 
     const currentFontSize = editor.getAttributes("textStyle").fontSize || "";
@@ -1131,7 +1191,11 @@ export default function RichTextEditor({
                             editor.chain().focus().setFontSize(val).run();
                         }
                     }}
-                    className="bg-white border border-gray-200 text-gray-700 font-semibold text-xs px-2 py-1 rounded-lg outline-none cursor-pointer hover:border-[#2E0F74] focus:border-[#2E0F74] shadow-2xs h-7"
+                    className={`bg-white border text-xs px-2 py-1 rounded-lg outline-none cursor-pointer transition-colors shadow-2xs h-7 font-semibold ${
+                        currentFontSize
+                            ? "border-[#2E0F74] text-[#2E0F74] bg-purple-50/50 ring-1 ring-[#2E0F74]"
+                            : "border-gray-200 text-gray-700 hover:border-[#2E0F74]"
+                    }`}
                     title="Change Font Size"
                 >
                     {FONT_SIZES.map((f) => (
@@ -1216,23 +1280,28 @@ export default function RichTextEditor({
                                 Text Color
                             </span>
                             <div className="grid grid-cols-4 gap-1.5">
-                                {TEXT_COLORS.map((c) => (
-                                    <button
-                                        key={c.color}
-                                        type="button"
-                                        onClick={() => {
-                                            editor.chain().focus().setColor(c.color).run();
-                                            setIsColorMenuOpen(false);
-                                        }}
-                                        title={c.label}
-                                        className="w-6 h-6 rounded-md border border-gray-200 hover:scale-110 transition-transform cursor-pointer flex items-center justify-center"
-                                        style={{ backgroundColor: c.color }}
-                                    >
-                                        {editor.getAttributes("textStyle").color === c.color && (
-                                            <LuCheck size={12} className="text-white drop-shadow-xs" />
-                                        )}
-                                    </button>
-                                ))}
+                                {TEXT_COLORS.map((c) => {
+                                    const activeColor = normalizeColor(editor.getAttributes("textStyle").color);
+                                    const optColor = normalizeColor(c.color);
+                                    const isSelected = activeColor === optColor || (!activeColor && c.label === "Default");
+                                    return (
+                                        <button
+                                            key={c.color}
+                                            type="button"
+                                            onClick={() => {
+                                                editor.chain().focus().setColor(c.color).run();
+                                                setIsColorMenuOpen(false);
+                                            }}
+                                            title={c.label}
+                                            className="w-6 h-6 rounded-md border border-gray-200 hover:scale-110 transition-transform cursor-pointer flex items-center justify-center shadow-2xs"
+                                            style={{ backgroundColor: c.color }}
+                                        >
+                                            {isSelected && (
+                                                <LuCheck size={12} className="text-white drop-shadow-xs" />
+                                            )}
+                                        </button>
+                                    );
+                                })}
                             </div>
                             <button
                                 type="button"
@@ -1323,7 +1392,12 @@ export default function RichTextEditor({
                     type="button"
                     onClick={() => editor.chain().focus().setTextAlign("left").run()}
                     title="Align Left"
-                    className={toolBtnClass(editor.isActive({ textAlign: "left" }))}
+                    className={toolBtnClass(
+                        editor.isActive({ textAlign: "left" }) ||
+                            (!editor.isActive({ textAlign: "center" }) &&
+                                !editor.isActive({ textAlign: "right" }) &&
+                                !editor.isActive({ textAlign: "justify" }))
+                    )}
                 >
                     <LuAlignLeft size={14} />
                 </button>
@@ -1430,7 +1504,13 @@ export default function RichTextEditor({
                 {/* Insert CTA Button Tool */}
                 <button
                     type="button"
-                    onClick={() => setIsButtonModalOpen(true)}
+                    onClick={() => {
+                        setIsButtonModalOpen(true);
+                        setButtonTextInput("Register Now");
+                        setButtonUrlInput("https://");
+                        setButtonAlignment("center");
+                        setButtonBgColor("#2E0F74");
+                    }}
                     title="Insert Call-To-Action Button"
                     className="p-1.5 rounded-lg text-xs transition-colors flex items-center gap-1 cursor-pointer text-gray-700 hover:text-[#2E0F74] hover:bg-purple-50 font-medium"
                 >

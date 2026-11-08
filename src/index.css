@@ -11,6 +11,10 @@ html, body {
   outline: none;
 }
 
+.tiptap ::selection {
+  background-color: rgba(112, 71, 235, 0.2) !important;
+}
+
 .tiptap p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   float: left;
@@ -25,7 +29,7 @@ html, body {
   line-height: 1.3 !important;
   margin-top: 1.25rem !important;
   margin-bottom: 0.625rem !important;
-  color: #111827 !important;
+  color: #111827;
 }
 
 .tiptap h2 {
@@ -34,7 +38,7 @@ html, body {
   line-height: 1.35 !important;
   margin-top: 1rem !important;
   margin-bottom: 0.5rem !important;
-  color: #1f2937 !important;
+  color: #1f2937;
 }
 
 .tiptap h3 {
@@ -43,7 +47,7 @@ html, body {
   line-height: 1.4 !important;
   margin-top: 0.875rem !important;
   margin-bottom: 0.4rem !important;
-  color: #374151 !important;
+  color: #374151;
 }
 
 .tiptap > *:first-child {
@@ -104,15 +108,31 @@ html, body {
   color: #2E0F74 !important;
 }
 
-.tiptap a {
+/* Links in Editor */
+.tiptap a:not([data-type="email-button-link"]) {
   color: #7047EB !important;
   text-decoration: underline !important;
   cursor: pointer !important;
   font-weight: 500 !important;
 }
 
-.tiptap a:hover {
+.tiptap a:not([data-type="email-button-link"]):hover {
   color: #2E0F74 !important;
+}
+
+/* CTA Button Styles inside Editor - Ensure white text and no underline */
+.tiptap a[data-type="email-button-link"],
+.tiptap a[data-type="email-button-link"]:hover,
+.tiptap a[data-type="email-button-link"]:visited,
+.tiptap a[data-type="email-button-link"]:active,
+.tiptap a[data-type="email-button-link"] span,
+.tiptap [data-type="email-button"] a,
+.tiptap [data-type="email-button"] a:hover,
+.tiptap [data-type="email-button"] a:visited,
+.tiptap [data-type="email-button"] a:active,
+.tiptap [data-type="email-button"] a span {
+  color: #ffffff !important;
+  text-decoration: none !important;
 }
 
 .tiptap mark {
