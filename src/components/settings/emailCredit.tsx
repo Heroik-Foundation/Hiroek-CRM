@@ -211,7 +211,7 @@ export default function SmsEmailCredits() {
                 credits,
                 amount,
                 rate,
-                label: item?.name,
+                label: item?.name || "",
             };
         });
     }, [bundlesApiData]);
