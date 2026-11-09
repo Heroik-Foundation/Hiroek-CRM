@@ -41,7 +41,9 @@ export interface EventSelectProps {
     dropdownClassName?: string;
     /** Custom list of events (bypasses automatic API fetching if provided) */
     customEvents?: EventItem[];
-    /** Whether to automatically fetch events from GET /api/events. Default: true */
+    /** Timeline filter for my-events: "all" | "past" | "present" | "upcoming". Default: "all" */
+    timeline?: "all" | "past" | "present" | "upcoming";
+    /** Whether to automatically fetch events from GET /api/event-partners/my-events. Default: true */
     autoFetch?: boolean;
     /** Disable the dropdown */
     disabled?: boolean;
@@ -49,7 +51,8 @@ export interface EventSelectProps {
 
 /**
  * Reusable EventSelect Component
- * Lists events retrieved from GET /api/events (https://dev.hiroek.io/api-docs/#tag/events/GET/api/events)
+ * Lists user's events retrieved from GET /api/event-partners/my-events
+ * Documentation: https://dev.hiroek.io/api-docs#tag/eventpartners/GET/api/event-partners/my-events
  * with an integrated search filter.
  */
 export default function EventSelect({
@@ -65,6 +68,7 @@ export default function EventSelect({
     buttonClassName = "",
     dropdownClassName = "",
     customEvents,
+    timeline = "all",
     autoFetch = true,
     disabled = false,
 }: EventSelectProps) {
@@ -73,16 +77,20 @@ export default function EventSelect({
     const containerRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
 
-    // Fetch events using GET /api/events
-    const { useGetEvents } = useEvents();
+    // Fetch user's events using GET /api/event-partners/my-events
+    const { useGetMyEvents, useGetEvents } = useEvents();
     const { useGetAllEvents } = useTicketScans();
 
-    const { data: eventsData, isLoading: isEventsLoading } = useGetEvents(
-        { pageSize: 100 },
+    const { data: myEventsData, isLoading: isMyEventsLoading } = useGetMyEvents(
+        { pageSize: 100, timeline },
         autoFetch && !customEvents
     );
 
     // Supplementary fetch for fallback safety
+    const { data: generalEventsData, isLoading: isGeneralEventsLoading } = useGetEvents(
+        { pageSize: 100 },
+        autoFetch && !customEvents && !myEventsData
+    );
     const { data: fallbackEventsData } = useGetAllEvents();
 
     // Normalize and consolidate event options
@@ -99,22 +107,22 @@ export default function EventSelect({
 
         const map = new Map<string, EventOption>();
 
-        // 1. Process GET /api/events response
-        const raw =
-            (eventsData as any)?.events ??
-            (eventsData as any)?.result ??
-            (eventsData as any)?.data ??
-            (Array.isArray(eventsData) ? eventsData : []);
+        // 1. Process GET /api/event-partners/my-events response (user's events)
+        const myRaw =
+            (myEventsData as any)?.data ??
+            (myEventsData as any)?.events ??
+            (myEventsData as any)?.result ??
+            (Array.isArray(myEventsData) ? myEventsData : []);
 
-        if (Array.isArray(raw)) {
-            raw.forEach((ev: any) => {
+        if (Array.isArray(myRaw)) {
+            myRaw.forEach((ev: any) => {
                 const id = ev._id ?? ev.id;
                 const name = (ev.name ?? ev.title ?? "").trim();
                 if (name && !map.has(name)) {
                     map.set(name, {
                         id,
                         name,
-                        photo: ev.photo,
+                        photo: ev.photo ?? ev.image ?? ev.banner,
                         description: ev.description,
                         raw: ev,
                     });
@@ -122,31 +130,57 @@ export default function EventSelect({
             });
         }
 
-        // 2. Process fallback events if any extra exist
-        const fallbackRaw =
-            (fallbackEventsData as any)?.events ??
-            (fallbackEventsData as any)?.result ??
-            (fallbackEventsData as any)?.data ??
-            (Array.isArray(fallbackEventsData) ? fallbackEventsData : []);
+        // 2. Fallback to general events if no my-events were returned
+        if (map.size === 0) {
+            const raw =
+                (generalEventsData as any)?.events ??
+                (generalEventsData as any)?.result ??
+                (generalEventsData as any)?.data ??
+                (Array.isArray(generalEventsData) ? generalEventsData : []);
 
-        if (Array.isArray(fallbackRaw)) {
-            fallbackRaw.forEach((ev: any) => {
-                const id = ev._id ?? ev.id;
-                const name = (ev.name ?? ev.title ?? "").trim();
-                if (name && !map.has(name)) {
-                    map.set(name, {
-                        id,
-                        name,
-                        photo: ev.photo,
-                        description: ev.description,
-                        raw: ev,
-                    });
-                }
-            });
+            if (Array.isArray(raw)) {
+                raw.forEach((ev: any) => {
+                    const id = ev._id ?? ev.id;
+                    const name = (ev.name ?? ev.title ?? "").trim();
+                    if (name && !map.has(name)) {
+                        map.set(name, {
+                            id,
+                            name,
+                            photo: ev.photo ?? ev.image ?? ev.banner,
+                            description: ev.description,
+                            raw: ev,
+                        });
+                    }
+                });
+            }
+
+            const fallbackRaw =
+                (fallbackEventsData as any)?.events ??
+                (fallbackEventsData as any)?.result ??
+                (fallbackEventsData as any)?.data ??
+                (Array.isArray(fallbackEventsData) ? fallbackEventsData : []);
+
+            if (Array.isArray(fallbackRaw)) {
+                fallbackRaw.forEach((ev: any) => {
+                    const id = ev._id ?? ev.id;
+                    const name = (ev.name ?? ev.title ?? "").trim();
+                    if (name && !map.has(name)) {
+                        map.set(name, {
+                            id,
+                            name,
+                            photo: ev.photo ?? ev.image ?? ev.banner,
+                            description: ev.description,
+                            raw: ev,
+                        });
+                    }
+                });
+            }
         }
 
         return Array.from(map.values());
-    }, [customEvents, eventsData, fallbackEventsData]);
+    }, [customEvents, myEventsData, generalEventsData, fallbackEventsData]);
+
+    const isEventsLoading = isMyEventsLoading || (allEvents.length === 0 && isGeneralEventsLoading);
 
     // Filter events based on search term
     const filteredEvents = useMemo(() => {

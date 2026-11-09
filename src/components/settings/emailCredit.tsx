@@ -204,15 +204,14 @@ export default function SmsEmailCredits() {
 
         return rawList.map((item) => {
             const credits = item.credits || 0;
-            const amount = (item.amount || 0) / 100;
+            const amount = item.amount;
             const rate = credits > 0 ? amount / credits : 0;
-            const formattedRate = formatEmailRate(rate);
             return {
                 id: item.id || item._id || "",
                 credits,
                 amount,
                 rate,
-                label: `${credits.toLocaleString()} Emails (£${formattedRate} per mail)`,
+                label: item?.name,
             };
         });
     }, [bundlesApiData]);
@@ -301,7 +300,7 @@ export default function SmsEmailCredits() {
                 (hiroekFee +
                     subtotal * stripeFee.percentage +
                     stripeFee.fixed) *
-                    100,
+                100,
             ) / 100;
 
         setServiceFees(fee);
@@ -526,8 +525,8 @@ export default function SmsEmailCredits() {
                                                         : "hover:bg-gray-50"
                                                         }`}
                                                 >
-                                                    <span className="text-base font-bold text-gray-900">
-                                                        {opt.credits.toLocaleString()} Emails{" "}
+                                                    <span className="text-sm font-bold text-gray-900">
+                                                        {opt.label}
                                                     </span>
                                                     <span className="text-base font-medium text-[#8E8E93] ml-1">
                                                         (£{formattedRate} per mail)

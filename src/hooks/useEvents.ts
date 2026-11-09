@@ -40,9 +40,27 @@ export interface GetEventsResponse {
     [key: string]: unknown;
 }
 
+export interface GetMyEventsParams {
+    timeline?: "all" | "past" | "present" | "upcoming";
+    search?: string;
+    page?: number;
+    pageSize?: number;
+    [key: string]: unknown;
+}
+
+export interface GetMyEventsResponse {
+    data?: EventItem[];
+    totalCount?: number;
+    currentPage?: number;
+    totalPages?: number;
+    events?: EventItem[];
+    result?: EventItem[];
+    [key: string]: unknown;
+}
+
 /**
- * Hook for accessing events from GET /api/events
- * Documentation: https://dev.hiroek.io/api-docs/#tag/events/GET/api/events
+ * Hook for accessing events from GET /api/events and GET /api/event-partners/my-events
+ * Documentation: https://dev.hiroek.io/api-docs#tag/eventpartners/GET/api/event-partners/my-events
  */
 const useEvents = () => {
     const useGetEvents = (params?: GetEventsParams, enable: boolean = true) => {
@@ -54,8 +72,18 @@ const useEvents = () => {
         });
     };
 
+    const useGetMyEvents = (params?: GetMyEventsParams, enable: boolean = true) => {
+        return useFetchData<GetMyEventsResponse | EventItem[]>({
+            endpoint: URLS.GET_MY_EVENTS,
+            name: [URLS.GET_MY_EVENTS, JSON.stringify(params ?? {})],
+            params: params as Record<string, unknown>,
+            enable,
+        });
+    };
+
     return {
         useGetEvents,
+        useGetMyEvents,
     };
 };
 

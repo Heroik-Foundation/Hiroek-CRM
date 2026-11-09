@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Header } from "../../components/common";
-import { IoChevronDown, IoSearchOutline, IoClose } from "react-icons/io5";
+import { Header, EventSelect } from "../../components/common";
+import { IoClose } from "react-icons/io5";
 import { FaArrowTrendUp, FaArrowTrendDown, FaStar, FaRegStar } from "react-icons/fa6";
 import { FiCornerUpLeft, FiCopy, FiCheck } from "react-icons/fi";
 import { HiOutlineDotsHorizontal } from "react-icons/hi";
@@ -20,8 +20,6 @@ export default function Review() {
         name: "All Events",
     });
     const [ratingFloor, setRatingFloor] = useState<"4+" | "3+" | "All">("4+");
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const [eventSearch, setEventSearch] = useState("");
     const [page, setPage] = useState(1);
     const rowsPerPage = 6;
 
@@ -32,7 +30,6 @@ export default function Review() {
     const [activeMenuId, setActiveMenuId] = useState<string | number | null>(null);
     const [copiedId, setCopiedId] = useState<string | number | null>(null);
 
-    const dropdownRef = useRef<HTMLDivElement>(null);
     const menuRef = useRef<HTMLDivElement>(null);
 
     // Compute rating floor query param
@@ -42,7 +39,7 @@ export default function Review() {
         return undefined;
     }, [ratingFloor]);
 
-    const { useGetReviews, useGetReviewStats, useGetAllEvents } = useReview();
+    const { useGetReviews, useGetReviewStats } = useReview();
 
     // 1. Fetch review stats
     const {
@@ -64,15 +61,9 @@ export default function Review() {
         eventId: selectedEvent.id,
     });
 
-    // 3. Fetch events for event filter dropdown
-    const { data: eventsResponse } = useGetAllEvents();
-
-    // Close dropdown on click outside
+    // Close actions menu on click outside
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-                setIsDropdownOpen(false);
-            }
             if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
                 setActiveMenuId(null);
             }
@@ -80,34 +71,6 @@ export default function Review() {
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
-
-    // Extract available events from eventsResponse
-    const availableEvents: SelectedEventItem[] = useMemo(() => {
-        const list: SelectedEventItem[] = [{ id: undefined, name: "All Events" }];
-        const rawEvents =
-            (eventsResponse as any)?.events ??
-            (eventsResponse as any)?.result ??
-            (eventsResponse as any)?.data ??
-            (Array.isArray(eventsResponse) ? eventsResponse : []);
-
-        if (Array.isArray(rawEvents)) {
-            rawEvents.forEach((ev: any) => {
-                const id = ev._id || ev.id;
-                const name = ev.title || ev.name;
-                if (name && !list.some((item) => item.name === name || (id && item.id === id))) {
-                    list.push({ id, name });
-                }
-            });
-        }
-        return list;
-    }, [eventsResponse]);
-
-    // Filter events by search text in dropdown
-    const filteredEventOptions = useMemo(() => {
-        if (!eventSearch.trim()) return availableEvents;
-        const q = eventSearch.toLowerCase().trim();
-        return availableEvents.filter((evt) => evt.name.toLowerCase().includes(q));
-    }, [availableEvents, eventSearch]);
 
     // Parse Stats & Averages
     const statsData = useMemo(() => {
@@ -245,71 +208,21 @@ export default function Review() {
                 {/* Left: Filters */}
                 <div className="flex flex-wrap items-center gap-6">
                     {/* Event Selection Dropdown */}
-                    <div ref={dropdownRef} className="flex flex-col gap-1.5 relative min-w-56">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                            Event Selection
-                        </span>
-                        <div
-                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                            className="bg-white border border-gray-200 rounded-xl px-4 py-2.5 flex items-center justify-between gap-3 shadow-xs cursor-pointer hover:border-gray-300 transition-colors"
-                        >
-                            <span className="font-semibold text-xs text-gray-800 truncate max-w-48">
-                                {selectedEvent.name}
-                            </span>
-                            <IoChevronDown
-                                size={14}
-                                className={`text-gray-500 shrink-0 transition-transform ${isDropdownOpen ? "rotate-180" : ""
-                                    }`}
-                            />
-                        </div>
-
-                        {isDropdownOpen && (
-                            <div className="absolute top-full mt-1.5 left-0 w-72 bg-white border border-gray-200 rounded-xl shadow-xl z-30 overflow-hidden py-1">
-                                {availableEvents.length > 5 && (
-                                    <div className="p-2 border-b border-gray-100">
-                                        <div className="flex items-center gap-2 bg-gray-50 px-2.5 py-1.5 rounded-lg">
-                                            <IoSearchOutline size={14} className="text-gray-400" />
-                                            <input
-                                                type="text"
-                                                placeholder="Search events..."
-                                                value={eventSearch}
-                                                onChange={(e) => setEventSearch(e.target.value)}
-                                                className="bg-transparent text-xs text-gray-800 placeholder-gray-400 outline-none w-full"
-                                                onClick={(e) => e.stopPropagation()}
-                                            />
-                                        </div>
-                                    </div>
-                                )}
-                                <div className="max-h-60 overflow-y-auto">
-                                    {filteredEventOptions.length === 0 ? (
-                                        <div className="px-4 py-3 text-xs text-gray-400 text-center">
-                                            No events found
-                                        </div>
-                                    ) : (
-                                        filteredEventOptions.map((evt) => (
-                                            <div
-                                                key={evt.id ?? evt.name}
-                                                onClick={() => {
-                                                    setSelectedEvent(evt);
-                                                    setIsDropdownOpen(false);
-                                                    setPage(1);
-                                                }}
-                                                className={`px-4 py-2.5 text-xs font-medium cursor-pointer transition-colors flex items-center justify-between ${selectedEvent.name === evt.name
-                                                    ? "bg-[#37137F15] text-[#37137F] font-semibold"
-                                                    : "text-gray-700 hover:bg-gray-50"
-                                                    }`}
-                                            >
-                                                <span className="truncate">{evt.name}</span>
-                                                {selectedEvent.name === evt.name && (
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-[#37137F]"></span>
-                                                )}
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                    </div>
+                    <EventSelect
+                        label="Event Selection"
+                        value={selectedEvent.name}
+                        selectedId={selectedEvent.id}
+                        onChange={(_evt, eventId, eventName) => {
+                            setSelectedEvent({
+                                id: eventId,
+                                name: eventName ?? "All Events",
+                            });
+                            setPage(1);
+                        }}
+                        variant="outline"
+                        className="min-w-56"
+                        buttonClassName="w-full !py-2.5 !px-4 !border-gray-200 !rounded-xl !font-semibold !text-xs !text-gray-800 hover:!border-gray-300"
+                    />
 
                     {/* Rating Floor Filter Pills */}
                     <div className="flex flex-col gap-1.5">
