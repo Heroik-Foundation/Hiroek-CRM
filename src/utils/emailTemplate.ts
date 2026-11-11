@@ -273,8 +273,7 @@ export function inlineEmailStyles(rawHtml: string): string {
 
 /**
  * Builds the social media links footer block rendered at the bottom of the email.
- * Uses email-safe table markup and hosted PNG icon images (with SVG preview / styled monogram fallback)
- * plus explicit platform name & username so recipients always identify both the icon and social media.
+ * Displays clickable social media icons only (no username or platform label text).
  */
 export function buildSocialFooterHtml(
     socialLinks?: SocialLinkItem[],
@@ -290,22 +289,19 @@ export function buildSocialFooterHtml(
             const config = SOCIAL_PLATFORM_MAP[item.platform];
             const platformName = escapeHtml(config?.name || item.platform);
             const href = escapeHtml(normalizeSocialUrl(item.url));
-            const label = escapeHtml(
-                item.username.trim() || deriveFallbackUsername(item.platform, item.url)
-            );
             const resolvedIconUrl = item.iconUrl || getCachedSocialIconUrl(item.platform);
 
             const iconHtml = resolvedIconUrl
-                ? `<img src="${escapeHtml(resolvedIconUrl)}" alt="${platformName}" width="24" height="24" style="display: block; width: 24px; height: 24px; border-radius: 6px; border: 0;" />`
+                ? `<img src="${escapeHtml(resolvedIconUrl)}" alt="${platformName}" width="28" height="28" style="display: block; width: 28px; height: 28px; border-radius: 7px; border: 0;" />`
                 : isPreview
-                    ? getSocialPlatformSvgString(item.platform, 24)
-                    : `<div style="width: 24px; height: 24px; line-height: 24px; text-align: center; background-color: ${config?.accentColor || "#37137F"}; color: ${config?.badgeTextColor || "#FFFFFF"}; font-weight: 700; font-size: 10px; border-radius: 6px; font-family: Arial, sans-serif;">${escapeHtml(config?.shortCode || platformName.slice(0, 2).toUpperCase())}</div>`;
+                    ? getSocialPlatformSvgString(item.platform, 28)
+                    : `<div style="width: 28px; height: 28px; line-height: 28px; text-align: center; background-color: ${config?.accentColor || "#37137F"}; color: ${config?.badgeTextColor || "#FFFFFF"}; font-weight: 700; font-size: 11px; border-radius: 7px; font-family: Arial, sans-serif;">${escapeHtml(config?.shortCode || platformName.slice(0, 2).toUpperCase())}</div>`;
 
-            return `<a href="${href}" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin: 0 10px 10px 0; padding: 8px 12px; background-color: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 10px; text-decoration: none; color: #1F2937; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; vertical-align: middle;"><table role="presentation" border="0" cellpadding="0" cellspacing="0" style="display: inline-table; vertical-align: middle; border-collapse: collapse;"><tr><td style="vertical-align: middle; padding: 0 8px 0 0;">${iconHtml}</td><td style="vertical-align: middle; padding: 0; line-height: 1.25; text-align: left;"><div style="font-size: 11px; font-weight: 700; color: #111827; margin: 0; white-space: nowrap;">${platformName}</div><div style="font-size: 11px; font-weight: 500; color: #4B5563; margin: 0; white-space: nowrap;">${label}</div></td></tr></table></a>`;
+            return `<a href="${href}" target="_blank" rel="noopener noreferrer" title="${platformName}" aria-label="${platformName}" style="display: inline-block; margin: 0 10px 8px 0; text-decoration: none; vertical-align: middle;">${iconHtml}</a>`;
         })
         .join("");
 
-    return `<div style="margin-top: 28px; padding-top: 18px; border-top: 1px solid #E5E7EB; text-align: left;"><div style="font-size: 10px; font-weight: 700; color: #6B7280; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Connect with us</div><div>${itemsHtml}</div></div>`;
+    return `<div style="margin-top: 28px; padding-top: 18px; border-top: 1px solid #E5E7EB; text-align: left;"><div>${itemsHtml}</div></div>`;
 }
 
 /**
