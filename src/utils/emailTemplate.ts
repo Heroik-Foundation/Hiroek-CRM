@@ -1,3 +1,13 @@
+import type { SocialLinkItem } from "../components/features/messaging/types";
+import {
+    SOCIAL_PLATFORM_MAP,
+    deriveFallbackUsername,
+    escapeHtml,
+    getCachedSocialIconUrl,
+    getSocialPlatformSvgString,
+    normalizeSocialUrl,
+} from "./socialPlatforms";
+
 export interface EmailActionBtn {
     label: string;
     link: string;
@@ -9,7 +19,9 @@ export interface BuildEmailOptions {
     senderName?: string;
     bannerImage?: string | null;
     actionButton?: EmailActionBtn | null;
+    socialLinks?: SocialLinkItem[];
     includeContainer?: boolean;
+    isPreview?: boolean;
 }
 
 /**
@@ -260,6 +272,43 @@ export function inlineEmailStyles(rawHtml: string): string {
 }
 
 /**
+ * Builds the social media links footer block rendered at the bottom of the email.
+ * Uses email-safe table markup and hosted PNG icon images (with SVG preview / styled monogram fallback)
+ * plus explicit platform name & username so recipients always identify both the icon and social media.
+ */
+export function buildSocialFooterHtml(
+    socialLinks?: SocialLinkItem[],
+    isPreview = false
+): string {
+    if (!socialLinks || socialLinks.length === 0) return "";
+
+    const validLinks = socialLinks.filter((item) => item.url && item.url.trim());
+    if (validLinks.length === 0) return "";
+
+    const itemsHtml = validLinks
+        .map((item) => {
+            const config = SOCIAL_PLATFORM_MAP[item.platform];
+            const platformName = escapeHtml(config?.name || item.platform);
+            const href = escapeHtml(normalizeSocialUrl(item.url));
+            const label = escapeHtml(
+                item.username.trim() || deriveFallbackUsername(item.platform, item.url)
+            );
+            const resolvedIconUrl = item.iconUrl || getCachedSocialIconUrl(item.platform);
+
+            const iconHtml = resolvedIconUrl
+                ? `<img src="${escapeHtml(resolvedIconUrl)}" alt="${platformName}" width="24" height="24" style="display: block; width: 24px; height: 24px; border-radius: 6px; border: 0;" />`
+                : isPreview
+                    ? getSocialPlatformSvgString(item.platform, 24)
+                    : `<div style="width: 24px; height: 24px; line-height: 24px; text-align: center; background-color: ${config?.accentColor || "#37137F"}; color: ${config?.badgeTextColor || "#FFFFFF"}; font-weight: 700; font-size: 10px; border-radius: 6px; font-family: Arial, sans-serif;">${escapeHtml(config?.shortCode || platformName.slice(0, 2).toUpperCase())}</div>`;
+
+            return `<a href="${href}" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin: 0 10px 10px 0; padding: 8px 12px; background-color: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 10px; text-decoration: none; color: #1F2937; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; vertical-align: middle;"><table role="presentation" border="0" cellpadding="0" cellspacing="0" style="display: inline-table; vertical-align: middle; border-collapse: collapse;"><tr><td style="vertical-align: middle; padding: 0 8px 0 0;">${iconHtml}</td><td style="vertical-align: middle; padding: 0; line-height: 1.25; text-align: left;"><div style="font-size: 11px; font-weight: 700; color: #111827; margin: 0; white-space: nowrap;">${platformName}</div><div style="font-size: 11px; font-weight: 500; color: #4B5563; margin: 0; white-space: nowrap;">${label}</div></td></tr></table></a>`;
+        })
+        .join("");
+
+    return `<div style="margin-top: 28px; padding-top: 18px; border-top: 1px solid #E5E7EB; text-align: left;"><div style="font-size: 10px; font-weight: 700; color: #6B7280; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Connect with us</div><div>${itemsHtml}</div></div>`;
+}
+
+/**
  * Builds the complete, bulletproof HTML email ready for sending or live client preview.
  */
 export function buildFullEmailHtml(
@@ -269,7 +318,9 @@ export function buildFullEmailHtml(
     const {
         bannerImage,
         actionButton,
+        socialLinks,
         includeContainer = false,
+        isPreview = false,
     } = options;
 
     const inlinedContent = inlineEmailStyles(rawBody);
@@ -301,6 +352,9 @@ export function buildFullEmailHtml(
 
         parts += `<div style="margin-top: 24px; margin-bottom: 12px; ${alignStyle}"><a href="${formattedLink}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background-color: #2E0F74; color: #ffffff; padding: 12px 28px; font-weight: bold; font-size: 14px; text-decoration: none; border-radius: 12px; box-shadow: 0 2px 6px rgba(46, 15, 116, 0.25); font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">${actionButton.label.trim()}</a></div>`;
     }
+
+    // Social Links Footer
+    parts += buildSocialFooterHtml(socialLinks, isPreview);
 
     if (!includeContainer) {
         return parts;
@@ -445,6 +499,21 @@ export function convertHtmlToCleanEmailText(
                 cleanText += `\n\n${label}: ${formattedLink}`;
             } else {
                 cleanText += `\n\n[ ${label} ]`;
+            }
+        }
+
+        // Append Social Links if configured
+        if (options.socialLinks && options.socialLinks.length > 0) {
+            const linkLines = options.socialLinks
+                .filter((item) => item.url && item.url.trim())
+                .map((item) => {
+                    const name = SOCIAL_PLATFORM_MAP[item.platform]?.name || item.platform;
+                    const label =
+                        item.username.trim() || deriveFallbackUsername(item.platform, item.url);
+                    return `${name} (${label}): ${normalizeSocialUrl(item.url)}`;
+                });
+            if (linkLines.length > 0) {
+                cleanText += `\n\n---\nConnect with us:\n${linkLines.join("\n")}`;
             }
         }
 

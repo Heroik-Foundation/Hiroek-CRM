@@ -545,7 +545,7 @@ export default function SmsEmailCredits() {
 
                         {/* Helper Subtext */}
                         <p className="text-xs text-gray-700 text-center font-medium">
-                            Email Feature Included AI Writing Assistance
+                            Flexible pay as you go plan.
                         </p>
                     </div>
 

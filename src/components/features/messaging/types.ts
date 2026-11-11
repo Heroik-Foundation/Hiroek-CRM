@@ -82,6 +82,23 @@ export interface ConnectCustomDomainPayload {
     domain: string;
 }
 
+export type SocialPlatformId =
+    | "instagram"
+    | "facebook"
+    | "tiktok"
+    | "linkedin"
+    | "x"
+    | "snapchat"
+    | "strava";
+
+export interface SocialLinkItem {
+    id: string;
+    platform: SocialPlatformId;
+    url: string;
+    username: string;
+    iconUrl?: string;
+}
+
 export interface UpdateSenderProfilePayload {
     fromName?: string;
     replyTo?: string;

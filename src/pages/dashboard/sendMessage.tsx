@@ -2,7 +2,9 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Column } from "../../type/table";
 import useAudienceSegment from "../../hooks/useAudienceSegment";
-import useCampaign, { type CampaignChannel } from "../../hooks/useCampaign";
+import useCampaign, { type CampaignChannel, type ImageUploadResponse } from "../../hooks/useCampaign";
+import httpService from "../../config/httpService";
+import { URLS } from "../../utils/urls";
 import { Spinner, toast } from "@heroui/react";
 import { useAtomValue } from "jotai";
 import { userAtom } from "../../utils/atom/user";
@@ -13,6 +15,7 @@ import {
     type RecipientItem,
     type VerifiedSender,
     type DnsRecordItem,
+    type SocialLinkItem,
     ChooseOptionView,
     VerifyEmailView,
     ReadyToSendView,
@@ -287,6 +290,7 @@ export default function SendMessage() {
 
     // Image & Preview state
     const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+    const [socialLinks, setSocialLinks] = useState<SocialLinkItem[]>([]);
     const [isBodyImageDragging, setIsBodyImageDragging] = useState(false);
     const [bodyMode, setBodyMode] = useState<"edit" | "preview">("edit");
     const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
@@ -361,6 +365,28 @@ export default function SendMessage() {
             return publicUrl;
         } catch (err) {
             console.error("Editor image upload failed:", err);
+            return null;
+        }
+    };
+
+    // Silent upload handler for rasterized social icon PNGs so email clients display real <img> icons
+    const handleUploadSocialIcon = async (file: File): Promise<string | null> => {
+        try {
+            const formData = new FormData();
+            formData.append("image", file);
+            const response = await httpService.post<ImageUploadResponse>(
+                URLS.IMAGE_UPLOAD,
+                formData,
+                {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                    },
+                }
+            );
+            const res = response.data;
+            return res?.url || res?.data?.url || res?.result?.url || null;
+        } catch (err) {
+            console.error("Social icon upload failed:", err);
             return null;
         }
     };
@@ -933,9 +959,27 @@ export default function SendMessage() {
         }
 
         const useHtml = CAMPAIGN_SUPPORTS_HTML && (channel === "email" || channel === "in_app");
+
+        let resolvedSocialLinks = socialLinks;
+        if (channel === "email" && socialLinks.length > 0 && useHtml) {
+            const { ensureSocialIconUploaded } = await import("../../utils/socialPlatforms");
+            resolvedSocialLinks = await Promise.all(
+                socialLinks.map(async (link) => {
+                    if (link.iconUrl) return link;
+                    const iconUrl = await ensureSocialIconUploaded(
+                        link.platform,
+                        handleUploadSocialIcon
+                    );
+                    return iconUrl ? { ...link, iconUrl } : link;
+                })
+            );
+            setSocialLinks(resolvedSocialLinks);
+        }
+
         const finalBody = useHtml
             ? (await import("../../utils/emailTemplate")).buildFullEmailHtml(body.trim(), {
                 bannerImage: uploadedImage,
+                socialLinks: channel === "email" ? resolvedSocialLinks : undefined,
             })
             : (await import("../../utils/styledText")).convertHtmlToStyledText(body.trim());
 
@@ -1231,6 +1275,9 @@ export default function SendMessage() {
                 isSending={createCampaignMutation.isPending}
                 campaignSupportsHtml={CAMPAIGN_SUPPORTS_HTML}
                 onUploadImage={handleUploadImageForEditor}
+                onUploadSocialIcon={handleUploadSocialIcon}
+                socialLinks={socialLinks}
+                onSocialLinksChange={setSocialLinks}
             />
             {renderModals()}
         </>

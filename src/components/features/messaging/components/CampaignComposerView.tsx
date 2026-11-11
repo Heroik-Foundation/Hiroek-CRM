@@ -1,10 +1,18 @@
+import { useRef, useState } from "react";
 import { IoPlay, IoClose } from "react-icons/io5";
-import { LuCheck, LuMail, LuCircleCheck, LuPencil, LuTrash2 } from "react-icons/lu";
+import { LuCheck, LuMail, LuCircleCheck, LuPencil, LuTrash2, LuLink, LuPlus } from "react-icons/lu";
 import { Spinner } from "@heroui/react";
 import RichTextEditor from "../../../ui/richTextEditor";
-import { buildFullEmailHtml } from "../../../../utils/emailTemplate";
+import { buildFullEmailHtml, buildSocialFooterHtml } from "../../../../utils/emailTemplate";
 import { convertHtmlToStyledText } from "../../../../utils/styledText";
-import type { VerifiedSender } from "../types";
+import {
+    SOCIAL_PLATFORM_MAP,
+    ensureSocialIconUploaded,
+    getCachedSocialIconUrl,
+} from "../../../../utils/socialPlatforms";
+import type { SocialLinkItem, VerifiedSender } from "../types";
+import ConnectSocialModal from "./ConnectSocialModal";
+import SocialPlatformIcon from "./SocialPlatformIcon";
 
 interface CampaignComposerViewProps {
     verifiedSender: VerifiedSender | null;
@@ -36,6 +44,9 @@ interface CampaignComposerViewProps {
     isSending: boolean;
     campaignSupportsHtml: boolean;
     onUploadImage?: (file: File) => Promise<string | null>;
+    onUploadSocialIcon?: (file: File) => Promise<string | null>;
+    socialLinks?: SocialLinkItem[];
+    onSocialLinksChange?: (links: SocialLinkItem[]) => void;
 }
 
 export default function CampaignComposerView({
@@ -68,7 +79,57 @@ export default function CampaignComposerView({
     onEditSender,
     onDeleteSender,
     onUploadImage,
+    onUploadSocialIcon,
+    socialLinks,
+    onSocialLinksChange,
 }: CampaignComposerViewProps) {
+    const [internalSocialLinks, setInternalSocialLinks] = useState<SocialLinkItem[]>([]);
+    const [isSocialModalOpen, setIsSocialModalOpen] = useState(false);
+    const [editingSocialLink, setEditingSocialLink] = useState<SocialLinkItem | null>(null);
+
+    const activeSocialLinks = socialLinks ?? internalSocialLinks;
+    const latestSocialLinksRef = useRef<SocialLinkItem[]>(activeSocialLinks);
+    latestSocialLinksRef.current = activeSocialLinks;
+
+    const updateSocialLinks = (nextLinks: SocialLinkItem[]) => {
+        latestSocialLinksRef.current = nextLinks;
+        if (socialLinks === undefined) {
+            setInternalSocialLinks(nextLinks);
+        }
+        onSocialLinksChange?.(nextLinks);
+    };
+
+    const handleSaveSocialLink = (item: SocialLinkItem) => {
+        const cachedIconUrl = item.iconUrl || getCachedSocialIconUrl(item.platform) || undefined;
+        const enrichedItem: SocialLinkItem = { ...item, iconUrl: cachedIconUrl };
+
+        const current = latestSocialLinksRef.current;
+        const exists = current.some((l) => l.id === enrichedItem.id);
+        const nextLinks = exists
+            ? current.map((l) => (l.id === enrichedItem.id ? enrichedItem : l))
+            : [...current, enrichedItem];
+        updateSocialLinks(nextLinks);
+
+        const iconUploader = onUploadSocialIcon ?? onUploadImage;
+        // Pre-upload PNG icon to S3 so email clients (Gmail, Outlook, etc.) always render the icon
+        if (!cachedIconUrl && iconUploader) {
+            void ensureSocialIconUploaded(enrichedItem.platform, iconUploader).then((uploadedUrl) => {
+                if (!uploadedUrl) return;
+                const latest = latestSocialLinksRef.current;
+                if (!latest.some((l) => l.id === enrichedItem.id)) return;
+                updateSocialLinks(
+                    latest.map((l) =>
+                        l.id === enrichedItem.id ? { ...l, iconUrl: uploadedUrl } : l
+                    )
+                );
+            });
+        }
+    };
+
+    const handleRemoveSocialLink = (id: string) => {
+        updateSocialLinks(activeSocialLinks.filter((l) => l.id !== id));
+    };
+
     return (
         <div className="w-full max-w-4xl mx-auto flex flex-col gap-5 items-start pb-8">
             {/* Main Form Card */}
@@ -131,7 +192,7 @@ export default function CampaignComposerView({
                     <div className="flex flex-wrap items-center gap-5 sm:gap-7">
                         {[
                             { id: "notifications", label: "Notifications" },
-                            { id: "in_app", label: "In-App Message" },
+                            // { id: "in_app", label: "In-App Message" },
                             { id: "email", label: "Email" },
                         ].map((item) => {
                             const isChecked = messageType === item.id;
@@ -395,7 +456,13 @@ export default function CampaignComposerView({
                                                 <div
                                                     className="w-full select-text wrap-break-word text-xs sm:text-sm"
                                                     dangerouslySetInnerHTML={{
-                                                        __html: buildFullEmailHtml(body),
+                                                        __html: buildFullEmailHtml(body, {
+                                                            socialLinks:
+                                                                messageType === "email"
+                                                                    ? activeSocialLinks
+                                                                    : undefined,
+                                                            isPreview: true,
+                                                        }),
                                                     }}
                                                 />
                                             ) : (
@@ -404,9 +471,19 @@ export default function CampaignComposerView({
                                                 </div>
                                             )
                                         ) : (
-                                            <div className="text-gray-400 italic text-xs py-6 text-center">
-                                                Empty message body — switch to Edit mode to compose your message.
-                                            </div>
+                                            <>
+                                                <div className="text-gray-400 italic text-xs py-6 text-center">
+                                                    Empty message body — switch to Edit mode to compose your message.
+                                                </div>
+                                                {messageType === "email" && activeSocialLinks.length > 0 && (
+                                                    <div
+                                                        className="w-full"
+                                                        dangerouslySetInnerHTML={{
+                                                            __html: buildSocialFooterHtml(activeSocialLinks, true),
+                                                        }}
+                                                    />
+                                                )}
+                                            </>
                                         )}
                                     </div>
                                 </div>
@@ -414,6 +491,78 @@ export default function CampaignComposerView({
                         </div>
                     )}
                 </div>
+
+                {/* Social Media Links Footer Builder (Email only) */}
+                {messageType === "email" && (
+                    <div className="p-3.5 bg-[#FAF8FE] border border-purple-100 rounded-2xl flex flex-col gap-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-7 h-7 rounded-full bg-[#F3F0FA] text-[#37137F] flex items-center justify-center shrink-0">
+                                    <LuLink size={13} />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-xs font-bold text-gray-900">
+                                        Social Media Links
+                                    </span>
+                                    <span className="text-[10px] text-gray-500">
+                                        Displayed with icons at the bottom of your email
+                                    </span>
+                                </div>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setEditingSocialLink(null);
+                                    setIsSocialModalOpen(true);
+                                }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#37137F] hover:bg-[#2E0F74] text-white text-[11px] font-bold transition-colors cursor-pointer shadow-2xs"
+                            >
+                                <LuPlus size={13} />
+                                <span>Add Social Link</span>
+                            </button>
+                        </div>
+
+                        {activeSocialLinks.length > 0 && (
+                            <div className="flex flex-wrap items-center gap-2">
+                                {activeSocialLinks.map((item) => (
+                                    <div
+                                        key={item.id}
+                                        className="flex items-center gap-2 pl-2 pr-1.5 py-1.5 bg-white border border-gray-200 hover:border-[#37137F]/40 rounded-xl shadow-2xs transition-all"
+                                    >
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setEditingSocialLink(item);
+                                                setIsSocialModalOpen(true);
+                                            }}
+                                            className="flex items-center gap-2 text-left cursor-pointer"
+                                            title={`Edit ${item.username} (${item.url})`}
+                                        >
+                                            <SocialPlatformIcon platform={item.platform} size={22} />
+                                            <div className="flex flex-col min-w-0 max-w-44">
+                                                <span className="text-xs font-semibold text-gray-900 truncate leading-tight">
+                                                    {SOCIAL_PLATFORM_MAP[item.platform]?.name} · {item.username}
+                                                </span>
+                                                <span className="text-[10px] text-gray-400 truncate leading-tight">
+                                                    {item.url}
+                                                </span>
+                                            </div>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemoveSocialLink(item.id)}
+                                            className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                            title="Remove social link"
+                                        >
+                                            <IoClose size={14} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Select Recipients Field */}
                 <div className="flex flex-col gap-1.5">
@@ -455,6 +604,16 @@ export default function CampaignComposerView({
                     )}
                 </button>
             </div>
+
+            <ConnectSocialModal
+                isOpen={isSocialModalOpen}
+                onClose={() => {
+                    setIsSocialModalOpen(false);
+                    setEditingSocialLink(null);
+                }}
+                onSave={handleSaveSocialLink}
+                initialData={editingSocialLink}
+            />
         </div>
     );
 }

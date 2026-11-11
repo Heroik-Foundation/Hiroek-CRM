@@ -7,3 +7,5 @@ export { default as RecipientsPickerView } from "./components/RecipientsPickerVi
 export { default as CampaignComposerView } from "./components/CampaignComposerView";
 export { default as EditSenderModal } from "./components/EditSenderModal";
 export { default as DeleteSenderModal } from "./components/DeleteSenderModal";
+export { default as ConnectSocialModal } from "./components/ConnectSocialModal";
+export { default as SocialPlatformIcon } from "./components/SocialPlatformIcon";
