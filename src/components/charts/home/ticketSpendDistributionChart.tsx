@@ -1,6 +1,8 @@
 import ReactECharts from "echarts-for-react";
 import type { EChartsOption } from "echarts";
 import { LoadingLayout } from "../../layout";
+import { useAtomValue } from "jotai";
+import { periodAtom } from "../../../utils/atom/period";
 
 export interface SpendDistributionItem {
   label: string;
@@ -25,18 +27,21 @@ export default function TicketSpendDistributionChart({
   isLoading = false,
   barColor = "#2E0F74",
   showLegend = true,
-  legendLabel = "Last 30 Days",
+  legendLabel,
   yAxisMax,
   height = 280,
   borderRadius = 10,
 }: TicketSpendDistributionChartProps) {
   const dataSource =
     propData &&
-    typeof propData === "object" &&
-    !Array.isArray(propData) &&
-    "data" in (propData as Record<string, unknown>)
+      typeof propData === "object" &&
+      !Array.isArray(propData) &&
+      "data" in (propData as Record<string, unknown>)
       ? (propData as Record<string, unknown>).data
       : propData;
+
+  const currentPeriod = useAtomValue(periodAtom);
+  const activeLegend = legendLabel ?? currentPeriod;
 
   const rawEntries: { label: string; value: number }[] = [];
 
@@ -47,21 +52,21 @@ export default function TicketSpendDistributionChart({
           const itemObj = item as Record<string, unknown>;
           const label = String(
             itemObj.label ??
-              itemObj.range ??
-              itemObj.tier ??
-              itemObj.name ??
-              itemObj.category ??
-              itemObj._id ??
-              ""
+            itemObj.range ??
+            itemObj.tier ??
+            itemObj.name ??
+            itemObj.category ??
+            itemObj._id ??
+            ""
           ).trim();
           const val = Number(
             itemObj.value ??
-              itemObj.count ??
-              itemObj.amount ??
-              itemObj.ticketsSold ??
-              itemObj.tickets ??
-              itemObj.total ??
-              0
+            itemObj.count ??
+            itemObj.amount ??
+            itemObj.ticketsSold ??
+            itemObj.tickets ??
+            itemObj.total ??
+            0
           );
           if (label) {
             rawEntries.push({ label, value: val });
@@ -84,11 +89,11 @@ export default function TicketSpendDistributionChart({
             const valObj = val as Record<string, unknown>;
             num = Number(
               valObj.value ??
-                valObj.count ??
-                valObj.amount ??
-                valObj.ticketsSold ??
-                valObj.total ??
-                0
+              valObj.count ??
+              valObj.amount ??
+              valObj.ticketsSold ??
+              valObj.total ??
+              0
             );
           }
           rawEntries.push({ label: key.trim(), value: num });
@@ -236,7 +241,7 @@ export default function TicketSpendDistributionChart({
               style={{ backgroundColor: barColor }}
             />
             <span className="text-xs font-semibold text-gray-700">
-              {legendLabel}
+              {activeLegend}
             </span>
           </div>
         )}

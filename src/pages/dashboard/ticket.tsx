@@ -4,7 +4,7 @@ import { Header, EventSelect } from "../../components/common";
 import type { Column } from "../../type/table";
 import CustomTable from "../../components/ui/customTable";
 import { IoSearch, IoCloseCircle } from "react-icons/io5";
-import { LuScanLine, LuClock3, LuDownload } from "react-icons/lu";
+import { LuScanLine, LuClock3 } from "react-icons/lu";
 import { IoCheckmarkCircle } from "react-icons/io5";
 import { MdFilterList } from "react-icons/md";
 import useTicketScans, { type TicketScanLogItem } from "../../hooks/useTicketScans";
@@ -166,32 +166,6 @@ export default function Ticket() {
         const start = (page - 1) * rowsPerPage;
         return filteredRows.slice(start, start + rowsPerPage);
     }, [filteredRows, page, rowsPerPage, allRecords.length, scanLogsResponse]);
-
-    // Export CSV handler
-    const handleExportData = () => {
-        const headers = ["Ticket ID", "Event", "Attendee", "Email", "Scan Time", "Ticket Type", "Scanned By"];
-        const rows = filteredRows.map((r) => [
-            r.ticketId,
-            typeof r.event === "object" ? (r.event?.title || r.event?.name) : r.event,
-            r.attendee,
-            r.email,
-            r.scanTime,
-            r.ticketType,
-            r.scannedBy,
-        ]);
-
-        const csvContent =
-            "data:text/csv;charset=utf-8," +
-            [headers.join(","), ...rows.map((e) => e.map((val) => `"${val ?? ""}"`).join(","))].join("\n");
-
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `ticket_scans_${Date.now()}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
 
     // Columns configuration
     const columns: Column<TicketScanLogItem>[] = [
@@ -422,15 +396,6 @@ export default function Ticket() {
                                     className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#37137F] transition-all"
                                 />
                             </div>
-
-                            {/* Export Data Button */}
-                            <button
-                                onClick={handleExportData}
-                                className="border border-gray-200 hover:bg-gray-50 transition-colors rounded-xl px-4 py-2.5 font-semibold text-gray-700 text-xs flex items-center justify-center gap-2 shadow-xs cursor-pointer shrink-0"
-                            >
-                                <LuDownload size={15} />
-                                <span>Export Data</span>
-                            </button>
                         </div>
                     </div>
 
