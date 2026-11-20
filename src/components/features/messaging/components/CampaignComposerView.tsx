@@ -6,6 +6,7 @@ import RichTextEditor from "../../../ui/richTextEditor";
 import { buildFullEmailHtml, buildSocialFooterHtml } from "../../../../utils/emailTemplate";
 import { convertHtmlToStyledText } from "../../../../utils/styledText";
 import {
+    DEFAULT_SOCIAL_ICON_URLS,
     SOCIAL_PLATFORM_MAP,
     ensureSocialIconUploaded,
     getCachedSocialIconUrl,
@@ -100,7 +101,10 @@ export default function CampaignComposerView({
     };
 
     const handleSaveSocialLink = (item: SocialLinkItem) => {
-        const cachedIconUrl = item.iconUrl || getCachedSocialIconUrl(item.platform) || undefined;
+        const cachedIconUrl =
+            (item.iconUrl && item.iconUrl.startsWith("http") ? item.iconUrl : null) ||
+            getCachedSocialIconUrl(item.platform) ||
+            DEFAULT_SOCIAL_ICON_URLS[item.platform];
         const enrichedItem: SocialLinkItem = { ...item, iconUrl: cachedIconUrl };
 
         const current = latestSocialLinksRef.current;

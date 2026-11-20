@@ -345,8 +345,15 @@ export default function GetUsersRole() {
                 {/* ✏️ EDIT MEMBER DETAILS MODAL (Formik) */}
                 {memberToEdit && (() => {
                     const uObj = typeof memberToEdit.user === "object" ? memberToEdit.user : null;
+                    const phoneVal =
+                        memberToEdit.phone ||
+                        memberToEdit.telephone ||
+                        (uObj as any)?.phone ||
+                        (uObj as any)?.telephone ||
+                        "";
                     const initialValues = {
                         fullname: memberToEdit.fullname || uObj?.fullname || "",
+                        phone: phoneVal,
                         email: memberToEdit.email || uObj?.email || "",
                         role: (memberToEdit.role || "viewer").toLowerCase(),
                     };
@@ -379,16 +386,26 @@ export default function GetUsersRole() {
                                     initialValues={initialValues}
                                     enableReinitialize
                                     onSubmit={(values) => {
-                                        const memberUserId = memberToEdit?.user?._id;
+                                        const memberUserId =
+                                            getMemberUserId(memberToEdit) || memberToEdit?.user?._id;
                                         if (!memberUserId) {
                                             toast.danger("Could not determine team member user ID");
                                             return;
                                         }
 
+                                        const payload: Record<string, any> = {
+                                            fullname: values.fullname.trim(),
+                                            email: values.email.trim(),
+                                            role: values.role,
+                                        };
+                                        if (values.phone?.trim()) {
+                                            payload.phone = values.phone.trim();
+                                        }
+
                                         updateTeamMember.mutate(
                                             {
                                                 memberUserId,
-                                                data: values,
+                                                data: payload,
                                             },
                                             {
                                                 onSuccess: () => {
@@ -404,6 +421,13 @@ export default function GetUsersRole() {
                                                 name="fullname"
                                                 label="Full Name"
                                                 placeholder="e.g. Jane Doe"
+                                            />
+
+                                            <FormikField
+                                                name="phone"
+                                                label="Phone Number"
+                                                type="tel"
+                                                placeholder="e.g. +2348012345678"
                                             />
 
                                             <FormikField

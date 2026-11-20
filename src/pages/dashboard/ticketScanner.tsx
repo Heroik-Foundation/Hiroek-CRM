@@ -1,7 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAtomValue } from "jotai";
-import { userAtom } from "../../utils/atom/user";
 import useTicketScans, { type TicketScanLogItem } from "../../hooks/useTicketScans";
 import { toast, Spinner } from "@heroui/react";
 import {
@@ -13,10 +11,11 @@ import {
     BiX,
 } from "react-icons/bi";
 import { LuScanLine, LuHistory, LuFlashlight, LuFlashlightOff } from "react-icons/lu";
+import useMembership from "../../hooks/useMembership";
 
 export default function TicketScanner() {
     const navigate = useNavigate();
-    const user = useAtomValue(userAtom);
+    const { user, canScanTickets, canAccessSettings } = useMembership();
 
     // Initial view mode: "hub" | "scan" | "history"
     const [viewMode, setViewMode] = useState<"hub" | "scan" | "history">("hub");
@@ -263,7 +262,13 @@ export default function TicketScanner() {
                         {/* 1. Scan Ticket Now */}
                         <button
                             type="button"
-                            onClick={() => setViewMode("scan")}
+                            onClick={() => {
+                                if (!canScanTickets) {
+                                    toast.danger("You do not have permission to scan tickets (ticket.scan). Contact an administrator.");
+                                    return;
+                                }
+                                setViewMode("scan");
+                            }}
                             className="w-full py-8 sm:py-9 px-6 rounded-3xl bg-[#31117D] hover:bg-[#260c63] text-white flex items-center justify-center gap-4 font-bold text-lg sm:text-xl shadow-md transition-all active:scale-98 cursor-pointer group"
                         >
                             <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center group-hover:bg-white/25 transition">
@@ -288,10 +293,10 @@ export default function TicketScanner() {
                     {/* Back to Settings / Dashboard */}
                     <button
                         type="button"
-                        onClick={() => navigate("/dashboard/settings?tab=permissions")}
+                        onClick={() => navigate(canAccessSettings ? "/dashboard/settings?tab=permissions" : "/dashboard")}
                         className="text-xs font-bold text-gray-500 hover:text-[#2D1173] text-center transition cursor-pointer"
                     >
-                        ← Back to User Roles & Permissions
+                        {canAccessSettings ? "← Back to User Roles & Permissions" : "← Back to Dashboard"}
                     </button>
                 </div>
             )}

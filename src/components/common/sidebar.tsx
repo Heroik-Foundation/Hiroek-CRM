@@ -7,11 +7,13 @@ import { FiArrowRight } from "react-icons/fi";
 import { AnimatePresence, motion } from "framer-motion";
 import useEmailBundles from "../../hooks/settings/useEmailBundles";
 import { clearSession, redirectToLogin } from "../../config/httpService";
+import useMembership from "../../hooks/useMembership";
 
 export default function Sidebar() {
     const navigate = useNavigate();
     const pathname = useLocation();
     const [showLogoutModal, setShowLogoutModal] = useState(false);
+    const { canAccessSettings } = useMembership();
 
     // ✉️ Dynamic Email Balance
     const { useGetEmailBalance } = useEmailBundles();
@@ -23,6 +25,16 @@ export default function Sidebar() {
         if (typeof balanceApiData?.result?.balance === "number") return balanceApiData.result.balance;
         return null;
     }, [balanceApiData]);
+
+    // Filter sidebar navigation according to permissions (e.g. Settings is owner-only)
+    const accessibleSidebarLinks = useMemo(() => {
+        return sidebarLink.filter((item) => {
+            if (item.link === "/dashboard/settings" && !canAccessSettings) {
+                return false;
+            }
+            return true;
+        });
+    }, [canAccessSettings]);
 
     // Close on Escape key
     useEffect(() => {
@@ -54,7 +66,7 @@ export default function Sidebar() {
                 </div>
 
                 <div className="w-full py-4 px-3 flex flex-col gap-1">
-                    {sidebarLink?.map((item) => {
+                    {accessibleSidebarLinks?.map((item) => {
                         const isActive =
                             item?.link === pathname.pathname ||
                             (item?.link !== "/dashboard" &&
@@ -130,15 +142,17 @@ export default function Sidebar() {
                         </p>
                     </div>
 
-                    {/* Action button to buy / top up */}
-                    <button
-                        type="button"
-                        onClick={() => navigate("/dashboard/settings?tab=credit")}
-                        className="w-full py-2 px-3 bg-white/15 hover:bg-white/25 active:bg-white/30 text-white rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer border border-white/10"
-                    >
-                        <span>Top Up Credits</span>
-                        <LuArrowUpRight size={14} />
-                    </button>
+                    {/* Action button to buy / top up (restricted to owners who have billing access) */}
+                    {canAccessSettings && (
+                        <button
+                            type="button"
+                            onClick={() => navigate("/dashboard/settings?tab=credit")}
+                            className="w-full py-2 px-3 bg-white/15 hover:bg-white/25 active:bg-white/30 text-white rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer border border-white/10"
+                        >
+                            <span>Top Up Credits</span>
+                            <LuArrowUpRight size={14} />
+                        </button>
+                    )}
                 </div>
             </div>
 

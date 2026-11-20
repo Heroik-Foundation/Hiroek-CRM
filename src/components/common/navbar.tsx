@@ -1,14 +1,14 @@
 import { useState } from "react";
-import { useAtom, useAtomValue } from "jotai";
-import { userAtom } from "../../utils/atom/user";
+import { useAtom } from "jotai";
 import { drawerAtom } from "../../utils/atom/drawer";
 import { periodAtom } from "../../utils/atom/period";
 import { Notification } from "iconsax-reactjs";
 import { IoChevronDownCircle } from "react-icons/io5";
 import { HiMenu } from "react-icons/hi";
+import useMembership from "../../hooks/useMembership";
 
 export default function Navbar() {
-    const user = useAtomValue(userAtom);
+    const { displayName, roleTag, displayAvatar, isOwner, isAdmin } = useMembership();
     const [, setIsDrawerOpen] = useAtom(drawerAtom);
     const [selectedRange, setSelectedRange] = useAtom(periodAtom);
     const [isOpen, setIsOpen] = useState(false);
@@ -29,10 +29,10 @@ export default function Navbar() {
                 <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full border-2 border-[#37137F] p-0.5 flex items-center justify-center shrink-0">
                     <img
                         src={
-                            user?.logo ||
+                            displayAvatar ||
                             "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
                         }
-                        alt={user?.name || "Joba Labs"}
+                        alt={displayName}
                         className="w-full h-full rounded-full object-cover"
                     />
                 </div>
@@ -46,12 +46,42 @@ export default function Navbar() {
                     <HiMenu size={24} />
                 </button>
 
+                {/* Mobile Role Tag */}
+                {roleTag && (
+                    <span
+                        className={`md:hidden px-2 py-0.5 text-[9px] font-extrabold tracking-wider rounded-md uppercase border ${
+                            isOwner
+                                ? "bg-purple-100 text-[#37137F] border-purple-200"
+                                : isAdmin
+                                ? "bg-blue-50 text-blue-700 border-blue-200"
+                                : "bg-amber-50 text-amber-700 border-amber-200"
+                        }`}
+                    >
+                        {roleTag}
+                    </span>
+                )}
+
                 <div className="hidden md:flex flex-col">
-                    <h3 className="font-bold text-base text-[#37137F] leading-tight">
-                        {user?.name || "Joba Labs"}
-                    </h3>
-                    <p className="text-xs text-gray-400 font-medium leading-tight mt-0.5">
-                        Welcome {user?.name}
+                    <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-base text-[#37137F] leading-tight truncate max-w-[200px]">
+                            {displayName}
+                        </h3>
+                        {roleTag && (
+                            <span
+                                className={`px-2 py-0.5 text-[10px] font-extrabold tracking-wider rounded-md uppercase border shadow-2xs ${
+                                    isOwner
+                                        ? "bg-purple-100 text-[#37137F] border-purple-200"
+                                        : isAdmin
+                                        ? "bg-blue-50 text-blue-700 border-blue-200"
+                                        : "bg-amber-50 text-amber-700 border-amber-200"
+                                }`}
+                            >
+                                {roleTag}
+                            </span>
+                        )}
+                    </div>
+                    <p className="text-xs text-gray-400 font-medium leading-tight mt-0.5 truncate max-w-[220px]">
+                        Welcome {displayName}
                     </p>
                 </div>
             </div>

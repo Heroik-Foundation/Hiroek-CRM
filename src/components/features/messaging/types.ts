@@ -6,6 +6,8 @@ export type MessageView =
     | "compose"
     | "recipients";
 
+export type RecipientFilterType = "all" | "customers" | "imported";
+
 export interface RecipientItem {
     id: string;
     sNo: number;
@@ -14,7 +16,10 @@ export interface RecipientItem {
     email: string;
     phone: string;
     location: string;
-    rawCustomer: Record<string, unknown>;
+    type?: "customer" | "imported";
+    channels?: string[];
+    emailBlockedReason?: string | null;
+    rawCustomer?: Record<string, unknown>;
 }
 
 export interface VerifiedSender {

@@ -12,6 +12,11 @@ export interface ImportedEmail {
 
 export interface CampaignRecipientPayload {
     customerIds?: string[];
+    allCustomers?: boolean;
+    excludeCustomerIds?: string[];
+    importedRecipientIds?: string[];
+    allImported?: boolean;
+    excludeImportedRecipientIds?: string[];
     importedEmails?: ImportedEmail[];
 }
 

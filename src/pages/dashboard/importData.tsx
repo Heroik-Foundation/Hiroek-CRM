@@ -12,64 +12,186 @@ import {
     LuDownload,
     LuRefreshCw,
     LuFileText,
+    LuMail,
+    LuCheck,
 } from "react-icons/lu";
-import { toast } from "@heroui/react";
+import { toast, Spinner } from "@heroui/react";
+import useRecipients from "../../hooks/useRecipients";
 
 export default function ImportData() {
     const navigate = useNavigate();
 
-    // Steps: "upload" (Image 3) | "importing" (Image 4) | "summary" (Image 2)
+    // Steps: "upload" | "importing" | "summary"
     const [step, setStep] = useState<"upload" | "importing" | "summary">("upload");
 
-    // Upload state
-    const [showUploadAlert, setShowUploadAlert] = useState(true);
-    const [uploadedFileName, setUploadedFileName] = useState("contacts_02_final.csv");
+    // Selected file state
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [showUploadAlert, setShowUploadAlert] = useState(false);
+    const [alertMessage, setAlertMessage] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Importing animation state
-    const [progressPct, setProgressPct] = useState(65);
-    const [progressMb, setProgressMb] = useState(8.1);
-    const [secondsRemaining, setSecondsRemaining] = useState(45);
+    // Active Import tracking
+    const [activeImportId, setActiveImportId] = useState<string | null>(null);
+    const [fallbackProgress, setFallbackProgress] = useState(15);
 
+    // API Hooks
+    const {
+        useUploadRecipientFile,
+        useGetImportStatus,
+        useConfirmImport,
+        useCancelImport,
+        useGetImportReport,
+        useGetRecentImports,
+        downloadFailedRowsCsv,
+    } = useRecipients();
+
+    const uploadMutation = useUploadRecipientFile();
+    const confirmMutation = useConfirmImport();
+    const cancelMutation = useCancelImport();
+    const { data: recentImports } = useGetRecentImports();
+
+    // Query status of active import
+    const { data: importStatus } = useGetImportStatus(activeImportId, step === "importing");
+
+    // Query report when in summary view
+    const { data: reportData, isLoading: isReportLoading } = useGetImportReport(
+        activeImportId,
+        step === "summary"
+    );
+
+    // Smooth progress simulation while backend processes file
     useEffect(() => {
-        let interval: ReturnType<typeof setInterval>;
+        let timer: ReturnType<typeof setInterval>;
         if (step === "importing") {
-            interval = setInterval(() => {
-                setProgressPct((prev) => {
-                    if (prev >= 100) {
-                        clearInterval(interval);
-                        setTimeout(() => setStep("summary"), 800);
-                        return 100;
-                    }
-                    const next = prev + 5;
-                    setProgressMb(Number((8.1 + (next - 65) * 0.12).toFixed(1)));
-                    setSecondsRemaining((s) => Math.max(0, s - 6));
-                    return next;
+            timer = setInterval(() => {
+                setFallbackProgress((prev) => {
+                    if (prev >= 95) return prev;
+                    return prev + 5;
                 });
-            }, 600);
+            }, 800);
+        } else {
+            setFallbackProgress(15);
         }
-        return () => clearInterval(interval);
+        return () => clearInterval(timer);
     }, [step]);
+
+    // React to status changes
+    useEffect(() => {
+        if (!importStatus) return;
+
+        // If backend reports ready, auto-confirm consent to finish saving
+        if (importStatus.status === "ready" && activeImportId && !confirmMutation.isPending) {
+            confirmMutation.mutate(activeImportId);
+        }
+
+        // Once completed, transition to summary
+        if (importStatus.status === "completed") {
+            setStep("summary");
+        }
+
+        // If failed
+        if (importStatus.status === "failed") {
+            setAlertMessage(importStatus.failureReason || "File import failed during processing.");
+            setShowUploadAlert(true);
+            setStep("upload");
+        }
+    }, [importStatus, activeImportId, confirmMutation]);
 
     const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) {
-            setUploadedFileName(file.name);
-            toast.success(`Selected file: ${file.name}`);
+        if (!file) return;
+
+        const maxMb = 50;
+        if (file.size > maxMb * 1024 * 1024) {
+            setAlertMessage(`File exceeds ${maxMb}MB limit. Please choose a smaller file.`);
+            setShowUploadAlert(true);
+            return;
+        }
+
+        const validExts = [".csv", ".xlsx", ".json"];
+        const hasValidExt = validExts.some((ext) => file.name.toLowerCase().endsWith(ext));
+        if (!hasValidExt) {
+            setAlertMessage("Unsupported format. Please upload a .csv, .xlsx, or .json file.");
+            setShowUploadAlert(true);
+            return;
+        }
+
+        setSelectedFile(file);
+        setShowUploadAlert(false);
+        toast.success(`Selected: ${file.name}`);
+    };
+
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            const file = e.dataTransfer.files[0];
+            const maxMb = 50;
+            if (file.size > maxMb * 1024 * 1024) {
+                setAlertMessage(`File exceeds ${maxMb}MB limit. Please choose a smaller file.`);
+                setShowUploadAlert(true);
+                return;
+            }
+            setSelectedFile(file);
+            setShowUploadAlert(false);
+            toast.success(`Selected: ${file.name}`);
         }
     };
 
-    const handleStartImport = () => {
-        setProgressPct(65);
-        setProgressMb(8.1);
-        setSecondsRemaining(45);
-        setStep("importing");
+    const handleStartImport = async () => {
+        if (!selectedFile) {
+            toast.danger("Please select or drop a file to import");
+            return;
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append("file", selectedFile);
+
+            const result = await uploadMutation.mutateAsync(formData);
+            const importId = result?.id || result?.importId || (result as any)?._id || (result as any)?.data?.id;
+
+            if (importId) {
+                setActiveImportId(importId);
+                setStep("importing");
+            } else {
+                // If direct synchronous completion or fallback
+                toast.success("File uploaded successfully");
+                setStep("importing");
+            }
+        } catch (err: any) {
+            const msg = err?.response?.data?.message || err?.message || "Failed to start import";
+            setAlertMessage(msg);
+            setShowUploadAlert(true);
+        }
     };
 
-    // ─── STEP 2: IMPORTING FILE (Matches Image 4) ───────────────────────────
+    const handleCancelImport = () => {
+        if (activeImportId) {
+            cancelMutation.mutate(activeImportId);
+        }
+        setStep("upload");
+        setActiveImportId(null);
+    };
+
+    const handleViewReportFromHistory = (imp: any) => {
+        const id = imp.id || imp._id;
+        setActiveImportId(id);
+        setStep("summary");
+    };
+
+    // Calculate progress percentage
+    const currentPercent =
+        typeof importStatus?.percent === "number"
+            ? importStatus.percent
+            : importStatus?.status === "completed"
+            ? 100
+            : fallbackProgress;
+
+    // ─── STEP 2: IMPORTING FILE ─────────────────────────────────────────────
     if (step === "importing") {
         const circumference = 2 * Math.PI * 52;
-        const strokeDashoffset = circumference - (progressPct / 100) * circumference;
+        const strokeDashoffset = circumference - (currentPercent / 100) * circumference;
 
         return (
             <div className="w-full min-h-[80vh] flex flex-col justify-center items-center py-8">
@@ -80,7 +202,7 @@ export default function ImportData() {
                             Importing File...
                         </h1>
                         <p className="text-xs text-gray-500 font-medium mt-1">
-                            {uploadedFileName}
+                            {selectedFile?.name || importStatus?.fileName || "contacts.csv"}
                         </p>
                     </div>
 
@@ -110,7 +232,7 @@ export default function ImportData() {
                                 />
                             </svg>
                             <span className="absolute text-2xl font-bold text-gray-900 tracking-tight">
-                                {progressPct}%
+                                {Math.round(currentPercent)}%
                             </span>
                         </div>
 
@@ -119,18 +241,20 @@ export default function ImportData() {
                             <div className="flex justify-between items-center pb-4 border-b border-gray-100">
                                 <div>
                                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
-                                        PROGRESS
+                                        STATUS
                                     </span>
-                                    <span className="text-sm font-bold text-gray-900">
-                                        {progressMb} MB / 12.5 MB
+                                    <span className="text-sm font-bold text-gray-900 capitalize">
+                                        {importStatus?.status || "Processing"}
                                     </span>
                                 </div>
                                 <div className="text-right">
                                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
-                                        TIME LEFT
+                                        FILE SIZE
                                     </span>
                                     <span className="text-xs font-bold text-[#2E0F74]">
-                                        {secondsRemaining} secs remaining
+                                        {selectedFile
+                                            ? `${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB`
+                                            : "Analyzing"}
                                     </span>
                                 </div>
                             </div>
@@ -143,19 +267,27 @@ export default function ImportData() {
                                 <div className="flex flex-col gap-2 text-xs">
                                     <div className="flex items-center gap-2 text-gray-700">
                                         <IoCheckmarkCircle className="text-emerald-500 shrink-0" size={16} />
-                                        <span>Establishing secure connection..</span>
+                                        <span>File uploaded securely to /api/recipients/imports</span>
                                     </div>
                                     <div className="flex items-center gap-2 text-gray-700">
                                         <IoCheckmarkCircle className="text-emerald-500 shrink-0" size={16} />
-                                        <span>Allocating storage space..</span>
+                                        <span>Parsing and reading data records</span>
                                     </div>
                                     <div className="flex items-center gap-2 text-gray-700">
-                                        <IoCheckmarkCircle className="text-emerald-500 shrink-0" size={16} />
-                                        <span>Uploading data chunks (1/3)..</span>
+                                        {currentPercent >= 60 ? (
+                                            <IoCheckmarkCircle className="text-emerald-500 shrink-0" size={16} />
+                                        ) : (
+                                            <LuRefreshCw className="animate-spin text-purple-600 shrink-0" size={14} />
+                                        )}
+                                        <span>Validating email formats and phone numbers</span>
                                     </div>
-                                    <div className="flex items-center gap-2 text-[#2E0F74] font-semibold">
-                                        <LuRefreshCw className="animate-spin text-blue-500 shrink-0" size={14} />
-                                        <span>Validating email formats..</span>
+                                    <div className="flex items-center gap-2 text-gray-700 font-semibold">
+                                        {currentPercent >= 100 ? (
+                                            <IoCheckmarkCircle className="text-emerald-500 shrink-0" size={16} />
+                                        ) : (
+                                            <LuRefreshCw className="animate-spin text-blue-500 shrink-0" size={14} />
+                                        )}
+                                        <span>Saving contacts into recipient database...</span>
                                     </div>
                                 </div>
                             </div>
@@ -166,10 +298,11 @@ export default function ImportData() {
                     <div className="flex items-center gap-4">
                         <button
                             type="button"
-                            onClick={() => setStep("upload")}
-                            className="bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-xs px-6 py-2.5 rounded-xl cursor-pointer shadow-2xs transition-colors"
+                            onClick={handleCancelImport}
+                            disabled={cancelMutation.isPending}
+                            className="bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-xs px-6 py-2.5 rounded-xl cursor-pointer shadow-2xs transition-colors disabled:opacity-50"
                         >
-                            Cancel Upload
+                            {cancelMutation.isPending ? "Cancelling..." : "Cancel Upload"}
                         </button>
                         <button
                             type="button"
@@ -184,17 +317,20 @@ export default function ImportData() {
         );
     }
 
-    // ─── STEP 3: IMPORT SUMMARY REPORT (Matches Image 2) ───────────────────
+    // ─── STEP 3: IMPORT SUMMARY REPORT ──────────────────────────────────────
     if (step === "summary") {
-        const failedRows = [
-            { row: "#1042", contact: "invalid.email@domain", error: "Invalid email format" },
-            { row: "#2198", contact: "sarah.jenkins@company.com", error: "Missing required field: Last Name" },
-            { row: "#4055", contact: "555-019-283", error: "Duplicate entry found (&B: 1670)" },
-            { row: "#8912", contact: "robert.d@startup.io", error: "Invalid email format" },
-        ];
+        const totals = reportData?.totals || importStatus?.totals || {
+            rows: importStatus?.totalRows || 0,
+            imported: importStatus?.importedRows || 0,
+            merged: 0,
+            skipped: 0,
+            failed: importStatus?.failedRows || 0,
+        };
+
+        const failedRows = reportData?.failedRows || [];
 
         return (
-            <div className="w-full flex flex-col gap-6 pb-12">
+            <div className="w-full flex flex-col gap-6 pb-12 animate-in fade-in duration-150">
                 {/* Header Row */}
                 <div className="w-full flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div className="flex items-center gap-3.5">
@@ -205,19 +341,43 @@ export default function ImportData() {
                         >
                             <IoChevronBack size={18} />
                         </button>
-                        <h1 className="text-2xl font-bold text-[#2E0F74] tracking-tight">
-                            Import Summary Report
-                        </h1>
+                        <div>
+                            <h1 className="text-2xl font-bold text-[#2E0F74] tracking-tight">
+                                Import Summary Report
+                            </h1>
+                            <p className="text-xs text-gray-500 font-medium mt-0.5">
+                                {selectedFile?.name || "Import completed successfully"}
+                            </p>
+                        </div>
                     </div>
 
-                    <button
-                        type="button"
-                        onClick={() => toast.success("Exporting import report...")}
-                        className="text-xs font-semibold text-gray-700 hover:text-gray-900 flex items-center gap-2 cursor-pointer transition-colors"
-                    >
-                        <LuDownload size={15} />
-                        <span>Import Report</span>
-                    </button>
+                    <div className="flex items-center gap-3">
+                        {/* Download Report / Failed Rows CSV */}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (activeImportId) {
+                                    downloadFailedRowsCsv(activeImportId);
+                                } else {
+                                    toast.info("No active import ID to download failed rows");
+                                }
+                            }}
+                            className="text-xs font-semibold px-4 py-2 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 flex items-center gap-2 cursor-pointer shadow-xs transition-colors"
+                        >
+                            <LuDownload size={15} />
+                            <span>Download Failed Rows CSV</span>
+                        </button>
+
+                        {/* Send Campaign Now */}
+                        <button
+                            type="button"
+                            onClick={() => navigate("/dashboard/messaging")}
+                            className="text-xs font-bold px-4 py-2 rounded-xl bg-[#2E0F74] hover:bg-[#37137F] text-white flex items-center gap-2 cursor-pointer shadow-xs transition-colors"
+                        >
+                            <LuMail size={15} />
+                            <span>Send Campaign to Contacts</span>
+                        </button>
+                    </div>
                 </div>
 
                 {/* 3 Metric Summary Cards */}
@@ -231,20 +391,28 @@ export default function ImportData() {
                             </span>
                         </div>
                         <span className="text-3xl font-bold text-gray-900 tracking-tight mt-3">
-                            45,000
+                            {isReportLoading ? (
+                                <Spinner size="sm" />
+                            ) : (
+                                totals.rows?.toLocaleString() || "0"
+                            )}
                         </span>
                     </div>
 
-                    {/* Card 2: Successfully Merged */}
+                    {/* Card 2: Successfully Imported / Merged */}
                     <div className="bg-white rounded-2xl md:rounded-3xl p-6 border border-gray-100 shadow-[0_4px_24px_rgba(0,0,0,0.03)] flex flex-col justify-between">
                         <div className="flex items-center gap-2 text-gray-400">
                             <IoCheckmarkCircle size={16} />
                             <span className="text-[10px] font-bold uppercase tracking-wider">
-                                SUCCESSFULLY MERGED
+                                SUCCESSFULLY IMPORTED
                             </span>
                         </div>
                         <span className="text-3xl font-bold text-[#2E0F74] tracking-tight mt-3">
-                            1,240
+                            {isReportLoading ? (
+                                <Spinner size="sm" />
+                            ) : (
+                                (totals.imported ?? totals.merged ?? 0).toLocaleString()
+                            )}
                         </span>
                     </div>
 
@@ -257,7 +425,11 @@ export default function ImportData() {
                             </span>
                         </div>
                         <span className="text-3xl font-bold text-red-600 tracking-tight mt-3">
-                            12
+                            {isReportLoading ? (
+                                <Spinner size="sm" />
+                            ) : (
+                                totals.failed?.toLocaleString() || failedRows.length.toLocaleString()
+                            )}
                         </span>
                     </div>
                 </div>
@@ -269,45 +441,83 @@ export default function ImportData() {
                             Failed Rows Detail
                         </h2>
                         <span className="text-xs text-gray-400 font-medium">
-                            Showing 1-4 of 12
+                            {failedRows.length > 0
+                                ? `Showing ${failedRows.length} failed record(s)`
+                                : "0 failed rows"}
                         </span>
                     </div>
 
-                    <div className="w-full overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="border-b border-gray-100 text-xs font-bold text-gray-900">
-                                    <th className="py-3 px-4">Row Number</th>
-                                    <th className="py-3 px-4">Contact Info (Email/Phone)</th>
-                                    <th className="py-3 px-4">Error Message</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100 text-xs text-gray-800 font-medium">
-                                {failedRows.map((row, idx) => (
-                                    <tr key={idx} className="hover:bg-gray-50/60 transition-colors">
-                                        <td className="py-3.5 px-4 font-semibold text-gray-700">
-                                            {row.row}
-                                        </td>
-                                        <td className="py-3.5 px-4 text-gray-800 font-medium">
-                                            {row.contact}
-                                        </td>
-                                        <td className="py-3.5 px-4">
-                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 text-red-600 text-xs font-semibold border border-red-200">
-                                                <IoAlertCircle size={13} className="shrink-0" />
-                                                <span>{row.error}</span>
-                                            </span>
-                                        </td>
+                    {failedRows.length > 0 ? (
+                        <div className="w-full overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="border-b border-gray-100 text-xs font-bold text-gray-900">
+                                        <th className="py-3 px-4">Row Number</th>
+                                        <th className="py-3 px-4">Contact Info (Email/Phone)</th>
+                                        <th className="py-3 px-4">Error Reason</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100 text-xs text-gray-800 font-medium">
+                                    {failedRows.map((row, idx) => (
+                                        <tr key={idx} className="hover:bg-gray-50/60 transition-colors">
+                                            <td className="py-3.5 px-4 font-semibold text-gray-700">
+                                                #{row.rowNumber || row.row || idx + 1}
+                                            </td>
+                                            <td className="py-3.5 px-4 text-gray-800 font-medium">
+                                                {row.contact || row.email || row.phone || "-"}
+                                            </td>
+                                            <td className="py-3.5 px-4">
+                                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 text-red-600 text-xs font-semibold border border-red-200">
+                                                    <IoAlertCircle size={13} className="shrink-0" />
+                                                    <span>{row.reason || row.error || "Validation error"}</span>
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <div className="w-full py-8 text-center flex flex-col items-center gap-2 bg-emerald-50/40 rounded-2xl border border-emerald-100">
+                            <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                                <LuCheck size={20} />
+                            </div>
+                            <h4 className="text-sm font-bold text-emerald-800">
+                                All contacts imported successfully!
+                            </h4>
+                            <p className="text-xs text-emerald-600 max-w-sm">
+                                No rows failed validation. Your contacts are ready to receive campaigns.
+                            </p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Back / Import another button */}
+                <div className="w-full flex justify-between items-center pt-2">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setSelectedFile(null);
+                            setActiveImportId(null);
+                            setStep("upload");
+                        }}
+                        className="text-xs font-semibold text-gray-600 hover:text-gray-900 cursor-pointer"
+                    >
+                        ← Import Another File
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => navigate("/dashboard/messaging")}
+                        className="bg-[#2E0F74] hover:bg-[#37137F] text-white font-bold text-xs px-6 py-2.5 rounded-xl shadow-xs transition-colors cursor-pointer"
+                    >
+                        Proceed to Messaging
+                    </button>
                 </div>
             </div>
         );
     }
 
-    // ─── STEP 1: UPLOAD DATA (Matches Image 3) ──────────────────────────────
+    // ─── STEP 1: UPLOAD DATA ────────────────────────────────────────────────
     return (
         <div className="w-full flex flex-col gap-6 pb-12">
             {/* Page Header */}
@@ -324,24 +534,24 @@ export default function ImportData() {
                         Upload Data
                     </h1>
                     <p className="text-xs text-gray-500 font-medium mt-0.5">
-                        Select your data source or drag and drop files to begin the import process.
+                        Import contact files (.csv, .xlsx, .json up to 50MB) to send campaigns to attendees.
                     </p>
                 </div>
             </div>
 
             {/* Dismissible Alert Banner */}
             {showUploadAlert && (
-                <div className="w-full bg-white border border-red-200 rounded-2xl p-4 shadow-sm flex items-start justify-between gap-3">
+                <div className="w-full bg-white border border-red-200 rounded-2xl p-4 shadow-sm flex items-start justify-between gap-3 animate-in fade-in duration-150">
                     <div className="flex items-start gap-3">
                         <div className="w-5 h-5 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0 mt-0.5">
                             <IoAlertCircle size={15} />
                         </div>
                         <div>
                             <h4 className="text-xs font-bold text-red-600">
-                                Upload Failed
+                                Upload Notice
                             </h4>
                             <p className="text-xs text-gray-500 font-medium mt-0.5">
-                                File too large (Max 50MB). Please compress your file or select a different source.
+                                {alertMessage || "File too large (Max 50MB). Please compress your file or select a different source."}
                             </p>
                         </div>
                     </div>
@@ -365,89 +575,144 @@ export default function ImportData() {
             />
             <div
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full border-2 border-dashed border-gray-300 hover:border-[#2E0F74] rounded-3xl p-10 bg-white flex flex-col items-center justify-center gap-3 cursor-pointer transition-all group shadow-[0_4px_24px_rgba(0,0,0,0.02)]"
+                onDragOver={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }}
+                onDrop={handleDrop}
+                className={`w-full border-2 border-dashed ${
+                    selectedFile
+                        ? "border-[#2E0F74] bg-[#F7F5FC]"
+                        : "border-gray-300 hover:border-[#2E0F74] bg-white"
+                } rounded-3xl p-10 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all group shadow-[0_4px_24px_rgba(0,0,0,0.02)]`}
             >
                 <div className="w-12 h-12 rounded-full bg-gray-100 group-hover:bg-[#EFEBFA] text-gray-400 group-hover:text-[#2E0F74] flex items-center justify-center transition-colors">
                     <LuCloudUpload size={24} />
                 </div>
                 <span className="text-base font-bold text-gray-900 text-center">
-                    Drag & Drop Files Here
+                    {selectedFile ? selectedFile.name : "Drag & Drop Files Here"}
                 </span>
                 <span className="text-xs text-gray-400 font-medium text-center">
-                    Supports .csv, .xlsx, or .json up to 50MB
+                    {selectedFile
+                        ? `File ready: ${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB`
+                        : "Supports .csv, .xlsx, or .json up to 50MB"}
                 </span>
-                <button
-                    type="button"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        fileInputRef.current?.click();
-                    }}
-                    className="bg-[#2E0F74] hover:bg-[#37137F] text-white font-semibold text-xs px-6 py-2.5 rounded-xl cursor-pointer shadow-xs transition-colors mt-1"
-                >
-                    Browse Files
-                </button>
-            </div>
-
-            {/* Connect Source Section */}
-            <div className="w-full flex flex-col gap-4">
-                <h3 className="text-base font-bold text-gray-900 tracking-tight">
-                    Connect Source
-                </h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* HubSpot CRM */}
-                    <div
-                        onClick={() => toast.info("Connecting to HubSpot CRM...")}
-                        className="bg-white rounded-2xl p-4 border border-gray-100 hover:border-[#2E0F74] transition-all flex items-center justify-between cursor-pointer group shadow-2xs"
+                <div className="flex items-center gap-3 mt-1">
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            fileInputRef.current?.click();
+                        }}
+                        className="bg-[#2E0F74] hover:bg-[#37137F] text-white font-semibold text-xs px-6 py-2.5 rounded-xl cursor-pointer shadow-xs transition-colors"
                     >
-                        <div className="flex items-center gap-3.5">
-                            <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 font-bold text-sm flex items-center justify-center shrink-0">
-                                H
-                            </div>
-                            <div>
-                                <h4 className="text-xs font-bold text-gray-900">
-                                    HubSpot CRM
-                                </h4>
-                                <p className="text-[11px] text-gray-400 font-medium">
-                                    Connect via OAuth
-                                </p>
-                            </div>
-                        </div>
-                        <IoChevronForward size={16} className="text-gray-400 group-hover:text-[#2E0F74] transition-colors" />
-                    </div>
-
-                    {/* Mailchimp */}
-                    <div
-                        onClick={() => toast.info("Connecting to Mailchimp...")}
-                        className="bg-white rounded-2xl p-4 border border-gray-100 hover:border-[#2E0F74] transition-all flex items-center justify-between cursor-pointer group shadow-2xs"
-                    >
-                        <div className="flex items-center gap-3.5">
-                            <div className="w-10 h-10 rounded-xl bg-yellow-100 text-yellow-700 font-bold text-sm flex items-center justify-center shrink-0">
-                                M
-                            </div>
-                            <div>
-                                <h4 className="text-xs font-bold text-gray-900">
-                                    Mailchimp
-                                </h4>
-                                <p className="text-[11px] text-gray-400 font-medium">
-                                    Connect via API Key
-                                </p>
-                            </div>
-                        </div>
-                        <IoChevronForward size={16} className="text-gray-400 group-hover:text-[#2E0F74] transition-colors" />
-                    </div>
+                        {selectedFile ? "Change File" : "Browse Files"}
+                    </button>
+                    {selectedFile && (
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedFile(null);
+                            }}
+                            className="text-xs text-red-500 hover:text-red-700 font-semibold cursor-pointer px-2"
+                        >
+                            Remove
+                        </button>
+                    )}
                 </div>
             </div>
+
+            {/* Recent Imports History Section */}
+            {Array.isArray(recentImports) && recentImports.length > 0 && (
+                <div className="w-full bg-white rounded-3xl p-6 border border-gray-100 shadow-[0_4px_24px_rgba(0,0,0,0.02)] flex flex-col gap-4">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-base font-bold text-gray-900 tracking-tight">
+                            Recent Imports History
+                        </h3>
+                        <span className="text-xs text-gray-400 font-medium">
+                            {recentImports.length} past import(s)
+                        </span>
+                    </div>
+
+                    <div className="w-full overflow-x-auto">
+                        <table className="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr className="border-b border-gray-100 font-bold text-gray-900">
+                                    <th className="py-2.5 px-3">File Name</th>
+                                    <th className="py-2.5 px-3">Status</th>
+                                    <th className="py-2.5 px-3">Total Rows</th>
+                                    <th className="py-2.5 px-3">Date</th>
+                                    <th className="py-2.5 px-3 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 font-medium text-gray-700">
+                                {recentImports.slice(0, 5).map((item: any, idx: number) => {
+                                    const id = item.id || item._id;
+                                    const status = item.status || "completed";
+                                    return (
+                                        <tr key={id || idx} className="hover:bg-gray-50/60">
+                                            <td className="py-3 px-3 font-semibold text-gray-900">
+                                                {item.fileName || item.filename || "contacts.csv"}
+                                            </td>
+                                            <td className="py-3 px-3">
+                                                <span
+                                                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                                                        status === "completed"
+                                                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                                            : status === "failed"
+                                                            ? "bg-red-50 text-red-700 border border-red-200"
+                                                            : "bg-blue-50 text-blue-700 border border-blue-200"
+                                                    }`}
+                                                >
+                                                    {status}
+                                                </span>
+                                            </td>
+                                            <td className="py-3 px-3">
+                                                {item.totals?.rows ?? item.totalRows ?? "-"}
+                                            </td>
+                                            <td className="py-3 px-3 text-gray-500">
+                                                {item.createdAt
+                                                    ? new Date(item.createdAt).toLocaleDateString()
+                                                    : "-"}
+                                            </td>
+                                            <td className="py-3 px-3 text-right">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleViewReportFromHistory(item)}
+                                                    className="text-xs text-[#2E0F74] hover:underline font-bold cursor-pointer"
+                                                >
+                                                    View Report
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
 
             {/* Bottom Proceed Button */}
             <div className="w-full flex justify-end mt-4">
                 <button
                     type="button"
                     onClick={handleStartImport}
-                    className="bg-[#2E0F74] hover:bg-[#37137F] text-white font-bold text-xs px-8 py-3 rounded-xl flex items-center gap-2 cursor-pointer shadow-xs transition-colors"
+                    disabled={!selectedFile || uploadMutation.isPending}
+                    className="bg-[#2E0F74] hover:bg-[#37137F] text-white font-bold text-xs px-8 py-3 rounded-xl flex items-center gap-2 cursor-pointer shadow-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    <span>Proceed</span>
-                    <IoChevronForward size={14} />
+                    {uploadMutation.isPending ? (
+                        <>
+                            <Spinner size="sm" color="current" />
+                            <span>Uploading File...</span>
+                        </>
+                    ) : (
+                        <>
+                            <span>Proceed to Import</span>
+                            <IoChevronForward size={14} />
+                        </>
+                    )}
                 </button>
             </div>
         </div>

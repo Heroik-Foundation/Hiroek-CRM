@@ -1,5 +1,6 @@
 import type { SocialLinkItem } from "../components/features/messaging/types";
 import {
+    DEFAULT_SOCIAL_ICON_URLS,
     SOCIAL_PLATFORM_MAP,
     deriveFallbackUsername,
     escapeHtml,
@@ -273,7 +274,7 @@ export function inlineEmailStyles(rawHtml: string): string {
 
 /**
  * Builds the social media links footer block rendered at the bottom of the email.
- * Displays clickable social media icons only (no username or platform label text).
+ * Displays clickable social media platform icons paired cleanly with account usernames in email-safe badges.
  */
 export function buildSocialFooterHtml(
     socialLinks?: SocialLinkItem[],
@@ -289,19 +290,25 @@ export function buildSocialFooterHtml(
             const config = SOCIAL_PLATFORM_MAP[item.platform];
             const platformName = escapeHtml(config?.name || item.platform);
             const href = escapeHtml(normalizeSocialUrl(item.url));
-            const resolvedIconUrl = item.iconUrl || getCachedSocialIconUrl(item.platform);
+            const rawUsername =
+                item.username?.trim() || deriveFallbackUsername(item.platform, item.url);
+            const displayUsername = escapeHtml(rawUsername);
+            const resolvedIconUrl =
+                (item.iconUrl && item.iconUrl.startsWith("http") ? item.iconUrl : null) ||
+                getCachedSocialIconUrl(item.platform) ||
+                DEFAULT_SOCIAL_ICON_URLS[item.platform];
 
             const iconHtml = resolvedIconUrl
-                ? `<img src="${escapeHtml(resolvedIconUrl)}" alt="${platformName}" width="28" height="28" style="display: block; width: 28px; height: 28px; border-radius: 7px; border: 0;" />`
+                ? `<img src="${escapeHtml(resolvedIconUrl)}" alt="${platformName}" width="22" height="22" style="display: block; width: 22px; height: 22px; border-radius: 5px; border: 0; outline: none; -ms-interpolation-mode: bicubic;" />`
                 : isPreview
-                    ? getSocialPlatformSvgString(item.platform, 28)
-                    : `<div style="width: 28px; height: 28px; line-height: 28px; text-align: center; background-color: ${config?.accentColor || "#37137F"}; color: ${config?.badgeTextColor || "#FFFFFF"}; font-weight: 700; font-size: 11px; border-radius: 7px; font-family: Arial, sans-serif;">${escapeHtml(config?.shortCode || platformName.slice(0, 2).toUpperCase())}</div>`;
+                    ? getSocialPlatformSvgString(item.platform, 22)
+                    : `<div style="width: 22px; height: 22px; line-height: 22px; text-align: center; background-color: ${config?.accentColor || "#37137F"}; color: ${config?.badgeTextColor || "#FFFFFF"}; font-weight: 700; font-size: 10px; border-radius: 5px; font-family: Arial, sans-serif;">${escapeHtml(config?.shortCode || platformName.slice(0, 2).toUpperCase())}</div>`;
 
-            return `<a href="${href}" target="_blank" rel="noopener noreferrer" title="${platformName}" aria-label="${platformName}" style="display: inline-block; margin: 0 10px 8px 0; text-decoration: none; vertical-align: middle;">${iconHtml}</a>`;
+            return `<a href="${href}" target="_blank" rel="noopener noreferrer" title="${platformName}: ${displayUsername}" aria-label="${platformName}: ${displayUsername}" style="display: inline-block; margin: 0 8px 8px 0; padding: 4px 12px 4px 5px; background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 20px; text-decoration: none; vertical-align: middle; -webkit-text-size-adjust: none;"><table role="presentation" border="0" cellpadding="0" cellspacing="0" style="display: inline-table; vertical-align: middle; border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt;"><tr><td style="vertical-align: middle; line-height: 0; padding: 0; font-size: 0; width: 22px;">${iconHtml}</td><td style="vertical-align: middle; padding: 0 0 0 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 12px; font-weight: 600; color: #1E293B; line-height: 20px; text-decoration: none; white-space: nowrap;">${displayUsername}</td></tr></table></a>`;
         })
         .join("");
 
-    return `<div style="margin-top: 28px; padding-top: 18px; border-top: 1px solid #E5E7EB; text-align: left;"><div>${itemsHtml}</div></div>`;
+    return `<div style="margin-top: 28px; padding-top: 20px; border-top: 1px solid #E2E8F0; text-align: left;"><div style="margin-bottom: 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.05em;">Connect with us</div><div style="line-height: 1.5;">${itemsHtml}</div></div>`;
 }
 
 /**

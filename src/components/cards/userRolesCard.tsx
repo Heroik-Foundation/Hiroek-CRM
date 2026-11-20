@@ -43,9 +43,16 @@ export default function UserRolesCard({
     const userObj = typeof member.user === "object" ? member.user : null;
     const name =
         member.fullname ||
-        userObj?.fullname
+        userObj?.fullname ||
+        "Team Member";
 
     const email = member.email || userObj?.email || "";
+    const phone =
+        member.phone ||
+        member.telephone ||
+        (userObj as any)?.phone ||
+        (userObj as any)?.telephone ||
+        "";
     const photo = userObj?.photo || null;
     const rawRole = String(member.role || "viewer").toLowerCase();
     const isOwner = rawRole === "owner" || rawRole === "creator";
@@ -107,7 +114,7 @@ export default function UserRolesCard({
                         {name}
                     </h4>
                     <p className="text-xs sm:text-sm text-gray-500 font-medium truncate">
-                        {email}
+                        {email}{phone ? ` · ${phone}` : ""}
                     </p>
                     <p className="text-[11px] sm:text-xs text-gray-500 font-medium mt-0.5 truncate">
                         {getPermissionsText()}
