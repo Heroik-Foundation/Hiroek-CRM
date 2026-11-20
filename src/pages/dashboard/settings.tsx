@@ -15,16 +15,55 @@ import {
     SmsEmailCredits,
 } from "../../components/settings";
 import { IoChevronDown } from "react-icons/io5";
+import { LuShieldAlert, LuArrowLeft } from "react-icons/lu";
+import useMembership from "../../hooks/useMembership";
 
 export default function Settings() {
     const pathname = useLocation();
     const navigate = useNavigate();
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const { canAccessSettings, roleTag } = useMembership();
 
     const currentSearch = pathname?.search || "?tab=profile";
     const activeItem =
         settingLink.find((item) => item?.link?.includes(currentSearch)) ??
         settingLink[0];
+
+    // 🔒 RESTRICTION: Admins and Users/Viewers cannot access Settings, Passwords, or User Updates
+    if (!canAccessSettings) {
+        return (
+            <div className="w-full flex-1 flex flex-col items-center justify-center p-4 sm:p-12 min-h-[65vh]">
+                <div className="max-w-md w-full bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm flex flex-col items-center text-center gap-4 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="w-16 h-16 rounded-2xl bg-red-50 text-[#D02124] flex items-center justify-center border border-red-100 shadow-xs">
+                        <LuShieldAlert size={32} />
+                    </div>
+
+                    <div className="flex flex-col gap-2 items-center">
+                        <span className="px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200">
+                            {roleTag ? `${roleTag} Account` : "Restricted Access"}
+                        </span>
+                        <h2 className="text-xl font-black text-gray-900 tracking-tight">
+                            Settings Access Restricted
+                        </h2>
+                        <p className="text-xs sm:text-sm text-gray-500 leading-relaxed max-w-sm">
+                            Settings, password management, and account updates are restricted exclusively to the account <strong>Owner</strong>. Admins and standard Users cannot view or modify these configuration options.
+                        </p>
+                    </div>
+
+                    <div className="w-full pt-2">
+                        <button
+                            type="button"
+                            onClick={() => navigate("/dashboard")}
+                            className="w-full py-3 px-4 rounded-xl bg-[#37137F] hover:bg-[#2c0e66] text-white font-bold text-sm transition shadow-sm cursor-pointer flex items-center justify-center gap-2 active:scale-98"
+                        >
+                            <LuArrowLeft size={16} />
+                            <span>Return to Dashboard</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <>

@@ -19,10 +19,13 @@ interface AppButtonProps extends Omit<
 > {
     children: ReactNode;
     onPress?: () => void;
+    onClick?: () => void;
     type?: "button" | "submit" | "reset";
     variant?: CustomVariants;
     size?: "sm" | "md" | "lg";
     loading?: boolean;
+    isLoading?: boolean;
+    fullWidth?: boolean;
     disabled?: boolean;
     className?: string;
     startContent?: ReactNode;
@@ -35,16 +38,22 @@ interface AppButtonProps extends Omit<
 export function AppButton({
     children,
     onPress,
+    onClick,
     type = "button",
     variant = "primary",
     size = "md",
     loading = false,
+    isLoading = false,
+    fullWidth = false,
     disabled = false,
     className,
     startContent,
     endContent,
     ...rest
 }: AppButtonProps) {
+    const isActuallyLoading = loading || isLoading;
+    const handlePress = onPress || onClick;
+
     // ✅ Real HeroUI variants
     const heroVariants: HeroVariants[] = [
         "ghost",
@@ -71,9 +80,9 @@ export function AppButton({
     return (
         <Button
             type={type}
-            onPress={onPress}
-            isDisabled={disabled || loading}
-            isPending={loading}
+            onPress={handlePress}
+            isDisabled={disabled || isActuallyLoading}
+            isPending={isActuallyLoading}
             variant={isHeroVariant ? (variant as HeroVariants) : "ghost"} // ✅ fallback
             size={size}
             {...rest}
@@ -81,11 +90,12 @@ export function AppButton({
                 (isCustomPrimary || !isHeroVariant || variant === "outline") &&
                     customClasses, // apply for custom variants
                 "h-11.25 rounded-lg ", // base styles
+                fullWidth && "w-full",
                 className,
             )}
         >
-            {loading && <>Loading...</>}
-            {!loading && (
+            {isActuallyLoading && <>Loading...</>}
+            {!isActuallyLoading && (
                 <>
                     {startContent}
                     {children}

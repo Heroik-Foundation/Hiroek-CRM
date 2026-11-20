@@ -4,6 +4,7 @@ import httpService from "../../config/httpService";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { URLS } from "../../utils/urls";
 import { toast } from "@heroui/react";
+import useMembership from "../useMembership";
 
 interface FormValues {
     bio: string;
@@ -50,16 +51,23 @@ const validationSchema = Yup.object({
 
 const useSettings = () => {
     const queryClient = useQueryClient();
+    const { canUpdateUserInfo } = useMembership();
 
-    /** 🔹 Create Team Member */
+    /** 🔹 Update User Data */
     const editUserData = useMutation({
-        mutationFn: (data: FormData) =>
-            httpService.patch(URLS.EDIT_USER, data, {
+        mutationFn: (data: FormData) => {
+            if (!canUpdateUserInfo) {
+                throw new Error("Unauthorized: Only account owners can update user information.");
+            }
+            return httpService.patch(URLS.EDIT_USER, data, {
                 headers: {
                     "Content-Type": "multipart/form-data",
                 },
-            }),
-        // onError: handleError,
+            });
+        },
+        onError: (err: any) => {
+            toast.danger(err?.message || "Failed to update profile");
+        },
         onSuccess: () => { 
             queryClient.invalidateQueries({ queryKey: [URLS.GET_USERS_DATA] });
             toast.success("Profile Updated");
@@ -70,6 +78,10 @@ const useSettings = () => {
         initialValues,
         validationSchema,
         onSubmit: async (values) => {
+            if (!canUpdateUserInfo) {
+                toast.danger("Access denied: Only account owners can update user information.");
+                return;
+            }
             const formData = new FormData();
 
             formData.append("name", values.name);
@@ -77,8 +89,8 @@ const useSettings = () => {
             formData.append("address", values.address);
             formData.append("telephone", values.telephone);
 
-            {
-                values.logo && formData.append("logo", values.logo);
+            if (values.logo) {
+                formData.append("logo", values.logo);
             }
             editUserData.mutate(formData);
         },
@@ -100,4 +112,5 @@ const useSettings = () => {
     };
 };
 
+export { default as useChangePassword } from "./useChangePassword";
 export default useSettings;
