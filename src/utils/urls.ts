@@ -35,8 +35,11 @@ export const URLS = {
     GET_REVIEWS_STATS: (organizerId: string) => `/analytics/reviews-stats/${organizerId}`,
 
     GET_USERS_DATA: "/event-partners/current-partner",
+    GET_MEMBERSHIP: "/event-partners/me/membership",
     USERS: "/user",
     EDIT_USER: "/event-partners/edit-details",
+    CHANGE_PASSWORD: "/event-partners/account-management/change-password",
+    GET_IN_TOUCH: "/core/get-in-touch",
 
     GET_PLANS: "/event-partners/get-plans",
     GET_CURRENT_PLAN: "/event-partners/subscription/get-subscription",
@@ -63,6 +66,19 @@ export const URLS = {
         `/event-partners/ticket-scanner/${encodeURIComponent(eventTicketCode)}`,
     CREATE_CAMPAIGN: "/event-partners/campaign/create-campaign",
     IMAGE_UPLOAD: "/event-partners/image-upload",
+
+    // Recipients & Contact Import Endpoints
+    GET_RECIPIENTS: "/recipients",
+    CREATE_RECIPIENTS_IMPORT: "/recipients/imports",
+    GET_RECIPIENTS_IMPORTS: "/recipients/imports",
+    GET_RECIPIENT_IMPORT: (importId: string) => `/recipients/imports/${importId}`,
+    GET_RECIPIENT_IMPORT_PREVIEW: (importId: string) => `/recipients/imports/${importId}/preview`,
+    UPDATE_RECIPIENT_IMPORT_MAPPING: (importId: string) => `/recipients/imports/${importId}/mapping`,
+    CONFIRM_RECIPIENT_IMPORT: (importId: string) => `/recipients/imports/${importId}/confirm`,
+    CANCEL_RECIPIENT_IMPORT: (importId: string) => `/recipients/imports/${importId}/cancel`,
+    GET_RECIPIENT_IMPORT_REPORT: (importId: string) => `/recipients/imports/${importId}/report`,
+    GET_RECIPIENT_IMPORT_FAILED_ROWS_CSV: (importId: string) => `/recipients/imports/${importId}/failed-rows.csv`,
+    DELETE_IMPORTED_RECIPIENT: (recipientId: string) => `/recipients/imported/${recipientId}`,
 
     // Sending Domain Endpoints
     GET_SENDING_DOMAIN: "/event-partners/sending-domain",

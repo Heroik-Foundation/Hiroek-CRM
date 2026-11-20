@@ -1,6 +1,7 @@
 
 export { FormikField as FormikField } from "./FormikField";
 export { default as CustomField } from "./customField";
+export { default as CustomInput } from "./customInput";
 export { default as Text } from "./customText";
 export { AppButton as CustomButton } from "./customButton";
 export { default as DateOfBirthField } from "./dateOfBirthField";

@@ -181,18 +181,30 @@ export function getSocialPlatformSvgString(platform: SocialPlatformId, size = 22
     }
 }
 
+export const DEFAULT_SOCIAL_ICON_URLS: Record<SocialPlatformId, string> = {
+    instagram: "https://img.icons8.com/color/48/instagram-new--v1.png",
+    facebook: "https://img.icons8.com/color/48/facebook-new.png",
+    tiktok: "https://img.icons8.com/color/48/tiktok--v1.png",
+    linkedin: "https://img.icons8.com/color/48/linkedin.png",
+    x: "https://img.icons8.com/color/48/twitterx--v1.png",
+    snapchat: "https://img.icons8.com/color/48/snapchat--v1.png",
+    strava: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/strava.png",
+};
+
 const SOCIAL_ICON_CACHE_KEY = "hiroek_social_icon_urls_v1";
 
-export function getCachedSocialIconUrl(platform: SocialPlatformId): string | null {
+export function getCachedSocialIconUrl(platform: SocialPlatformId): string {
     try {
         const raw = localStorage.getItem(SOCIAL_ICON_CACHE_KEY);
-        if (!raw) return null;
-        const parsed = JSON.parse(raw) as Partial<Record<SocialPlatformId, string>>;
-        const url = parsed[platform];
-        return typeof url === "string" && url.startsWith("http") ? url : null;
+        if (raw) {
+            const parsed = JSON.parse(raw) as Partial<Record<SocialPlatformId, string>>;
+            const url = parsed[platform];
+            if (typeof url === "string" && url.startsWith("http")) return url;
+        }
     } catch {
-        return null;
+        return DEFAULT_SOCIAL_ICON_URLS[platform] || "";
     }
+    return DEFAULT_SOCIAL_ICON_URLS[platform] || "";
 }
 
 export function setCachedSocialIconUrl(platform: SocialPlatformId, url: string): void {
@@ -258,24 +270,34 @@ export async function generateSocialIconPngFile(
 export async function ensureSocialIconUploaded(
     platform: SocialPlatformId,
     uploadImage?: (file: File) => Promise<string | null>
-): Promise<string | null> {
-    const cached = getCachedSocialIconUrl(platform);
-    if (cached) return cached;
-    if (!uploadImage) return null;
-
-    const file = await generateSocialIconPngFile(platform, 64);
-    if (!file) return null;
-
+): Promise<string> {
+    const fallback = DEFAULT_SOCIAL_ICON_URLS[platform] || "";
     try {
-        const uploadedUrl = await uploadImage(file);
-        if (uploadedUrl && uploadedUrl.startsWith("http")) {
-            setCachedSocialIconUrl(platform, uploadedUrl);
-            return uploadedUrl;
+        const raw = localStorage.getItem(SOCIAL_ICON_CACHE_KEY);
+        if (raw) {
+            const parsed = JSON.parse(raw) as Partial<Record<SocialPlatformId, string>>;
+            const cached = parsed[platform];
+            if (typeof cached === "string" && cached.startsWith("http")) return cached;
         }
     } catch {
-        // ignore upload failure and use HTML badge fallback
+        // ignore storage errors
     }
-    return null;
+
+    if (!uploadImage) return fallback;
+
+    try {
+        const file = await generateSocialIconPngFile(platform, 64);
+        if (file) {
+            const uploadedUrl = await uploadImage(file);
+            if (uploadedUrl && uploadedUrl.startsWith("http")) {
+                setCachedSocialIconUrl(platform, uploadedUrl);
+                return uploadedUrl;
+            }
+        }
+    } catch {
+        // ignore upload failure and use fallback
+    }
+    return fallback;
 }
 
 

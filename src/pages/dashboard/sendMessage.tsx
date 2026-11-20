@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Column } from "../../type/table";
 import useAudienceSegment from "../../hooks/useAudienceSegment";
-import useCampaign, { type CampaignChannel, type ImageUploadResponse } from "../../hooks/useCampaign";
+import useCampaign, { type CampaignChannel, type CampaignRecipientPayload, type ImageUploadResponse } from "../../hooks/useCampaign";
 import httpService from "../../config/httpService";
 import { URLS } from "../../utils/urls";
 import { Spinner, toast } from "@heroui/react";
@@ -10,9 +10,12 @@ import { useAtomValue } from "jotai";
 import { userAtom } from "../../utils/atom/user";
 import useEmailBundles from "../../hooks/settings/useEmailBundles";
 import useSendingDomain from "../../hooks/useSendingDomain";
+import useMembership from "../../hooks/useMembership";
+import useRecipients from "../../hooks/useRecipients";
 import {
     type MessageView,
     type RecipientItem,
+    type RecipientFilterType,
     type VerifiedSender,
     type DnsRecordItem,
     type SocialLinkItem,
@@ -285,6 +288,7 @@ export default function SendMessage() {
     const [isSendToAll, setIsSendToAll] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [debouncedSearch, setDebouncedSearch] = useState("");
+    const [recipientTab, setRecipientTab] = useState<RecipientFilterType>("all");
     const [page, setPage] = useState(1);
     const rowsPerPage = 10;
 
@@ -298,6 +302,7 @@ export default function SendMessage() {
 
     // Campaign creation and image upload hooks
     const { useCreateCampaign, useUploadCampaignImage } = useCampaign();
+    const { canSendMessages } = useMembership();
     const createCampaignMutation = useCreateCampaign();
     const uploadImageMutation = useUploadCampaignImage();
 
@@ -430,12 +435,25 @@ export default function SendMessage() {
         return () => clearTimeout(timer);
     }, [searchQuery]);
 
-    // Reset to page 1 whenever search query changes
+    // Reset to page 1 whenever search query or tab changes
     useEffect(() => {
         setPage(1);
-    }, [debouncedSearch]);
+    }, [debouncedSearch, recipientTab]);
 
-    // Load recipients from audience endpoint
+    // 1. GET /api/recipients: Official recipients endpoint for customers & imported data
+    const { useGetRecipients } = useRecipients();
+    const { data: apiRecipientsData, isLoading: isRecipientsLoading } = useGetRecipients({
+        type: recipientTab,
+        search: debouncedSearch.trim() || undefined,
+        page,
+        pageSize: rowsPerPage,
+    });
+
+    const { data: allRecipientsCounts } = useGetRecipients({ type: "all", pageSize: 1 });
+    const { data: customerRecipientsCounts } = useGetRecipients({ type: "customers", pageSize: 1 });
+    const { data: importedRecipientsCounts } = useGetRecipients({ type: "imported", pageSize: 1 });
+
+    // 2. Audience segment fallback
     const { useGetAudienceSegmentCustomer } = useAudienceSegment();
     const { data: audienceData, isLoading: isAudienceLoading } = useGetAudienceSegmentCustomer({
         segment: "all",
@@ -460,6 +478,17 @@ export default function SendMessage() {
         return [];
     }, [audienceData]);
 
+    const rawRecipients = useMemo(() => {
+        if (apiRecipientsData) {
+            if (Array.isArray(apiRecipientsData)) return apiRecipientsData;
+            const dObj = apiRecipientsData as Record<string, any>;
+            if (Array.isArray(dObj.data)) return dObj.data;
+            if (Array.isArray(dObj.recipients)) return dObj.recipients;
+            if (Array.isArray(dObj.items)) return dObj.items;
+        }
+        return rawCustomers;
+    }, [apiRecipientsData, rawCustomers]);
+
     const allCustomers = useMemo(() => {
         if (!allAudienceData) return [];
         if (Array.isArray(allAudienceData)) return allAudienceData;
@@ -472,6 +501,11 @@ export default function SendMessage() {
     }, [allAudienceData]);
 
     const totalCount = useMemo(() => {
+        if (apiRecipientsData) {
+            const dObj = apiRecipientsData as Record<string, any>;
+            const countVal = dObj.total ?? dObj.totalCount ?? dObj.count;
+            if (typeof countVal === "number") return countVal;
+        }
         if (!audienceData) return 0;
         const dObj = audienceData as Record<string, any>;
         return (
@@ -482,17 +516,18 @@ export default function SendMessage() {
             dObj.count ??
             (Array.isArray(rawCustomers) ? rawCustomers.length : 0)
         );
-    }, [audienceData, rawCustomers]);
+    }, [apiRecipientsData, audienceData, rawCustomers]);
 
     const totalPages = Math.max(1, Math.ceil(totalCount / rowsPerPage));
 
     const displayedRecipients: RecipientItem[] = useMemo(() => {
-        if (!Array.isArray(rawCustomers) || rawCustomers.length === 0) return [];
-        return rawCustomers.map((item: Record<string, unknown>, idx: number) => {
+        if (!Array.isArray(rawRecipients) || rawRecipients.length === 0) return [];
+        return rawRecipients.map((item: Record<string, any>, idx: number) => {
             const customerId =
-                item.customerId ||
-                item._id ||
                 item.id ||
+                item._id ||
+                item.customerId ||
+                item.recipientId ||
                 (typeof item.user === "object" && item.user !== null
                     ? (item.user as Record<string, unknown>)._id
                     : null) ||
@@ -537,6 +572,12 @@ export default function SendMessage() {
                     : null) ||
                 "London";
 
+            const isImported =
+                item.type === "imported" ||
+                Boolean(item.importedAt) ||
+                recipientTab === "imported" ||
+                (Array.isArray(item.channels) && item.channels.length === 1 && item.channels[0] === "email");
+
             return {
                 id: String(customerId),
                 sNo: (page - 1) * rowsPerPage + idx + 1,
@@ -545,10 +586,17 @@ export default function SendMessage() {
                 email: String(email),
                 phone: String(phone),
                 location: String(location),
+                type: isImported ? "imported" : "customer",
+                channels: Array.isArray(item.channels)
+                    ? item.channels
+                    : isImported
+                    ? ["email"]
+                    : ["email", "in_app"],
+                emailBlockedReason: item.emailBlockedReason || null,
                 rawCustomer: item,
             };
         });
-    }, [rawCustomers, page, rowsPerPage]);
+    }, [rawRecipients, page, rowsPerPage, recipientTab]);
 
     const selectedCount = isSendToAll ? totalCount : selectedRecipientsMap.size;
 
@@ -574,6 +622,19 @@ export default function SendMessage() {
             }
             return next;
         });
+    };
+
+    const handleSelectAllImported = () => {
+        setSelectedRecipientsMap((prev) => {
+            const next = new Map(prev);
+            displayedRecipients.forEach((r) => {
+                if (r.type === "imported") {
+                    next.set(r.id, r);
+                }
+            });
+            return next;
+        });
+        toast.success("Selected imported contacts on this page");
     };
 
     const handleSendToAllToggle = () => {
@@ -873,6 +934,10 @@ export default function SendMessage() {
 
     // Dispatch campaign message
     const handleSendMessage = async () => {
+        if (!canSendMessages) {
+            toast.danger("You do not have permission to create or send campaigns. Contact an administrator.");
+            return;
+        }
         if (uploadImageMutation.isPending) {
             toast.warning("Please wait for your image upload to complete before sending.");
             return;
@@ -903,6 +968,7 @@ export default function SendMessage() {
             : Array.from(selectedRecipientsMap.values()).map((r) => r.rawCustomer || r);
 
         const customerIds: string[] = [];
+        const importedRecipientIds: string[] = [];
         const importedEmails: { email: string; name?: string }[] = [];
 
         targetList.forEach((item: Record<string, unknown>) => {
@@ -931,7 +997,13 @@ export default function SendMessage() {
                 ""
             ).trim();
 
-            if (/^[0-9a-fA-F]{24}$/.test(strId)) {
+            const isImported = (item as any).type === "imported";
+
+            if (isImported) {
+                if (!importedRecipientIds.includes(strId)) {
+                    importedRecipientIds.push(strId);
+                }
+            } else if (/^[0-9a-fA-F]{24}$/.test(strId)) {
                 if (!customerIds.includes(strId)) {
                     customerIds.push(strId);
                 }
@@ -945,15 +1017,34 @@ export default function SendMessage() {
             }
         });
 
-        const recipientsPayload: { customerIds?: string[]; importedEmails?: { email: string; name?: string }[] } = {};
-        if (customerIds.length > 0) {
-            recipientsPayload.customerIds = customerIds;
-        }
-        if (importedEmails.length > 0) {
-            recipientsPayload.importedEmails = importedEmails;
+        const recipientsPayload: CampaignRecipientPayload = {};
+        if (isSendToAll) {
+            if (recipientTab === "imported") {
+                recipientsPayload.allImported = true;
+            } else if (recipientTab === "customers") {
+                recipientsPayload.allCustomers = true;
+            } else {
+                recipientsPayload.allCustomers = true;
+                recipientsPayload.allImported = true;
+            }
+        } else {
+            if (customerIds.length > 0) {
+                recipientsPayload.customerIds = customerIds;
+            }
+            if (importedRecipientIds.length > 0) {
+                recipientsPayload.importedRecipientIds = importedRecipientIds;
+            }
+            if (importedEmails.length > 0) {
+                recipientsPayload.importedEmails = importedEmails;
+            }
         }
 
-        if (customerIds.length === 0 && importedEmails.length === 0) {
+        if (
+            !isSendToAll &&
+            customerIds.length === 0 &&
+            importedRecipientIds.length === 0 &&
+            importedEmails.length === 0
+        ) {
             toast.danger("The selected recipient(s) do not have a valid customer ID or email address");
             return;
         }
@@ -962,15 +1053,20 @@ export default function SendMessage() {
 
         let resolvedSocialLinks = socialLinks;
         if (channel === "email" && socialLinks.length > 0 && useHtml) {
-            const { ensureSocialIconUploaded } = await import("../../utils/socialPlatforms");
+            const { ensureSocialIconUploaded, DEFAULT_SOCIAL_ICON_URLS } = await import("../../utils/socialPlatforms");
             resolvedSocialLinks = await Promise.all(
                 socialLinks.map(async (link) => {
-                    if (link.iconUrl) return link;
-                    const iconUrl = await ensureSocialIconUploaded(
-                        link.platform,
-                        handleUploadSocialIcon
-                    );
-                    return iconUrl ? { ...link, iconUrl } : link;
+                    const fallbackUrl = DEFAULT_SOCIAL_ICON_URLS[link.platform] || "";
+                    if (link.iconUrl && link.iconUrl.startsWith("http")) return link;
+                    try {
+                        const iconUrl = await ensureSocialIconUploaded(
+                            link.platform,
+                            handleUploadSocialIcon
+                        );
+                        return { ...link, iconUrl: iconUrl || fallbackUrl };
+                    } catch {
+                        return { ...link, iconUrl: fallbackUrl };
+                    }
                 })
             );
             setSocialLinks(resolvedSocialLinks);
@@ -981,7 +1077,9 @@ export default function SendMessage() {
                 bannerImage: uploadedImage,
                 socialLinks: channel === "email" ? resolvedSocialLinks : undefined,
             })
-            : (await import("../../utils/styledText")).convertHtmlToStyledText(body.trim());
+            : (await import("../../utils/emailTemplate")).convertHtmlToCleanEmailText(body.trim(), {
+                socialLinks: channel === "email" ? resolvedSocialLinks : undefined,
+            });
 
         const idempotencyKey = `campaign_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
@@ -1038,9 +1136,28 @@ export default function SendMessage() {
             id: "name",
             name: "User",
             render: (_value, item) => (
-                <span className="font-bold text-gray-900 text-xs sm:text-sm whitespace-nowrap">
-                    {item.name}
-                </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-gray-900 text-xs sm:text-sm whitespace-nowrap">
+                        {item.name}
+                    </span>
+                    {item.type === "imported" ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-purple-100 text-[#2E0F74] border border-purple-200">
+                            Imported
+                        </span>
+                    ) : (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                            Customer
+                        </span>
+                    )}
+                    {item.emailBlockedReason && (
+                        <span
+                            className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-red-100 text-red-600 border border-red-200"
+                            title={`Email blocked: ${item.emailBlockedReason}`}
+                        >
+                            {item.emailBlockedReason}
+                        </span>
+                    )}
+                </div>
             ),
         },
         {
@@ -1127,8 +1244,20 @@ export default function SendMessage() {
                 onPageChange={setPage}
                 rowsPerPage={rowsPerPage}
                 totalPages={totalPages}
-                isLoading={isAudienceLoading}
+                isLoading={isRecipientsLoading || isAudienceLoading}
                 onDone={() => setCurrentView("compose")}
+                activeTab={recipientTab}
+                onTabChange={(tab) => {
+                    setRecipientTab(tab);
+                    setPage(1);
+                }}
+                counts={{
+                    all: allRecipientsCounts?.total ?? allRecipientsCounts?.totalCount ?? totalCount,
+                    customers: customerRecipientsCounts?.total ?? customerRecipientsCounts?.totalCount ?? totalCount,
+                    imported: importedRecipientsCounts?.total ?? importedRecipientsCounts?.totalCount ?? (displayedRecipients.filter(r => r.type === "imported").length),
+                }}
+                onSelectAllImported={handleSelectAllImported}
+                selectedImportedCount={Array.from(selectedRecipientsMap.values()).filter(r => r.type === "imported").length}
             />
         );
     }

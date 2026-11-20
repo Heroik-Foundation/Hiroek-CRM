@@ -3,18 +3,32 @@ import useCurrentUser from "../../hooks/useUser";
 import { Sidebar, Navbar, Drawer } from "../common";
 import { Outlet } from "react-router-dom";
 import { useAtom } from "jotai";
-import { userAtom } from "../../utils/atom/user";
+import { userAtom, membershipAtom } from "../../utils/atom/user";
+import { normalizeMembership } from "../../type/user";
+import type { IOrganizer } from "../../type/user";
 
 export default function DashboardLayout() {
-    const { useGetUsersData } = useCurrentUser();
+    const { useGetUsersData, useGetMembershipData } = useCurrentUser();
     const { data } = useGetUsersData();
+    const { data: membershipData } = useGetMembershipData();
     const [_, setUser] = useAtom(userAtom);
+    const [__, setMembership] = useAtom(membershipAtom);
 
     useEffect(() => {
         if (data?.eventPartner) {
             setUser(data.eventPartner);
         }
     }, [data, setUser]);
+
+    useEffect(() => {
+        if (membershipData) {
+            const normalized = normalizeMembership(membershipData);
+            setMembership(normalized);
+            if (normalized?.account && !data?.eventPartner) {
+                setUser(normalized.account as IOrganizer);
+            }
+        }
+    }, [membershipData, data, setMembership, setUser]);
 
     return (
         <section className="w-full flex h-screen overflow-hidden bg-[#F5F3F9]">

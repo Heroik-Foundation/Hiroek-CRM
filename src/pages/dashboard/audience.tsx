@@ -7,7 +7,7 @@ import type { Column } from "../../type/table";
 import { CustomField } from "../../components/ui";
 import { IoSearch, IoChevronDown } from "react-icons/io5";
 import { FiMail } from "react-icons/fi";
-import { LuFileSpreadsheet, LuUsers, LuCloudUpload } from "react-icons/lu";
+import { LuFileSpreadsheet, LuUsers } from "react-icons/lu";
 import { MdFilterList } from "react-icons/md";
 import useAudienceSegment from "../../hooks/useAudienceSegment";
 import moment from "moment";
@@ -19,7 +19,7 @@ export default function Audience() {
     const [search, setSearch] = useState<string>("");
     const [isSegmentDropdownOpen, setIsSegmentDropdownOpen] = useState(false);
     const [isEventFilterOpen, setIsEventFilterOpen] = useState(false);
-    const [isDataMenuOpen, setIsDataMenuOpen] = useState(false);
+    // const [isDataMenuOpen, setIsDataMenuOpen] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState("Filter by Events");
 
     const { useGetAudienceSegmentMetrics, useGetAudienceSegmentCustomer } =
@@ -432,19 +432,14 @@ export default function Audience() {
                                 <div className="relative">
                                     <button
                                         type="button"
-                                        onClick={() => setIsDataMenuOpen(!isDataMenuOpen)}
+                                        onClick={() => navigate("/dashboard/audience/import")}
                                         className="flex-1 sm:flex-none bg-[#37137F] hover:bg-[#2c0f66] transition-colors rounded-xl px-3.5 sm:px-4 font-semibold text-white h-10 sm:h-11 text-xs flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer whitespace-nowrap"
                                     >
                                         <LuFileSpreadsheet size={14} />
-                                        <span>Export Data</span>
-                                        <IoChevronDown
-                                            size={13}
-                                            className={`transition-transform duration-200 ${isDataMenuOpen ? "rotate-180" : ""
-                                                }`}
-                                        />
+                                        <span>import Data</span>
                                     </button>
 
-                                    {isDataMenuOpen && (
+                                    {/* {isDataMenuOpen && (
                                         <div className="absolute right-0 mt-1.5 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-1.5 z-50 flex flex-col">
                                             <button
                                                 type="button"
@@ -469,7 +464,7 @@ export default function Audience() {
                                                 <span>Import Data</span>
                                             </button>
                                         </div>
-                                    )}
+                                    )} */}
                                 </div>
                             </div>
                         </div>

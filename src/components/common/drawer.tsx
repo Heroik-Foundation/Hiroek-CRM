@@ -1,20 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom } from "jotai";
 import { AnimatePresence, motion } from "framer-motion";
 import { IoClose } from "react-icons/io5";
 import { LuLogOut, LuMail, LuArrowUpRight } from "react-icons/lu";
 import { FiArrowRight } from "react-icons/fi";
 import { sidebarLink } from "../../utils/dataBank";
 import { drawerAtom } from "../../utils/atom/drawer";
-import { userAtom } from "../../utils/atom/user";
 import useEmailBundles from "../../hooks/settings/useEmailBundles";
 import { clearSession, redirectToLogin } from "../../config/httpService";
+import useMembership from "../../hooks/useMembership";
 
 export default function Drawer() {
     const [isOpen, setIsOpen] = useAtom(drawerAtom);
-    const user = useAtomValue(userAtom);
+    const { displayName, roleTag, displayAvatar, displaySubtitle, isOwner, isAdmin, canAccessSettings } = useMembership();
     const navigate = useNavigate();
     const location = useLocation();
     const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -29,6 +29,15 @@ export default function Drawer() {
         if (typeof balanceApiData?.result?.balance === "number") return balanceApiData.result.balance;
         return null;
     }, [balanceApiData]);
+
+    const accessibleSidebarLinks = useMemo(() => {
+        return sidebarLink.filter((item) => {
+            if (item.link === "/dashboard/settings" && !canAccessSettings) {
+                return false;
+            }
+            return true;
+        });
+    }, [canAccessSettings]);
 
     // Lock body scroll when drawer is open
     useEffect(() => {
@@ -98,19 +107,34 @@ export default function Drawer() {
                                     <div className="w-13 h-13 rounded-full border-2 border-[#37137F] p-0.5 flex items-center justify-center shrink-0">
                                         <img
                                             src={
-                                                user?.logo ||
+                                                displayAvatar ||
                                                 "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
                                             }
-                                            alt={user?.name || "Dumo Charles"}
+                                            alt={displayName}
                                             className="w-full h-full rounded-full object-cover"
                                         />
                                     </div>
                                     <div className="flex flex-col">
-                                        <h3 className="font-bold text-base text-[#37137F] leading-tight">
-                                            {user?.name || "Dumo Charles"}
-                                        </h3>
-                                        <p className="text-xs text-gray-400 font-medium leading-tight mt-0.5">
-                                            Creator Account
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="font-bold text-base text-[#37137F] leading-tight truncate max-w-[150px]">
+                                                {displayName}
+                                            </h3>
+                                            {roleTag && (
+                                                <span
+                                                    className={`px-2 py-0.5 text-[9px] font-extrabold tracking-wider rounded-md uppercase border ${
+                                                        isOwner
+                                                            ? "bg-purple-100 text-[#37137F] border-purple-200"
+                                                            : isAdmin
+                                                            ? "bg-blue-50 text-blue-700 border-blue-200"
+                                                            : "bg-amber-50 text-amber-700 border-amber-200"
+                                                    }`}
+                                                >
+                                                    {roleTag}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className="text-xs text-gray-400 font-medium leading-tight mt-0.5 truncate max-w-[170px]">
+                                            {displaySubtitle}
                                         </p>
                                     </div>
                                 </div>
@@ -125,7 +149,7 @@ export default function Drawer() {
 
                             {/* Nav Items */}
                             <div className="w-full py-4 flex flex-col gap-1.5">
-                                {sidebarLink?.map((item) => {
+                                {accessibleSidebarLinks?.map((item) => {
                                     const isActive = item?.link === location.pathname;
                                     return (
                                         <button
@@ -180,17 +204,19 @@ export default function Drawer() {
                                     </p>
                                 </div>
 
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setIsOpen(false);
-                                        navigate("/dashboard/settings?tab=credit");
-                                    }}
-                                    className="w-full py-2 px-3 bg-white/15 hover:bg-white/25 active:bg-white/30 text-white rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer border border-white/10"
-                                >
-                                    <span>Top Up Credits</span>
-                                    <LuArrowUpRight size={14} />
-                                </button>
+                                {canAccessSettings && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsOpen(false);
+                                            navigate("/dashboard/settings?tab=credit");
+                                        }}
+                                        className="w-full py-2 px-3 bg-white/15 hover:bg-white/25 active:bg-white/30 text-white rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer border border-white/10"
+                                    >
+                                        <span>Top Up Credits</span>
+                                        <LuArrowUpRight size={14} />
+                                    </button>
+                                )}
                             </div>
 
                             {/* Log Out Button */}
