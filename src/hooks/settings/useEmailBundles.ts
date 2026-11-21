@@ -24,6 +24,12 @@ export interface IEmailBundlesResponse {
     data?: IEmailBundle[] | { results?: IEmailBundle[] };
 }
 
+export interface IPurchaseBundlePayload {
+    bundleId: string;
+    credits?: number;
+    amount?: number;
+}
+
 export interface IPurchaseBundleResponse {
     paymentIntentId?: string;
     paymentIntentSecret?: string;
@@ -73,10 +79,20 @@ const useEmailBundles = () => {
 
     const usePurchaseEmailBundle = () => {
         return useMutation({
-            mutationFn: async (bundleId: string) => {
+            mutationFn: async (payload: string | IPurchaseBundlePayload) => {
+                const bundleId = typeof payload === "string" ? payload : payload.bundleId;
+                const body =
+                    typeof payload === "string"
+                        ? { bundleId }
+                        : {
+                              bundleId: payload.bundleId,
+                              credits: payload.credits,
+                              amount: payload.amount,
+                          };
+
                 const response = await httpService.post<IPurchaseBundleResponse>(
                     URLS.PURCHASE_EMAIL_BUNDLE(bundleId),
-                    {},
+                    body,
                 );
                 return response.data;
             },
