@@ -51,8 +51,6 @@ export default function RecipientsPickerView({
     activeTab = "all",
     onTabChange,
     counts,
-    onSelectAllImported,
-    selectedImportedCount = 0,
 }: RecipientsPickerViewProps) {
     const navigate = useNavigate();
 
@@ -85,11 +83,10 @@ export default function RecipientsPickerView({
                 <button
                     key={p}
                     onClick={() => onPageChange(p)}
-                    className={`w-8 h-8 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
-                        isActive
-                            ? "bg-[#2E0F74] text-white shadow-xs"
-                            : "border border-gray-200 text-gray-700 hover:bg-gray-50 bg-white"
-                    }`}
+                    className={`w-8 h-8 rounded-xl text-xs font-bold transition-colors cursor-pointer ${isActive
+                        ? "bg-[#2E0F74] text-white shadow-xs"
+                        : "border border-gray-200 text-gray-700 hover:bg-gray-50 bg-white"
+                        }`}
                 >
                     {p}
                 </button>
@@ -138,18 +135,16 @@ export default function RecipientsPickerView({
                         <button
                             type="button"
                             onClick={() => onTabChange?.("all")}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
-                                activeTab === "all"
-                                    ? "bg-[#2E0F74] text-white shadow-xs"
-                                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                            }`}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${activeTab === "all"
+                                ? "bg-[#2E0F74] text-white shadow-xs"
+                                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                }`}
                         >
                             <LuUsers size={13} />
                             <span>All</span>
                             {counts?.all !== undefined && (
-                                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                                    activeTab === "all" ? "bg-white/20 text-white" : "bg-gray-200 text-gray-700"
-                                }`}>
+                                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${activeTab === "all" ? "bg-white/20 text-white" : "bg-gray-200 text-gray-700"
+                                    }`}>
                                     {counts.all}
                                 </span>
                             )}
@@ -158,17 +153,15 @@ export default function RecipientsPickerView({
                         <button
                             type="button"
                             onClick={() => onTabChange?.("customers")}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
-                                activeTab === "customers"
-                                    ? "bg-[#2E0F74] text-white shadow-xs"
-                                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                            }`}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${activeTab === "customers"
+                                ? "bg-[#2E0F74] text-white shadow-xs"
+                                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                }`}
                         >
-                            <span>Platform Customers</span>
+                            <span>Past Attendees</span>
                             {counts?.customers !== undefined && (
-                                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                                    activeTab === "customers" ? "bg-white/20 text-white" : "bg-gray-200 text-gray-700"
-                                }`}>
+                                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${activeTab === "customers" ? "bg-white/20 text-white" : "bg-gray-200 text-gray-700"
+                                    }`}>
                                     {counts.customers}
                                 </span>
                             )}
@@ -177,18 +170,16 @@ export default function RecipientsPickerView({
                         <button
                             type="button"
                             onClick={() => onTabChange?.("imported")}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
-                                activeTab === "imported"
-                                    ? "bg-[#2E0F74] text-white shadow-xs"
-                                    : "bg-purple-50 text-[#2E0F74] hover:bg-purple-100 border border-purple-200"
-                            }`}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${activeTab === "imported"
+                                ? "bg-[#2E0F74] text-white shadow-xs"
+                                : "bg-purple-50 text-[#2E0F74] hover:bg-purple-100 border border-purple-200"
+                                }`}
                         >
                             <LuFileSpreadsheet size={13} />
                             <span>Imported Contacts</span>
                             {counts?.imported !== undefined && (
-                                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                                    activeTab === "imported" ? "bg-white/20 text-white" : "bg-purple-200 text-[#2E0F74]"
-                                }`}>
+                                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${activeTab === "imported" ? "bg-white/20 text-white" : "bg-purple-200 text-[#2E0F74]"
+                                    }`}>
                                     {counts.imported}
                                 </span>
                             )}
@@ -214,26 +205,39 @@ export default function RecipientsPickerView({
                         {/* Action buttons (grid on small screens, flex on sm+) */}
                         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                             {/* Select All Imported button */}
-                            {onSelectAllImported && (
+                            {/* {onSelectAllImported && (
                                 <button
                                     type="button"
                                     onClick={onSelectAllImported}
-                                    className="flex-1 sm:flex-initial bg-purple-100 hover:bg-purple-200 text-[#2E0F74] font-bold text-xs px-3 py-1.5 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap shadow-2xs"
+                                    className={`flex-1 sm:flex-initial font-bold text-xs px-3 py-1.5 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap shadow-2xs ${
+                                        selectedImportedCount > 0 &&
+                                        selectedImportedCount >= (counts?.imported ?? 0) &&
+                                        (counts?.imported ?? 0) > 0
+                                            ? "bg-purple-200 text-[#2E0F74] border border-purple-300"
+                                            : "bg-purple-100 hover:bg-purple-200 text-[#2E0F74]"
+                                    }`}
                                 >
                                     <LuFileSpreadsheet size={13} />
-                                    <span>Select All Imported {selectedImportedCount > 0 ? `(${selectedImportedCount})` : ""}</span>
+                                    <span>
+                                        {selectedImportedCount > 0 &&
+                                        selectedImportedCount >= (counts?.imported ?? 0) &&
+                                        (counts?.imported ?? 0) > 0
+                                            ? `All Imported Selected (${selectedImportedCount})`
+                                            : selectedImportedCount > 0
+                                            ? `Imported Selected (${selectedImportedCount}/${counts?.imported ?? selectedImportedCount})`
+                                            : `Select All Imported (${counts?.imported ?? 0})`}
+                                    </span>
                                 </button>
-                            )}
+                            )} */}
 
                             {/* Send To All Button */}
                             <button
                                 type="button"
                                 onClick={onToggleSendToAll}
-                                className={`flex-1 sm:flex-initial font-semibold text-xs px-3.5 py-1.5 rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap ${
-                                    isSendToAll
-                                        ? "bg-amber-600 hover:bg-amber-700 text-white"
-                                        : "bg-[#2E0F74] hover:bg-[#37137F] text-white"
-                                }`}
+                                className={`flex-1 sm:flex-initial font-semibold text-xs px-3.5 py-1.5 rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap ${isSendToAll
+                                    ? "bg-amber-600 hover:bg-amber-700 text-white"
+                                    : "bg-[#2E0F74] hover:bg-[#37137F] text-white"
+                                    }`}
                             >
                                 <LuSquareCheck size={14} />
                                 <span>{isSendToAll ? "Deselect All" : `Send To All (${totalCount})`}</span>
@@ -259,7 +263,7 @@ export default function RecipientsPickerView({
                             <span className="font-semibold">
                                 {isSendToAll ? (
                                     <>
-                                        All <strong className="font-extrabold">{selectedCount}</strong> {activeTab === "imported" ? "imported contacts" : activeTab === "customers" ? "platform customers" : "recipients"} are selected.
+                                        All <strong className="font-extrabold">{selectedCount}</strong> {activeTab === "imported" ? "imported contacts" : activeTab === "customers" ? "platform customers" : "recipients (imported + past attendees)"} are selected across all pages.
                                     </>
                                 ) : (
                                     <>
@@ -313,8 +317,8 @@ export default function RecipientsPickerView({
                         activeTab === "imported"
                             ? "No imported contacts found. Click 'Import New Contacts' to upload a file."
                             : searchQuery
-                            ? "No attendees found matching your search."
-                            : "No attendees found."
+                                ? "No attendees found matching your search."
+                                : "No attendees found."
                     }
                     customPagination={
                         <div className="w-full flex flex-col sm:flex-row items-center justify-between py-3 px-2 border-t border-gray-100 gap-3 text-center sm:text-left">
