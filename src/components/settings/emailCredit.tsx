@@ -504,7 +504,7 @@ export default function SmsEmailCredits() {
                                 {emailBundles.map((opt) => {
                                     const formattedRate = formatEmailRate(opt.rate);
                                     const displayLabel = opt.label
-                                        ? `${opt.label} (£${formattedRate} per mail)`
+                                        ? `${opt.label}`
                                         : `${opt.credits.toLocaleString()} Emails (£${formattedRate} per mail)`;
                                     return (
                                         <option key={opt.id} value={opt.id} className="text-gray-900 font-medium py-2">
