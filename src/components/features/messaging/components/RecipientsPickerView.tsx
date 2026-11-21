@@ -283,7 +283,7 @@ export default function RecipientsPickerView({
                 )}
 
                 {/* Contextual notice if imported tab is active */}
-                {activeTab === "imported" && (
+                {/* {activeTab === "imported" && (
                     <div className="w-full bg-purple-50/70 border border-purple-200 rounded-xl px-3.5 py-2 text-xs text-[#2E0F74] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
                             <LuFileSpreadsheet size={15} className="shrink-0" />
@@ -299,7 +299,7 @@ export default function RecipientsPickerView({
                             Upload More Contacts →
                         </button>
                     </div>
-                )}
+                )} */}
             </div>
 
             {/* Table */}

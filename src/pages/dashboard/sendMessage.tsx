@@ -138,7 +138,7 @@ function toRecipientItem(item: Record<string, any>, idx: number): RecipientItem 
         item.city ||
         (typeof item.user === "object" && item.user !== null
             ? (item.user as Record<string, unknown>).location ||
-              (item.user as Record<string, unknown>).city
+            (item.user as Record<string, unknown>).city
             : null) ||
         "London";
 
@@ -159,8 +159,8 @@ function toRecipientItem(item: Record<string, any>, idx: number): RecipientItem 
         channels: Array.isArray(item.channels)
             ? item.channels
             : isImported
-            ? ["email"]
-            : ["email", "in_app"],
+                ? ["email"]
+                : ["email", "in_app"],
         emailBlockedReason: item.emailBlockedReason || null,
         rawCustomer: item,
     };
@@ -1089,8 +1089,8 @@ export default function SendMessage() {
             ? (allCombinedRecipients.length > 0
                 ? allCombinedRecipients.map((r) => r.rawCustomer || r)
                 : allCustomers.length > 0
-                ? allCustomers
-                : rawCustomers)
+                    ? allCustomers
+                    : rawCustomers)
             : Array.from(selectedRecipientsMap.values()).map((r) => r.rawCustomer || r);
 
         const customerIds: string[] = [];
@@ -1301,7 +1301,7 @@ export default function SendMessage() {
                         </span>
                     ) : (
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                            Customer
+                            Attendee
                         </span>
                     )}
                     {item.emailBlockedReason && (
