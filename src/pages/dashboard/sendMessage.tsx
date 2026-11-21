@@ -69,6 +69,103 @@ function extractTotal(data: any): number | undefined {
     return undefined;
 }
 
+function extractItemsList(response: any): any[] {
+    if (!response) return [];
+    if (Array.isArray(response)) return response;
+    const d = response as Record<string, any>;
+    if (Array.isArray(d.data)) return d.data;
+    if (Array.isArray(d.recipients)) return d.recipients;
+    if (Array.isArray(d.results)) return d.results;
+    if (Array.isArray(d.customers)) return d.customers;
+    if (Array.isArray(d.items)) return d.items;
+    if (d.data && typeof d.data === "object") {
+        const inner = d.data;
+        if (Array.isArray(inner.results)) return inner.results;
+        if (Array.isArray(inner.recipients)) return inner.recipients;
+        if (Array.isArray(inner.customers)) return inner.customers;
+        if (Array.isArray(inner.items)) return inner.items;
+        if (Array.isArray(inner.data)) return inner.data;
+    }
+    return [];
+}
+
+function toRecipientItem(item: Record<string, any>, idx: number): RecipientItem {
+    const rawId =
+        item.id ||
+        item._id ||
+        item.customerId ||
+        item.recipientId ||
+        (typeof item.user === "object" && item.user !== null
+            ? (item.user as Record<string, unknown>)._id
+            : null) ||
+        item.email;
+
+    const email = String(
+        item.email ||
+        (typeof item.user === "object" && item.user !== null
+            ? (item.user as Record<string, unknown>).email
+            : "") ||
+        ""
+    ).trim();
+
+    const customerId = rawId ? String(rawId).trim() : (email || `recipient-${idx + 1}`);
+
+    const name =
+        item.fullname ||
+        item.name ||
+        (item.firstName
+            ? `${item.firstName} ${item.lastName || ""}`.trim()
+            : null) ||
+        (typeof item.user === "object" && item.user !== null
+            ? (item.user as Record<string, unknown>).fullname
+            : null) ||
+        item.username ||
+        email ||
+        "Attendee";
+
+    const phone =
+        item.phone ||
+        item.phoneNumber ||
+        item.mobile ||
+        item.telephone ||
+        (typeof item.user === "object" && item.user !== null
+            ? (item.user as Record<string, unknown>).phone
+            : "") ||
+        "-";
+
+    const location =
+        item.location ||
+        item.city ||
+        (typeof item.user === "object" && item.user !== null
+            ? (item.user as Record<string, unknown>).location ||
+              (item.user as Record<string, unknown>).city
+            : null) ||
+        "London";
+
+    const isImported =
+        item.type === "imported" ||
+        Boolean(item.importedAt) ||
+        (Array.isArray(item.channels) && item.channels.length === 1 && item.channels[0] === "email");
+
+    return {
+        id: customerId,
+        sNo: idx + 1,
+        name: String(name),
+        username: String(item.username || ""),
+        email: email,
+        phone: String(phone),
+        location: String(location),
+        type: isImported ? "imported" : "customer",
+        channels: Array.isArray(item.channels)
+            ? item.channels
+            : isImported
+            ? ["email"]
+            : ["email", "in_app"],
+        emailBlockedReason: item.emailBlockedReason || null,
+        rawCustomer: item,
+    };
+}
+
 export default function SendMessage() {
     const navigate = useNavigate();
     const currentUser = useAtomValue(userAtom);
@@ -490,6 +587,10 @@ export default function SendMessage() {
     const { data: customerRecipientsCounts } = useGetRecipients({ type: "customers", pageSize: 1 });
     const { data: importedRecipientsCounts } = useGetRecipients({ type: "imported", pageSize: 1 });
 
+    // Fetch full data from endpoints for "select all" operations across both imported and attendee contacts
+    const { data: allRecipientsFullData } = useGetRecipients({ type: "all", pageSize: 5000 });
+    const { data: allImportedFullData } = useGetRecipients({ type: "imported", pageSize: 5000 });
+
     // 2. Audience segment fallback
     const { useGetAudienceSegmentCustomer } = useAudienceSegment();
     const { data: audienceData, isLoading: isAudienceLoading } = useGetAudienceSegmentCustomer({
@@ -501,75 +602,96 @@ export default function SendMessage() {
 
     const { data: allAudienceData } = useGetAudienceSegmentCustomer({
         segment: "all",
-        limit: 1000,
+        limit: 5000,
     });
 
     const rawCustomers = useMemo(() => {
-        if (!audienceData) return [];
-        if (Array.isArray(audienceData)) return audienceData;
-        const dObj = audienceData as Record<string, unknown>;
-        if (Array.isArray(dObj.data)) return dObj.data;
-        if (Array.isArray(dObj.results)) return dObj.results;
-        if (Array.isArray(dObj.customers)) return dObj.customers;
-        if (Array.isArray(dObj.items)) return dObj.items;
-        return [];
+        return extractItemsList(audienceData);
     }, [audienceData]);
 
     const rawRecipients = useMemo(() => {
         if (apiRecipientsData) {
-            if (Array.isArray(apiRecipientsData)) return apiRecipientsData;
-            const dObj = apiRecipientsData as Record<string, any>;
-            if (Array.isArray(dObj.data)) return dObj.data;
-            if (Array.isArray(dObj.recipients)) return dObj.recipients;
-            if (Array.isArray(dObj.items)) return dObj.items;
+            const list = extractItemsList(apiRecipientsData);
+            if (list.length > 0) return list;
         }
         return rawCustomers;
     }, [apiRecipientsData, rawCustomers]);
 
     const allCustomers = useMemo(() => {
-        if (!allAudienceData) return [];
-        if (Array.isArray(allAudienceData)) return allAudienceData;
-        const dObj = allAudienceData as Record<string, unknown>;
-        if (Array.isArray(dObj.data)) return dObj.data;
-        if (Array.isArray(dObj.results)) return dObj.results;
-        if (Array.isArray(dObj.customers)) return dObj.customers;
-        if (Array.isArray(dObj.items)) return dObj.items;
-        return [];
+        return extractItemsList(allAudienceData);
     }, [allAudienceData]);
 
+    // Combines both imported contacts and past attendees/platform customers from their respective endpoints
+    const allCombinedRecipients: RecipientItem[] = useMemo(() => {
+        const map = new Map<string, RecipientItem>();
+
+        // 1. Past attendee / customer data from audience segment
+        const audList = extractItemsList(allAudienceData);
+        audList.forEach((item, idx) => {
+            const mapped = toRecipientItem(item, idx);
+            const key = mapped.email ? mapped.email.toLowerCase() : mapped.id;
+            map.set(key, mapped);
+        });
+
+        // 2. Full recipients from /recipients?type=all
+        const recList = extractItemsList(allRecipientsFullData);
+        recList.forEach((item, idx) => {
+            const mapped = toRecipientItem(item, idx);
+            const key = mapped.email ? mapped.email.toLowerCase() : mapped.id;
+            map.set(key, mapped);
+        });
+
+        // 3. Full imported data from /recipients?type=imported
+        const impList = extractItemsList(allImportedFullData);
+        impList.forEach((item, idx) => {
+            const mapped = toRecipientItem({ ...item, type: "imported" }, idx);
+            const key = mapped.email ? mapped.email.toLowerCase() : mapped.id;
+            map.set(key, mapped);
+        });
+
+        return Array.from(map.values());
+    }, [allAudienceData, allRecipientsFullData, allImportedFullData]);
+
+    // All imported contacts specifically
+    const allImportedRecipients: RecipientItem[] = useMemo(() => {
+        const fromCombined = allCombinedRecipients.filter((r) => r.type === "imported");
+        if (fromCombined.length > 0) return fromCombined;
+        const impList = extractItemsList(allImportedFullData);
+        return impList.map((item, idx) => toRecipientItem({ ...item, type: "imported" }, idx));
+    }, [allCombinedRecipients, allImportedFullData]);
+
+    const totalImportedCount = useMemo(() => {
+        return Math.max(
+            allImportedRecipients.length,
+            extractTotal(allImportedFullData) ?? 0,
+            extractTotal(importedRecipientsCounts) ?? 0
+        );
+    }, [allImportedRecipients, allImportedFullData, importedRecipientsCounts]);
+
     const totalCount = useMemo(() => {
-        // 1. Check current apiRecipientsData
-        const fromApi = extractTotal(apiRecipientsData);
-        if (fromApi !== undefined && fromApi > 0) return fromApi;
-
-        // 2. Check tab-specific counts query
-        if (recipientTab === "customers") {
-            const c = extractTotal(customerRecipientsCounts);
-            if (c !== undefined && c > 0) return c;
-        } else if (recipientTab === "imported") {
-            const i = extractTotal(importedRecipientsCounts);
-            if (i !== undefined && i > 0) return i;
-        } else {
-            const a = extractTotal(allRecipientsCounts);
-            if (a !== undefined && a > 0) return a;
+        if (recipientTab === "imported") {
+            return Math.max(allImportedRecipients.length, totalImportedCount);
         }
-
-        // 3. Fallback to audience data
-        const fromAudience = extractTotal(audienceData);
-        if (fromAudience !== undefined && fromAudience > 0) return fromAudience;
-
-        if (allCustomers.length > 0) return allCustomers.length;
-        if (Array.isArray(rawRecipients) && rawRecipients.length > 0) return rawRecipients.length;
-        return 0;
+        if (recipientTab === "customers") {
+            const custs = allCombinedRecipients.filter((r) => r.type !== "imported");
+            return Math.max(
+                custs.length,
+                extractTotal(customerRecipientsCounts) ?? 0
+            );
+        }
+        return Math.max(
+            allCombinedRecipients.length,
+            extractTotal(allRecipientsCounts) ?? 0,
+            extractTotal(apiRecipientsData) ?? 0
+        );
     }, [
-        apiRecipientsData,
         recipientTab,
+        allCombinedRecipients,
+        allImportedRecipients,
+        totalImportedCount,
         customerRecipientsCounts,
-        importedRecipientsCounts,
         allRecipientsCounts,
-        audienceData,
-        allCustomers,
-        rawRecipients,
+        apiRecipientsData,
     ]);
 
     const totalPages = Math.max(1, Math.ceil(totalCount / rowsPerPage));
@@ -577,90 +699,32 @@ export default function SendMessage() {
     const displayedRecipients: RecipientItem[] = useMemo(() => {
         if (!Array.isArray(rawRecipients) || rawRecipients.length === 0) return [];
         return rawRecipients.map((item: Record<string, any>, idx: number) => {
-            const customerId =
-                item.id ||
-                item._id ||
-                item.customerId ||
-                item.recipientId ||
-                (typeof item.user === "object" && item.user !== null
-                    ? (item.user as Record<string, unknown>)._id
-                    : null) ||
-                `recipient-${(page - 1) * rowsPerPage + idx + 1}`;
-
-            const name =
-                item.fullname ||
-                item.name ||
-                (item.firstName
-                    ? `${item.firstName} ${item.lastName || ""}`.trim()
-                    : null) ||
-                (typeof item.user === "object" && item.user !== null
-                    ? (item.user as Record<string, unknown>).fullname
-                    : null) ||
-                item.username ||
-                item.email ||
-                "Attendee";
-
-            const email =
-                item.email ||
-                (typeof item.user === "object" && item.user !== null
-                    ? (item.user as Record<string, unknown>).email
-                    : "") ||
-                "";
-
-            const phone =
-                item.phone ||
-                item.phoneNumber ||
-                item.mobile ||
-                item.telephone ||
-                (typeof item.user === "object" && item.user !== null
-                    ? (item.user as Record<string, unknown>).phone
-                    : "") ||
-                "-";
-
-            const location =
-                item.location ||
-                item.city ||
-                (typeof item.user === "object" && item.user !== null
-                    ? (item.user as Record<string, unknown>).location ||
-                    (item.user as Record<string, unknown>).city
-                    : null) ||
-                "London";
-
-            const isImported =
-                item.type === "imported" ||
-                Boolean(item.importedAt) ||
-                recipientTab === "imported" ||
-                (Array.isArray(item.channels) && item.channels.length === 1 && item.channels[0] === "email");
-
-            return {
-                id: String(customerId),
-                sNo: (page - 1) * rowsPerPage + idx + 1,
-                name: String(name),
-                username: String(item.username || ""),
-                email: String(email),
-                phone: String(phone),
-                location: String(location),
-                type: isImported ? "imported" : "customer",
-                channels: Array.isArray(item.channels)
-                    ? item.channels
-                    : isImported
-                    ? ["email"]
-                    : ["email", "in_app"],
-                emailBlockedReason: item.emailBlockedReason || null,
-                rawCustomer: item,
-            };
+            const mapped = toRecipientItem(item, (page - 1) * rowsPerPage + idx);
+            if (recipientTab === "imported") {
+                mapped.type = "imported";
+            }
+            return mapped;
         });
     }, [rawRecipients, page, rowsPerPage, recipientTab]);
 
     const selectedCount = isSendToAll
-        ? Math.max(totalCount, displayedRecipients.length, selectedRecipientsMap.size)
+        ? totalCount
         : selectedRecipientsMap.size;
+
+    const selectedImportedCount = useMemo(() => {
+        if (isSendToAll && recipientTab === "imported") {
+            return totalImportedCount;
+        }
+        return Array.from(selectedRecipientsMap.values()).filter(
+            (r) => r.type === "imported"
+        ).length;
+    }, [selectedRecipientsMap, isSendToAll, recipientTab, totalImportedCount]);
 
     const toggleSelect = (item: RecipientItem) => {
         if (isSendToAll) {
             setIsSendToAll(false);
             const next = new Map<string, RecipientItem>();
-            displayedRecipients.forEach((r) => {
+            allCombinedRecipients.forEach((r) => {
                 if (r.id !== item.id) {
                     next.set(r.id, r);
                 }
@@ -681,16 +745,15 @@ export default function SendMessage() {
     };
 
     const handleSelectAllImported = () => {
+        setIsSendToAll(false);
         setSelectedRecipientsMap((prev) => {
             const next = new Map(prev);
-            displayedRecipients.forEach((r) => {
-                if (r.type === "imported") {
-                    next.set(r.id, r);
-                }
+            allImportedRecipients.forEach((r) => {
+                next.set(r.id, r);
             });
             return next;
         });
-        toast.success("Selected imported contacts on this page");
+        toast.success(`Selected all ${allImportedRecipients.length} imported contact(s) across all pages`);
     };
 
     const handleSendToAllToggle = () => {
@@ -700,8 +763,9 @@ export default function SendMessage() {
         } else {
             setIsSendToAll(true);
             const next = new Map<string, RecipientItem>();
-            displayedRecipients.forEach((r) => next.set(r.id, r));
+            allCombinedRecipients.forEach((r) => next.set(r.id, r));
             setSelectedRecipientsMap(next);
+            toast.success(`Selected all ${allCombinedRecipients.length} recipient(s) across both imported contacts and past attendees`);
         }
     };
 
@@ -1022,7 +1086,11 @@ export default function SendMessage() {
                     : "email";
 
         const targetList = isSendToAll
-            ? (allCustomers.length > 0 ? allCustomers : rawCustomers)
+            ? (allCombinedRecipients.length > 0
+                ? allCombinedRecipients.map((r) => r.rawCustomer || r)
+                : allCustomers.length > 0
+                ? allCustomers
+                : rawCustomers)
             : Array.from(selectedRecipientsMap.values()).map((r) => r.rawCustomer || r);
 
         const customerIds: string[] = [];
@@ -1172,33 +1240,25 @@ export default function SendMessage() {
                         type="checkbox"
                         checked={
                             isSendToAll ||
+                            (allCombinedRecipients.length > 0 &&
+                                selectedRecipientsMap.size >= allCombinedRecipients.length) ||
                             (displayedRecipients.length > 0 &&
                                 displayedRecipients.every((r) => selectedRecipientsMap.has(r.id)))
                         }
                         onChange={() => {
-                            if (isSendToAll) {
+                            const isCurrentlyAllSelected =
+                                isSendToAll ||
+                                (displayedRecipients.length > 0 &&
+                                    displayedRecipients.every((r) => selectedRecipientsMap.has(r.id)));
+
+                            if (isCurrentlyAllSelected) {
                                 setIsSendToAll(false);
                                 setSelectedRecipientsMap(new Map());
                             } else {
-                                const allCurrentSelected =
-                                    displayedRecipients.length > 0 &&
-                                    displayedRecipients.every((r) => selectedRecipientsMap.has(r.id));
-                                if (allCurrentSelected) {
-                                    setSelectedRecipientsMap((prev) => {
-                                        const next = new Map(prev);
-                                        displayedRecipients.forEach((r) => next.delete(r.id));
-                                        return next;
-                                    });
-                                } else {
-                                    setSelectedRecipientsMap((prev) => {
-                                        const next = new Map(prev);
-                                        displayedRecipients.forEach((r) => next.set(r.id, r));
-                                        return next;
-                                    });
-                                }
+                                handleSendToAllToggle();
                             }
                         }}
-                        title={isSendToAll ? "Deselect all" : "Select all on this page"}
+                        title={isSendToAll ? "Deselect all" : "Select all recipients"}
                         aria-label="Select all recipients"
                         className="w-4 h-4 rounded text-[#2E0F74] accent-[#2E0F74] border-gray-300 cursor-pointer"
                     />
@@ -1347,12 +1407,15 @@ export default function SendMessage() {
                     setPage(1);
                 }}
                 counts={{
-                    all: extractTotal(allRecipientsCounts) ?? totalCount,
-                    customers: extractTotal(customerRecipientsCounts) ?? (recipientTab === "customers" ? totalCount : undefined),
-                    imported: extractTotal(importedRecipientsCounts) ?? (displayedRecipients.filter(r => r.type === "imported").length),
+                    all: Math.max(allCombinedRecipients.length, extractTotal(allRecipientsCounts) ?? 0),
+                    customers: Math.max(
+                        allCombinedRecipients.filter((r) => r.type !== "imported").length,
+                        extractTotal(customerRecipientsCounts) ?? 0
+                    ),
+                    imported: totalImportedCount,
                 }}
                 onSelectAllImported={handleSelectAllImported}
-                selectedImportedCount={Array.from(selectedRecipientsMap.values()).filter(r => r.type === "imported").length}
+                selectedImportedCount={selectedImportedCount}
             />
         );
     }
