@@ -98,14 +98,15 @@ export default function RecipientsPickerView({
     };
 
     return (
-        <div className="w-full bg-white rounded-2xl md:rounded-3xl p-5 sm:p-7 flex flex-col gap-5 border border-gray-100 shadow-[0_4px_24px_rgba(0,0,0,0.03)] animate-in fade-in duration-150">
+        <div className="w-full bg-white rounded-2xl md:rounded-3xl p-3.5 sm:p-6 lg:p-7 flex flex-col gap-4 sm:gap-5 border border-gray-100 shadow-[0_4px_24px_rgba(0,0,0,0.03)] animate-in fade-in duration-150">
             {/* Header */}
             <div className="w-full flex flex-col gap-3.5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5">
                         <button
+                            type="button"
                             onClick={onDone}
-                            className="w-8 h-8 rounded-xl bg-[#2E0F74] text-white flex items-center justify-center cursor-pointer hover:bg-[#37137F] shadow-xs"
+                            className="w-8 h-8 rounded-xl bg-[#2E0F74] text-white flex items-center justify-center cursor-pointer hover:bg-[#37137F] shadow-xs shrink-0 transition"
                         >
                             <IoChevronBack size={16} />
                         </button>
@@ -123,20 +124,21 @@ export default function RecipientsPickerView({
                     <button
                         type="button"
                         onClick={() => navigate("/dashboard/audience/import")}
-                        className="self-start sm:self-auto text-xs font-bold px-3 py-1.5 rounded-xl border border-purple-200 bg-purple-50 text-[#2E0F74] hover:bg-purple-100 flex items-center gap-1.5 transition-colors cursor-pointer"
+                        className="self-start sm:self-auto text-xs font-bold px-3 py-1.5 rounded-xl border border-purple-200 bg-purple-50 text-[#2E0F74] hover:bg-purple-100 flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
                     >
                         <LuCloudUpload size={14} />
                         <span>Import New Contacts</span>
                     </button>
                 </div>
 
-                {/* Filter Tabs: All | Customers | Imported Data */}
-                <div className="w-full flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-gray-100">
-                    <div className="flex items-center gap-2">
+                {/* Filter Tabs & Search / Actions Bar */}
+                <div className="w-full flex flex-col lg:flex-row lg:items-center justify-between gap-3 pt-2 border-t border-gray-100">
+                    {/* Tabs (horizontally scrollable on mobile) */}
+                    <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto max-w-full pb-1 lg:pb-0 scrollbar-none">
                         <button
                             type="button"
                             onClick={() => onTabChange?.("all")}
-                            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
                                 activeTab === "all"
                                     ? "bg-[#2E0F74] text-white shadow-xs"
                                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -156,7 +158,7 @@ export default function RecipientsPickerView({
                         <button
                             type="button"
                             onClick={() => onTabChange?.("customers")}
-                            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
                                 activeTab === "customers"
                                     ? "bg-[#2E0F74] text-white shadow-xs"
                                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -175,7 +177,7 @@ export default function RecipientsPickerView({
                         <button
                             type="button"
                             onClick={() => onTabChange?.("imported")}
-                            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
                                 activeTab === "imported"
                                     ? "bg-[#2E0F74] text-white shadow-xs"
                                     : "bg-purple-50 text-[#2E0F74] hover:bg-purple-100 border border-purple-200"
@@ -193,10 +195,10 @@ export default function RecipientsPickerView({
                         </button>
                     </div>
 
-                    {/* Search & Actions */}
-                    <div className="w-full sm:w-auto flex flex-col sm:flex-row items-center gap-2">
+                    {/* Search & Actions Bar */}
+                    <div className="w-full lg:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                         {/* Search input */}
-                        <div className="relative w-full sm:w-56 md:w-60">
+                        <div className="relative w-full sm:w-52 md:w-64 shrink-0">
                             <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 text-xs">
                                 <IoSearch />
                             </span>
@@ -209,42 +211,76 @@ export default function RecipientsPickerView({
                             />
                         </div>
 
-                        {/* Select All Imported button */}
-                        {onSelectAllImported && (
+                        {/* Action buttons (grid on small screens, flex on sm+) */}
+                        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                            {/* Select All Imported button */}
+                            {onSelectAllImported && (
+                                <button
+                                    type="button"
+                                    onClick={onSelectAllImported}
+                                    className="flex-1 sm:flex-initial bg-purple-100 hover:bg-purple-200 text-[#2E0F74] font-bold text-xs px-3 py-1.5 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap shadow-2xs"
+                                >
+                                    <LuFileSpreadsheet size={13} />
+                                    <span>Select All Imported {selectedImportedCount > 0 ? `(${selectedImportedCount})` : ""}</span>
+                                </button>
+                            )}
+
+                            {/* Send To All Button */}
                             <button
                                 type="button"
-                                onClick={onSelectAllImported}
-                                className="w-full sm:w-auto bg-purple-100 hover:bg-purple-200 text-[#2E0F74] font-bold text-xs px-3 py-1.5 rounded-xl flex items-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
+                                onClick={onToggleSendToAll}
+                                className={`flex-1 sm:flex-initial font-semibold text-xs px-3.5 py-1.5 rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap ${
+                                    isSendToAll
+                                        ? "bg-amber-600 hover:bg-amber-700 text-white"
+                                        : "bg-[#2E0F74] hover:bg-[#37137F] text-white"
+                                }`}
                             >
-                                <LuFileSpreadsheet size={13} />
-                                <span>Select All Imported {selectedImportedCount > 0 ? `(${selectedImportedCount})` : ""}</span>
+                                <LuSquareCheck size={14} />
+                                <span>{isSendToAll ? "Deselect All" : `Send To All (${totalCount})`}</span>
                             </button>
-                        )}
 
-                        {/* Send To All Button */}
-                        <button
-                            type="button"
-                            onClick={onToggleSendToAll}
-                            className="bg-[#2E0F74] hover:bg-[#37137F] w-full sm:w-auto text-white font-semibold text-xs px-3.5 py-1.5 rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
-                        >
-                            <LuSquareCheck size={14} />
-                            <span>{isSendToAll ? "Deselect All" : "Send To All"}</span>
-                        </button>
-
-                        {/* Done Button */}
-                        <button
-                            type="button"
-                            onClick={onDone}
-                            className="bg-[#16A34A] hover:bg-[#15803D] w-full sm:w-auto text-white font-semibold text-xs px-4 py-1.5 rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
-                        >
-                            <span>Done ({selectedCount} Selected)</span>
-                        </button>
+                            {/* Done Button */}
+                            <button
+                                type="button"
+                                onClick={onDone}
+                                className="w-full sm:w-auto bg-[#16A34A] hover:bg-[#15803D] text-white font-semibold text-xs px-4 py-1.5 rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
+                            >
+                                <span>Done ({selectedCount} Selected)</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
+                {/* Selection Indicator Banner */}
+                {(selectedCount > 0 || isSendToAll) && (
+                    <div className="w-full bg-purple-50/80 border border-purple-200/80 rounded-xl px-3.5 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-[#2E0F74] animate-in fade-in duration-150">
+                        <div className="flex items-center gap-2">
+                            <LuSquareCheck size={16} className="shrink-0 text-[#2E0F74]" />
+                            <span className="font-semibold">
+                                {isSendToAll ? (
+                                    <>
+                                        All <strong className="font-extrabold">{selectedCount}</strong> {activeTab === "imported" ? "imported contacts" : activeTab === "customers" ? "platform customers" : "recipients"} are selected.
+                                    </>
+                                ) : (
+                                    <>
+                                        <strong className="font-extrabold">{selectedCount}</strong> recipient{selectedCount === 1 ? "" : "s"} selected.
+                                    </>
+                                )}
+                            </span>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={onToggleSendToAll}
+                            className="self-start sm:self-auto font-bold underline hover:text-[#37137F] cursor-pointer"
+                        >
+                            {isSendToAll ? "Deselect All" : `Select All (${totalCount})`}
+                        </button>
+                    </div>
+                )}
+
                 {/* Contextual notice if imported tab is active */}
                 {activeTab === "imported" && (
-                    <div className="w-full bg-purple-50/70 border border-purple-200 rounded-xl px-3.5 py-2 text-xs text-[#2E0F74] flex items-center justify-between gap-2">
+                    <div className="w-full bg-purple-50/70 border border-purple-200 rounded-xl px-3.5 py-2 text-xs text-[#2E0F74] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
                             <LuFileSpreadsheet size={15} className="shrink-0" />
                             <span>
@@ -254,7 +290,7 @@ export default function RecipientsPickerView({
                         <button
                             type="button"
                             onClick={() => navigate("/dashboard/audience/import")}
-                            className="underline font-bold hover:text-purple-900 shrink-0 cursor-pointer"
+                            className="underline font-bold hover:text-purple-900 shrink-0 cursor-pointer self-start sm:self-auto"
                         >
                             Upload More Contacts →
                         </button>
@@ -281,16 +317,16 @@ export default function RecipientsPickerView({
                             : "No attendees found."
                     }
                     customPagination={
-                        <div className="w-full flex items-center justify-between py-3 px-2 border-t border-gray-100 flex-wrap gap-3">
+                        <div className="w-full flex flex-col sm:flex-row items-center justify-between py-3 px-2 border-t border-gray-100 gap-3 text-center sm:text-left">
                             <span className="text-xs text-gray-500 font-medium">
                                 Showing {rows.length === 0 ? 0 : (page - 1) * rowsPerPage + 1} to{" "}
                                 {Math.min(page * rowsPerPage, totalCount)} of {totalCount} entries
                             </span>
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto max-w-full pb-1 sm:pb-0">
                                 <button
                                     onClick={() => onPageChange(Math.max(1, page - 1))}
                                     disabled={page === 1}
-                                    className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 bg-white"
+                                    className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 bg-white shrink-0"
                                 >
                                     Prev
                                 </button>
@@ -298,7 +334,7 @@ export default function RecipientsPickerView({
                                 <button
                                     onClick={() => onPageChange(Math.min(totalPages, page + 1))}
                                     disabled={page >= totalPages}
-                                    className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 bg-white"
+                                    className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 bg-white shrink-0"
                                 >
                                     Next
                                 </button>

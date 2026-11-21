@@ -198,8 +198,8 @@ export default function SmsEmailCredits() {
         const rawList: IEmailBundle[] =
             bundlesApiData?.results ||
             (Array.isArray(bundlesApiData?.data)
-                ? bundlesApiData.data
-                : (bundlesApiData?.data as any)?.results) ||
+                ? bundlesApiData.data.reverse()
+                : (bundlesApiData?.data as any)?.results.reverse()) ||
             [];
 
         return rawList.map((item) => {
@@ -230,7 +230,7 @@ export default function SmsEmailCredits() {
                 if (prev && emailBundles.some((b) => b.id === prev.id)) {
                     return prev;
                 }
-                return emailBundles[0];
+                return null;
             });
         } else {
             setSelectedEmail(null);
@@ -316,7 +316,11 @@ export default function SmsEmailCredits() {
         }
 
         try {
-            const res = await purchaseBundleMutation.mutateAsync(selectedEmail.id);
+            const res = await purchaseBundleMutation.mutateAsync({
+                bundleId: selectedEmail.id,
+                credits: selectedEmail.credits,
+                amount: selectedEmail.amount * 100,
+            });
             const clientSecret =
                 res?.paymentIntentSecret ||
                 res?.clientSecret ||
@@ -439,13 +443,13 @@ export default function SmsEmailCredits() {
                 </button>
 
                 {/* Auto Recharge Button */}
-                <button
+                {/* <button
                     type="button"
                     onClick={() => setShowAutoRecharge(true)}
                     className="text-xs font-bold text-gray-900 hover:text-[#37137F] transition text-center cursor-pointer"
                 >
                     Auto Recharge
-                </button>
+                </button> */}
             </div>
         </div>
     );
@@ -483,64 +487,35 @@ export default function SmsEmailCredits() {
                 <div className="lg:col-span-7 flex flex-col gap-6">
                     {/* Card 1: Email Volume & Add SMS Toggle */}
                     <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-xs border border-gray-100 flex flex-col gap-4 relative">
-                        {/* Email Volume Dropdown Trigger */}
+                        {/* Email Volume Select Tag with Placeholder */}
                         <div className="relative">
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    setActiveDropdown(activeDropdown === "email" ? null : "email")
-                                }
+                            <select
+                                value={selectedEmail?.id || ""}
+                                onChange={(e) => {
+                                    const bundle = emailBundles.find((b) => b.id === e.target.value);
+                                    setSelectedEmail(bundle || null);
+                                }}
                                 disabled={isLoadingBundles || emailBundles.length === 0}
-                                className="w-full border border-gray-900 rounded-xl px-4 py-3.5 sm:px-5 sm:py-4 flex items-center justify-between bg-white hover:border-[#37137F] transition text-left cursor-pointer shadow-xs disabled:opacity-60"
+                                className="w-full border border-gray-900 rounded-xl px-4 py-3.5 sm:px-5 sm:py-4 bg-white text-sm sm:text-base font-bold text-gray-900 focus:outline-hidden focus:border-[#37137F] focus:ring-1 focus:ring-[#37137F] transition cursor-pointer appearance-none pr-11 disabled:opacity-60 shadow-xs"
                             >
-                                <span className="text-sm sm:text-base font-bold text-gray-900 truncate">
-                                    {isLoadingBundles
-                                        ? "Loading email bundles..."
-                                        : selectedEmail?.label || "No email bundles available"}
-                                </span>
-                                <BiChevronDown
-                                    size={24}
-                                    className={`text-gray-900 transition-transform duration-200 shrink-0 ${activeDropdown === "email" ? "rotate-180" : ""
-                                        }`}
-                                />
-                            </button>
-
-                            {/* Email Volume Popover */}
-                            {activeDropdown === "email" && (
-                                <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-white rounded-2xl shadow-xl border border-gray-100/90 overflow-hidden animate-in fade-in zoom-in-95 duration-150 max-h-72 overflow-y-auto">
-                                    {emailBundles.length > 0 ? (
-                                        emailBundles.map((opt) => {
-                                            const isSelected = selectedEmail?.id === opt.id;
-                                            const formattedRate = formatEmailRate(opt.rate);
-                                            return (
-                                                <button
-                                                    key={opt.id}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setSelectedEmail(opt);
-                                                        setActiveDropdown(null);
-                                                    }}
-                                                    className={`w-full flex items-center px-6 py-3.5 transition text-left cursor-pointer ${isSelected
-                                                        ? "bg-[#ECECEC]"
-                                                        : "hover:bg-gray-50"
-                                                        }`}
-                                                >
-                                                    <span className="text-sm font-bold text-gray-900">
-                                                        {opt.label}
-                                                    </span>
-                                                    <span className="text-base font-medium text-[#8E8E93] ml-1">
-                                                        (£{formattedRate} per mail)
-                                                    </span>
-                                                </button>
-                                            );
-                                        })
-                                    ) : (
-                                        <div className="p-4 text-center text-xs text-gray-500">
-                                            No active email bundles returned from endpoint
-                                        </div>
-                                    )}
-                                </div>
-                            )}
+                                <option value="" disabled>
+                                    {isLoadingBundles ? "Loading email bundles..." : "Select your email volume"}
+                                </option>
+                                {emailBundles.map((opt) => {
+                                    const formattedRate = formatEmailRate(opt.rate);
+                                    const displayLabel = opt.label
+                                        ? `${opt.label} (£${formattedRate} per mail)`
+                                        : `${opt.credits.toLocaleString()} Emails (£${formattedRate} per mail)`;
+                                    return (
+                                        <option key={opt.id} value={opt.id} className="text-gray-900 font-medium py-2">
+                                            {displayLabel}
+                                        </option>
+                                    );
+                                })}
+                            </select>
+                            <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-gray-900">
+                                <BiChevronDown size={24} />
+                            </div>
                         </div>
 
                         {/* Helper Subtext */}
