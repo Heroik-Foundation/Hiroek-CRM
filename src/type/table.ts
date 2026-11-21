@@ -3,7 +3,7 @@ export type ColumnType = "text" | "number" | "currency" | "date" | "custom";
 
 export interface Column<T> {
   id: string;
-  name: string;
+  name: string | React.ReactNode;
   type?: ColumnType;
   isRowHeader?: boolean;
   render?: (value: unknown, item: T) => React.ReactNode;

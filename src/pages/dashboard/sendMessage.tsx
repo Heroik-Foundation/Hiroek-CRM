@@ -32,6 +32,43 @@ import {
 // HTML email is enabled by default unless explicitly disabled with VITE_CAMPAIGN_SUPPORTS_HTML=false
 const CAMPAIGN_SUPPORTS_HTML = import.meta.env.VITE_CAMPAIGN_SUPPORTS_HTML !== "false";
 
+function extractTotal(data: any): number | undefined {
+    if (!data) return undefined;
+    if (typeof data === "number") return data;
+    if (Array.isArray(data)) return data.length;
+    const d = data as Record<string, any>;
+    const direct =
+        d.total ??
+        d.totalCount ??
+        d.count ??
+        d.totalItems ??
+        d.pagination?.total ??
+        d.pagination?.totalCount ??
+        d.pagination?.totalItems;
+    if (typeof direct === "number") return direct;
+
+    if (d.data) {
+        if (typeof d.data === "number") return d.data;
+        if (Array.isArray(d.data)) return d.data.length;
+        const inner = d.data as Record<string, any>;
+        const innerTotal =
+            inner.total ??
+            inner.totalCount ??
+            inner.count ??
+            inner.totalItems ??
+            inner.pagination?.total ??
+            (Array.isArray(inner.results) ? inner.results.length : undefined) ??
+            (Array.isArray(inner.recipients) ? inner.recipients.length : undefined) ??
+            (Array.isArray(inner.items) ? inner.items.length : undefined);
+        if (typeof innerTotal === "number") return innerTotal;
+    }
+    if (Array.isArray(d.results)) return d.results.length;
+    if (Array.isArray(d.recipients)) return d.recipients.length;
+    if (Array.isArray(d.items)) return d.items.length;
+    if (Array.isArray(d.customers)) return d.customers.length;
+    return undefined;
+}
+
 export default function SendMessage() {
     const navigate = useNavigate();
     const currentUser = useAtomValue(userAtom);
@@ -501,22 +538,39 @@ export default function SendMessage() {
     }, [allAudienceData]);
 
     const totalCount = useMemo(() => {
-        if (apiRecipientsData) {
-            const dObj = apiRecipientsData as Record<string, any>;
-            const countVal = dObj.total ?? dObj.totalCount ?? dObj.count;
-            if (typeof countVal === "number") return countVal;
+        // 1. Check current apiRecipientsData
+        const fromApi = extractTotal(apiRecipientsData);
+        if (fromApi !== undefined && fromApi > 0) return fromApi;
+
+        // 2. Check tab-specific counts query
+        if (recipientTab === "customers") {
+            const c = extractTotal(customerRecipientsCounts);
+            if (c !== undefined && c > 0) return c;
+        } else if (recipientTab === "imported") {
+            const i = extractTotal(importedRecipientsCounts);
+            if (i !== undefined && i > 0) return i;
+        } else {
+            const a = extractTotal(allRecipientsCounts);
+            if (a !== undefined && a > 0) return a;
         }
-        if (!audienceData) return 0;
-        const dObj = audienceData as Record<string, any>;
-        return (
-            dObj.total ??
-            dObj.pagination?.total ??
-            dObj.pagination?.totalItems ??
-            dObj.totalCount ??
-            dObj.count ??
-            (Array.isArray(rawCustomers) ? rawCustomers.length : 0)
-        );
-    }, [apiRecipientsData, audienceData, rawCustomers]);
+
+        // 3. Fallback to audience data
+        const fromAudience = extractTotal(audienceData);
+        if (fromAudience !== undefined && fromAudience > 0) return fromAudience;
+
+        if (allCustomers.length > 0) return allCustomers.length;
+        if (Array.isArray(rawRecipients) && rawRecipients.length > 0) return rawRecipients.length;
+        return 0;
+    }, [
+        apiRecipientsData,
+        recipientTab,
+        customerRecipientsCounts,
+        importedRecipientsCounts,
+        allRecipientsCounts,
+        audienceData,
+        allCustomers,
+        rawRecipients,
+    ]);
 
     const totalPages = Math.max(1, Math.ceil(totalCount / rowsPerPage));
 
@@ -598,7 +652,9 @@ export default function SendMessage() {
         });
     }, [rawRecipients, page, rowsPerPage, recipientTab]);
 
-    const selectedCount = isSendToAll ? totalCount : selectedRecipientsMap.size;
+    const selectedCount = isSendToAll
+        ? Math.max(totalCount, displayedRecipients.length, selectedRecipientsMap.size)
+        : selectedRecipientsMap.size;
 
     const toggleSelect = (item: RecipientItem) => {
         if (isSendToAll) {
@@ -643,7 +699,9 @@ export default function SendMessage() {
             setSelectedRecipientsMap(new Map());
         } else {
             setIsSendToAll(true);
-            setSelectedRecipientsMap(new Map());
+            const next = new Map<string, RecipientItem>();
+            displayedRecipients.forEach((r) => next.set(r.id, r));
+            setSelectedRecipientsMap(next);
         }
     };
 
@@ -1108,7 +1166,44 @@ export default function SendMessage() {
     const recipientColumns: Column<RecipientItem>[] = [
         {
             id: "select",
-            name: "Select",
+            name: (
+                <div className="flex items-center justify-center w-full">
+                    <input
+                        type="checkbox"
+                        checked={
+                            isSendToAll ||
+                            (displayedRecipients.length > 0 &&
+                                displayedRecipients.every((r) => selectedRecipientsMap.has(r.id)))
+                        }
+                        onChange={() => {
+                            if (isSendToAll) {
+                                setIsSendToAll(false);
+                                setSelectedRecipientsMap(new Map());
+                            } else {
+                                const allCurrentSelected =
+                                    displayedRecipients.length > 0 &&
+                                    displayedRecipients.every((r) => selectedRecipientsMap.has(r.id));
+                                if (allCurrentSelected) {
+                                    setSelectedRecipientsMap((prev) => {
+                                        const next = new Map(prev);
+                                        displayedRecipients.forEach((r) => next.delete(r.id));
+                                        return next;
+                                    });
+                                } else {
+                                    setSelectedRecipientsMap((prev) => {
+                                        const next = new Map(prev);
+                                        displayedRecipients.forEach((r) => next.set(r.id, r));
+                                        return next;
+                                    });
+                                }
+                            }
+                        }}
+                        title={isSendToAll ? "Deselect all" : "Select all on this page"}
+                        aria-label="Select all recipients"
+                        className="w-4 h-4 rounded text-[#2E0F74] accent-[#2E0F74] border-gray-300 cursor-pointer"
+                    />
+                </div>
+            ),
             render: (_value, item) => {
                 const checked = isSendToAll || selectedRecipientsMap.has(item.id);
                 return (
@@ -1252,9 +1347,9 @@ export default function SendMessage() {
                     setPage(1);
                 }}
                 counts={{
-                    all: allRecipientsCounts?.total ?? allRecipientsCounts?.totalCount ?? totalCount,
-                    customers: customerRecipientsCounts?.total ?? customerRecipientsCounts?.totalCount ?? totalCount,
-                    imported: importedRecipientsCounts?.total ?? importedRecipientsCounts?.totalCount ?? (displayedRecipients.filter(r => r.type === "imported").length),
+                    all: extractTotal(allRecipientsCounts) ?? totalCount,
+                    customers: extractTotal(customerRecipientsCounts) ?? (recipientTab === "customers" ? totalCount : undefined),
+                    imported: extractTotal(importedRecipientsCounts) ?? (displayedRecipients.filter(r => r.type === "imported").length),
                 }}
                 onSelectAllImported={handleSelectAllImported}
                 selectedImportedCount={Array.from(selectedRecipientsMap.values()).filter(r => r.type === "imported").length}
