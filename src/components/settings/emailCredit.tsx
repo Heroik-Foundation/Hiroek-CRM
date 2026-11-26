@@ -420,7 +420,7 @@ export default function SmsEmailCredits() {
     const [serviceFees, setServiceFees] = useState(0);
 
     // Calculations
-    const emailCost = ((selectedEmail?.amount ?? 0) / 100) || 0;
+    const emailCost = (selectedEmail?.amount || 0) / 100;
     const smsCost = addSmsCredit ? selectedSms.price : 0;
     const senderIdCost = addSmsCredit ? selectedSenderId.price : 0;
     const subtotal = emailCost;
