@@ -58,6 +58,10 @@ export const URLS = {
     GET_EMAIL_BALANCE: "/email-bundles/balance",
     PURCHASE_EMAIL_BUNDLE: (bundleId: string) =>
         `/email-bundles/purchase-bundle/${bundleId}`,
+    GET_EMAIL_AUTO_PAY: "/email-bundles/auto-pay",
+    CREATE_EMAIL_AUTO_PAY_SETUP_INTENT: "/email-bundles/auto-pay/setup-intent",
+    UPDATE_EMAIL_AUTO_PAY: "/email-bundles/auto-pay",
+    DELETE_EMAIL_AUTO_PAY: "/email-bundles/auto-pay",
     GET_TICKET_SCAN_LOGS: "/events/ticket-scan-logs",
     GET_ALL_EVENTS: "/events/all-events",
     GET_EVENTS: "/events",

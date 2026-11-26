@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { BiChevronDown, BiSearch, BiX, BiChevronLeft } from "react-icons/bi";
+import { BiChevronDown, BiSearch, BiX, BiChevronLeft, BiCreditCard } from "react-icons/bi";
 import { useNavigate } from "react-router-dom";
 import { Spinner, toast } from "@heroui/react";
 import { useQueryClient } from "@tanstack/react-query";
 import useEmailBundles, {
     type IEmailBundle,
+    type IEmailAutoPaySettings,
 } from "../../hooks/settings/useEmailBundles";
 import StripePaymentForm from "../common/stripePaymentForm";
 import { formatNumber } from "../../config/numberFormat";
@@ -185,6 +186,10 @@ export default function SmsEmailCredits() {
     const {
         useGetEmailBundles,
         usePurchaseEmailBundle,
+        useGetEmailAutoPay,
+        useCreateAutoPaySetupIntent,
+        useUpdateEmailAutoPay,
+        useDeleteEmailAutoPay,
     } = useEmailBundles();
 
     const { data: bundlesApiData, isLoading: isLoadingBundles } = useGetEmailBundles({
@@ -192,6 +197,21 @@ export default function SmsEmailCredits() {
     });
 
     const purchaseBundleMutation = usePurchaseEmailBundle();
+
+    const { data: autoPayApiData, isLoading: isLoadingAutoPay } = useGetEmailAutoPay();
+    const createAutoPaySetupIntentMutation = useCreateAutoPaySetupIntent();
+    const updateAutoPayMutation = useUpdateEmailAutoPay();
+    const deleteAutoPayMutation = useDeleteEmailAutoPay();
+
+    const autoPaySettings: IEmailAutoPaySettings | undefined =
+        (autoPayApiData as any)?.data || autoPayApiData;
+
+    const isAutoPayActive = Boolean(
+        autoPaySettings?.status === "active" ||
+        autoPaySettings?.enabled ||
+        autoPaySettings?.active
+    );
+    const isAutoPayPaused = autoPaySettings?.status === "paused";
 
     // Process only data from the API endpoint (divide amount by 100 before displaying)
     const emailBundles: ProcessedEmailBundle[] = useMemo(() => {
@@ -252,10 +272,132 @@ export default function SmsEmailCredits() {
         bundleName: string;
     } | null>(null);
 
-    // Auto Recharge Modal
+    // Auto Recharge Modal State
     const [showAutoRecharge, setShowAutoRecharge] = useState(false);
     const [autoRechargeEnabled, setAutoRechargeEnabled] = useState(false);
-    const [autoRechargeThreshold, setAutoRechargeThreshold] = useState("10");
+    const [autoPayBundleId, setAutoPayBundleId] = useState("");
+    const [autoPayThreshold, setAutoPayThreshold] = useState("100");
+    const [autoPayMonthlyLimit, setAutoPayMonthlyLimit] = useState("100");
+    const [isAddingNewCard, setIsAddingNewCard] = useState(false);
+    const [autoPaySetupSecret, setAutoPaySetupSecret] = useState<string | null>(null);
+
+    // Synchronize auto recharge form state with current backend settings
+    useEffect(() => {
+        if (showAutoRecharge) {
+            const active = Boolean(
+                autoPaySettings?.status === "active" ||
+                autoPaySettings?.enabled ||
+                autoPaySettings?.active
+            );
+            setAutoRechargeEnabled(active);
+            if (autoPaySettings?.bundleId) {
+                setAutoPayBundleId(autoPaySettings.bundleId);
+            } else if (emailBundles.length > 0 && !autoPayBundleId) {
+                setAutoPayBundleId(emailBundles[0].id);
+            }
+            if (autoPaySettings?.threshold != null) {
+                setAutoPayThreshold(autoPaySettings.threshold.toString());
+            } else {
+                setAutoPayThreshold("100");
+            }
+            if (autoPaySettings?.monthlyLimit != null) {
+                setAutoPayMonthlyLimit((autoPaySettings.monthlyLimit / 100).toString());
+            } else {
+                setAutoPayMonthlyLimit("100");
+            }
+            if (autoPaySettings?.paymentMethodId) {
+                setIsAddingNewCard(false);
+            } else {
+                setIsAddingNewCard(true);
+            }
+        }
+    }, [showAutoRecharge, autoPaySettings, emailBundles]);
+
+    // Helper to fetch setup intent secret for Stripe card input
+    const handleInitSetupIntent = async () => {
+        try {
+            const res = await createAutoPaySetupIntentMutation.mutateAsync();
+            const secret =
+                res?.clientSecret ||
+                res?.setupIntentSecret ||
+                res?.paymentIntentSecret ||
+                (res as any)?.data?.clientSecret ||
+                (res as any)?.data?.setupIntentSecret;
+            if (secret) {
+                setAutoPaySetupSecret(secret);
+            }
+        } catch (err) {
+            console.error("Failed to initialize setup intent", err);
+        }
+    };
+
+    // When adding a new card is selected and we don't have a secret yet, initialize it
+    useEffect(() => {
+        if (showAutoRecharge && autoRechargeEnabled && isAddingNewCard && !autoPaySetupSecret) {
+            handleInitSetupIntent();
+        }
+    }, [showAutoRecharge, autoRechargeEnabled, isAddingNewCard, autoPaySetupSecret]);
+
+    // Handle saving / updating or disabling auto-pay
+    const handleSaveAutoPaySettings = async (overridePaymentMethodId?: string) => {
+        // Case 1: Disabling auto recharge
+        if (!autoRechargeEnabled) {
+            try {
+                if (isAutoPayActive || autoPaySettings?.paymentMethodId) {
+                    await deleteAutoPayMutation.mutateAsync();
+                    toast.success("Auto recharge disabled");
+                }
+                setShowAutoRecharge(false);
+            } catch (err) {
+                console.error("Error disabling auto pay:", err);
+            }
+            return;
+        }
+
+        // Case 2: Enabling / Updating auto recharge
+        if (!autoPayBundleId) {
+            toast.danger("Please select an email bundle for auto recharge");
+            return;
+        }
+
+        const thresholdNum = parseInt(autoPayThreshold, 10);
+        if (isNaN(thresholdNum) || thresholdNum <= 0) {
+            toast.danger("Please enter a valid credit threshold (greater than 0)");
+            return;
+        }
+
+        const monthlyLimitNum = parseFloat(autoPayMonthlyLimit);
+        if (isNaN(monthlyLimitNum) || monthlyLimitNum <= 0) {
+            toast.danger("Please enter a valid monthly spending limit (greater than 0)");
+            return;
+        }
+
+        const effectivePaymentMethodId =
+            overridePaymentMethodId || autoPaySettings?.paymentMethodId;
+
+        if (!effectivePaymentMethodId) {
+            toast.danger("Please enter and authorize a card first");
+            setIsAddingNewCard(true);
+            if (!autoPaySetupSecret) {
+                handleInitSetupIntent();
+            }
+            return;
+        }
+
+        try {
+            await updateAutoPayMutation.mutateAsync({
+                bundleId: autoPayBundleId,
+                paymentMethodId: effectivePaymentMethodId,
+                threshold: thresholdNum,
+                monthlyLimit: Math.round(monthlyLimitNum * 100), // Converted to pence
+            });
+            toast.success("Auto recharge settings saved successfully");
+            setShowAutoRecharge(false);
+            setIsAddingNewCard(false);
+        } catch (err) {
+            console.error("Error updating auto pay:", err);
+        }
+    };
 
     // Click outside handler
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -278,10 +420,10 @@ export default function SmsEmailCredits() {
     const [serviceFees, setServiceFees] = useState(0);
 
     // Calculations
-    const emailCost = selectedEmail?.amount || 0;
+    const emailCost = (selectedEmail?.amount || 0) / 100;
     const smsCost = addSmsCredit ? selectedSms.price : 0;
     const senderIdCost = addSmsCredit ? selectedSenderId.price : 0;
-    const subtotal = emailCost + smsCost + senderIdCost;
+    const subtotal = emailCost;
 
     // Recalculate service fee whenever subtotal or currency changes
     useEffect(() => {
@@ -319,7 +461,7 @@ export default function SmsEmailCredits() {
             const res = await purchaseBundleMutation.mutateAsync({
                 bundleId: selectedEmail.id,
                 credits: selectedEmail.credits,
-                amount: selectedEmail.amount * 100,
+                amount: selectedEmail.amount,
             });
             const clientSecret =
                 res?.paymentIntentSecret ||
@@ -443,13 +585,35 @@ export default function SmsEmailCredits() {
                 </button>
 
                 {/* Auto Recharge Button */}
-                {/* <button
-                    type="button"
-                    onClick={() => setShowAutoRecharge(true)}
-                    className="text-xs font-bold text-gray-900 hover:text-[#37137F] transition text-center cursor-pointer"
-                >
-                    Auto Recharge
-                </button> */}
+                <div className="pt-1">
+                    <button
+                        type="button"
+                        onClick={() => setShowAutoRecharge(true)}
+                        className="w-full py-2.5 px-4 rounded-xl border border-gray-200 hover:border-[#37137F] bg-gray-50/80 hover:bg-purple-50/40 text-xs sm:text-sm font-bold text-[#37137F] transition flex items-center justify-between cursor-pointer"
+                    >
+                        <span className="flex items-center gap-1.5">
+                            <svg className="w-4 h-4 text-[#37137F]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Auto Recharge
+                        </span>
+                        {isLoadingAutoPay ? (
+                            <Spinner size="sm" color="current" />
+                        ) : isAutoPayActive ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">
+                                Active
+                            </span>
+                        ) : isAutoPayPaused ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">
+                                Paused
+                            </span>
+                        ) : (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-200 text-gray-600">
+                                Disabled
+                            </span>
+                        )}
+                    </button>
+                </div>
             </div>
         </div>
     );
@@ -815,33 +979,58 @@ export default function SmsEmailCredits() {
             {/* 🔄 Auto Recharge Settings Modal */}
             {showAutoRecharge && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-                    <div className="bg-white rounded-3xl max-w-md w-full p-6 flex flex-col gap-5 shadow-2xl border border-gray-100 animate-in zoom-in-95 duration-150">
-                        <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                    <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 sm:p-7 flex flex-col gap-5 shadow-2xl border border-gray-100 animate-in zoom-in-95 duration-150">
+                        {/* Header */}
+                        <div className="flex justify-between items-start border-b border-gray-100 pb-4">
                             <div>
-                                <h3 className="text-lg font-bold text-[#37137F]">
-                                    Auto Recharge Settings
-                                </h3>
-                                <p className="text-xs text-gray-500">
-                                    Keep your SMS & email campaigns running without interruption
+                                <div className="flex items-center gap-2">
+                                    <h3 className="text-lg sm:text-xl font-bold text-[#37137F]">
+                                        Auto Recharge Settings
+                                    </h3>
+                                    {isAutoPayActive ? (
+                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">
+                                            Active
+                                        </span>
+                                    ) : isAutoPayPaused ? (
+                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">
+                                            Paused
+                                        </span>
+                                    ) : (
+                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-200 text-gray-600">
+                                            Disabled
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Automatically replenish email credits when your balance runs low.
                                 </p>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => setShowAutoRecharge(false)}
-                                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition"
+                                className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition cursor-pointer"
                             >
-                                <BiX size={24} />
+                                <BiX size={22} />
                             </button>
                         </div>
 
+                        {/* Paused Warning if applicable */}
+                        {isAutoPayPaused && (
+                            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 flex flex-col gap-1">
+                                <span className="font-bold">Auto-pay is currently paused</span>
+                                <span>{autoPaySettings?.pausedReason || "Monthly limit reached or card authorization issue. Updating settings will resume auto-pay."}</span>
+                            </div>
+                        )}
+
                         <div className="flex flex-col gap-4">
-                            <div className="flex items-center justify-between p-3.5 bg-gray-50 rounded-2xl border border-gray-200">
+                            {/* Enable/Disable Toggle */}
+                            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-200">
                                 <div>
                                     <p className="text-sm font-bold text-gray-900">
                                         Enable Auto Recharge
                                     </p>
                                     <p className="text-xs text-gray-500">
-                                        Automatically top up when balance is low
+                                        Top up credits automatically without campaign interruptions
                                     </p>
                                 </div>
                                 <button
@@ -857,37 +1046,229 @@ export default function SmsEmailCredits() {
                                 </button>
                             </div>
 
+                            {/* Settings Form (Visible when enabled) */}
                             {autoRechargeEnabled && (
-                                <div className="flex flex-col gap-1.5 animate-in fade-in">
-                                    <label className="text-xs font-semibold text-gray-700">
-                                        When credit drops below (£):
-                                    </label>
-                                    <select
-                                        value={autoRechargeThreshold}
-                                        onChange={(e) => setAutoRechargeThreshold(e.target.value)}
-                                        className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm bg-white focus:outline-hidden focus:border-[#37137F]"
-                                    >
-                                        <option value="5">£5.00</option>
-                                        <option value="10">£10.00 (Recommended)</option>
-                                        <option value="20">£20.00</option>
-                                        <option value="50">£50.00</option>
-                                    </select>
+                                <div className="flex flex-col gap-4 animate-in fade-in duration-200">
+                                    {/* 1. Recharge Bundle */}
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="text-xs font-bold text-gray-900">
+                                            Recharge Bundle:
+                                        </label>
+                                        <div className="relative">
+                                            <select
+                                                value={autoPayBundleId}
+                                                onChange={(e) => setAutoPayBundleId(e.target.value)}
+                                                className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 bg-white text-sm font-semibold text-gray-900 focus:outline-hidden focus:border-[#37137F] appearance-none pr-9 cursor-pointer"
+                                            >
+                                                <option value="" disabled>
+                                                    Select bundle to purchase
+                                                </option>
+                                                {emailBundles.map((b) => (
+                                                    <option key={b.id} value={b.id}>
+                                                        {b.label || `${b.credits.toLocaleString()} Emails (£${formatNumber(b.amount, "")})`}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-700">
+                                                <BiChevronDown size={20} />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 2. Threshold */}
+                                    <div className="flex flex-col gap-1.5">
+                                        <div className="flex justify-between items-center">
+                                            <label className="text-xs font-bold text-gray-900">
+                                                Recharge When Balance Drops Below:
+                                            </label>
+                                            <span className="text-[11px] text-gray-500 font-medium">Credits</span>
+                                        </div>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                step="10"
+                                                value={autoPayThreshold}
+                                                onChange={(e) => setAutoPayThreshold(e.target.value)}
+                                                placeholder="e.g. 100"
+                                                className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-gray-900 focus:outline-hidden focus:border-[#37137F]"
+                                            />
+                                            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-xs text-gray-400 font-medium">
+                                                credits
+                                            </div>
+                                        </div>
+                                        <p className="text-[11px] text-gray-500">
+                                            Auto-recharge triggers whenever your balance falls below this threshold.
+                                        </p>
+                                    </div>
+
+                                    {/* 3. Monthly Spending Cap */}
+                                    <div className="flex flex-col gap-1.5">
+                                        <div className="flex justify-between items-center">
+                                            <label className="text-xs font-bold text-gray-900">
+                                                Monthly Spending Cap (£):
+                                            </label>
+                                            {autoPaySettings?.spentThisMonth != null && (
+                                                <span className="text-[11px] text-gray-500 font-medium">
+                                                    Spent this month: {formatNumber(autoPaySettings.spentThisMonth / 100, "£")}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="relative">
+                                            <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-sm text-gray-500 font-semibold">
+                                                £
+                                            </div>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                step="5"
+                                                value={autoPayMonthlyLimit}
+                                                onChange={(e) => setAutoPayMonthlyLimit(e.target.value)}
+                                                placeholder="e.g. 100"
+                                                className="w-full border border-gray-300 rounded-xl pl-8 pr-3.5 py-2.5 text-sm font-semibold text-gray-900 focus:outline-hidden focus:border-[#37137F]"
+                                            />
+                                        </div>
+                                        <p className="text-[11px] text-gray-500">
+                                            Maximum auto-recharge spend permitted in a single calendar month.
+                                        </p>
+                                    </div>
+
+                                    {/* 4. Payment Method Selection */}
+                                    <div className="flex flex-col gap-2 pt-1 border-t border-gray-100">
+                                        <label className="text-xs font-bold text-gray-900">
+                                            Payment Method:
+                                        </label>
+
+                                        {/* Saved Card Display */}
+                                        {!isAddingNewCard && autoPaySettings?.card && (
+                                            <div className="flex items-center justify-between p-3.5 bg-gray-50 rounded-2xl border border-gray-200">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-xl bg-purple-100 text-[#37137F] flex items-center justify-center shrink-0">
+                                                        <BiCreditCard size={22} />
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <p className="text-sm font-bold text-gray-900 capitalize">
+                                                            {autoPaySettings.card.brand || "Card"} ending in {autoPaySettings.card.last4 || "••••"}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500">
+                                                            Expires {autoPaySettings.card.expMonth}/{autoPaySettings.card.expYear}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setIsAddingNewCard(true);
+                                                        if (!autoPaySetupSecret) {
+                                                            handleInitSetupIntent();
+                                                        }
+                                                    }}
+                                                    className="text-xs font-bold text-[#37137F] hover:underline cursor-pointer px-2 py-1"
+                                                >
+                                                    Change Card
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        {/* New Card Section */}
+                                        {isAddingNewCard && (
+                                            <div className="flex flex-col gap-3 bg-gray-50/70 p-4 rounded-2xl border border-gray-200">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-xs font-bold text-gray-900">
+                                                        Enter Card Details:
+                                                    </span>
+                                                    {autoPaySettings?.card && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setIsAddingNewCard(false)}
+                                                            className="text-xs font-semibold text-[#37137F] hover:underline cursor-pointer"
+                                                        >
+                                                            Keep existing card
+                                                        </button>
+                                                    )}
+                                                </div>
+
+                                                {createAutoPaySetupIntentMutation.isPending || !autoPaySetupSecret ? (
+                                                    <div className="flex items-center justify-center py-6 gap-2 text-sm text-gray-500">
+                                                        <Spinner size="sm" color="current" />
+                                                        <span>Preparing secure card form...</span>
+                                                    </div>
+                                                ) : (
+                                                    <StripePaymentForm
+                                                        intent={autoPaySetupSecret}
+                                                        submitButtonText={
+                                                            updateAutoPayMutation.isPending
+                                                                ? "Saving Settings..."
+                                                                : "Authorize Card & Enable Auto-Pay"
+                                                        }
+                                                        type="bundle"
+                                                        onSuccess={async (result: any) => {
+                                                            const pmId =
+                                                                (typeof result?.payment_method === "string"
+                                                                    ? result.payment_method
+                                                                    : result?.payment_method?.id) ||
+                                                                result?.paymentMethodId;
+                                                            if (pmId) {
+                                                                await handleSaveAutoPaySettings(pmId);
+                                                            } else {
+                                                                toast.danger("Could not find payment method from card authorization.");
+                                                            }
+                                                        }}
+                                                        onCancel={() => {
+                                                            if (autoPaySettings?.card) {
+                                                                setIsAddingNewCard(false);
+                                                            } else {
+                                                                setShowAutoRecharge(false);
+                                                            }
+                                                        }}
+                                                    />
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             )}
                         </div>
 
-                        <div className="flex items-center justify-end gap-3 pt-2">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setShowAutoRecharge(false);
-                                    toast.success("Auto recharge settings saved!");
-                                }}
-                                className="w-full py-3 rounded-xl bg-[#37137F] hover:bg-[#2c0f66] text-white text-sm font-bold transition shadow-xs"
-                            >
-                                Save Settings
-                            </button>
-                        </div>
+                        {/* Action Buttons */}
+                        {/* Only show bottom Save button if NOT currently in StripePaymentForm */}
+                        {(!autoRechargeEnabled || !isAddingNewCard) && (
+                            <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
+                                {!autoRechargeEnabled ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSaveAutoPaySettings()}
+                                        disabled={deleteAutoPayMutation.isPending}
+                                        className="w-full py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-bold transition shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                                    >
+                                        {deleteAutoPayMutation.isPending ? (
+                                            <>
+                                                <Spinner size="sm" color="current" />
+                                                <span>Disabling Auto Recharge...</span>
+                                            </>
+                                        ) : (
+                                            "Disable Auto Recharge"
+                                        )}
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSaveAutoPaySettings()}
+                                        disabled={updateAutoPayMutation.isPending}
+                                        className="w-full py-3 rounded-xl bg-[#37137F] hover:bg-[#2c0f66] text-white text-sm font-bold transition shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                                    >
+                                        {updateAutoPayMutation.isPending ? (
+                                            <>
+                                                <Spinner size="sm" color="current" />
+                                                <span>Saving Settings...</span>
+                                            </>
+                                        ) : (
+                                            "Save Auto Recharge Settings"
+                                        )}
+                                    </button>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
